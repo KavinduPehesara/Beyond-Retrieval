@@ -1,0 +1,3 @@
+# Run artefacts land here, one directory per run.
+# Committed per run: config.yaml, metrics.json, git_sha.txt
+# Not committed: responses.jsonl (see .gitignore)
