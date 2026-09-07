@@ -1,0 +1,91 @@
+# ---------------------------------------------------------------
+# Secrets — nothing in here ever reaches GitHub.
+# This repository is PUBLIC. A leaked key is scraped by bots within
+# seconds and stays in the history permanently. This block is the
+# most important part of this file.
+# ---------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.key
+secrets/
+
+# ---------------------------------------------------------------
+# Data — large, re-downloadable, and not ours to redistribute.
+# SYNERGY is CC0, but it is fetched with `python -m synergy_dataset get`
+# rather than committed, so the repo stays small and provenance stays
+# with ASReview.
+# ---------------------------------------------------------------
+data/
+*.db
+*.sqlite
+*.sqlite3
+*.npy
+*.faiss
+*.index
+
+# ---------------------------------------------------------------
+# Run artefacts — SELECTIVE.
+# Every reported figure must trace to a run directory (rule 2), so
+# configs and metrics ARE committed. Raw model responses are not:
+# they run to hundreds of MB and add nothing a reviewer needs.
+# ---------------------------------------------------------------
+runs/*
+!runs/.gitkeep
+!runs/*/
+runs/*/responses.jsonl
+runs/*/raw/
+!runs/*/config.yaml
+!runs/*/metrics.json
+!runs/*/git_sha.txt
+
+# ---------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ---------------------------------------------------------------
+# Model and library caches
+# ---------------------------------------------------------------
+.cache/
+huggingface/
+transformers_cache/
+sentence_transformers/
+torch_cache/
+
+# ---------------------------------------------------------------
+# Editors and OS
+# ---------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------------------------------------------------------------
+# Notebooks — allowed for scratch work, but outputs stripped.
+# A committed notebook with embedded results is a number that does
+# not trace to a run directory.
+# ---------------------------------------------------------------
+.ipynb_checkpoints/
+notebooks/scratch/

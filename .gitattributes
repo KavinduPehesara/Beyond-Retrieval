@@ -1,0 +1,28 @@
+# Normalise line endings. Development is on Windows; markers and CI are not.
+# Without this, every file looks modified when opened on another machine,
+# which breaks the "fresh clone runs on a second machine" exit test in week 13.
+* text=auto eol=lf
+
+*.py    text eol=lf
+*.md    text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf
+*.json  text eol=lf
+*.txt   text eol=lf
+*.cfg   text eol=lf
+*.toml  text eol=lf
+
+# Windows-only scripts keep CRLF
+*.bat   text eol=crlf
+*.ps1   text eol=crlf
+
+# Binary — never diff or convert
+*.png   binary
+*.jpg   binary
+*.pdf   binary
+*.docx  binary
+*.pptx  binary
+*.xlsx  binary
+*.npy   binary
+*.faiss binary
+*.db    binary

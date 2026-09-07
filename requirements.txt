@@ -1,0 +1,36 @@
+# Python 3.11
+#
+# Pinned on day one, deliberately. A silent library upgrade in week 13 that
+# changes the embeddings would invalidate every number produced before it.
+# Regenerate with `pip freeze > requirements.txt` only when you intend to.
+
+# --- core ---
+pydantic==2.9.2
+pyyaml==6.0.2
+python-dotenv==1.0.1
+httpx==0.27.2
+tenacity==9.0.0
+
+# --- data ---
+synergy-dataset==1.0.2
+pandas==2.2.3
+numpy==1.26.4
+
+# --- LLM provider ---
+google-genai==0.3.0
+
+# --- retrieval (week 9; installed now so the environment is pinned once) ---
+sentence-transformers==3.2.1
+faiss-cpu==1.9.0
+scikit-learn==1.5.2
+
+# --- service layer and interface (week 12) ---
+fastapi==0.115.5
+uvicorn==0.32.1
+streamlit==1.40.2
+
+# --- baseline (week 14) ---
+asreview==1.6.3
+
+# --- testing ---
+pytest==8.3.4
