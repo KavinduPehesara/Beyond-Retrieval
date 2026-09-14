@@ -61,20 +61,38 @@ class MissingCorpus(RuntimeError):
     """A configured review has no records in the database."""
 
 
-def git_state() -> tuple[str, bool]:
+def git_state(runs_dir: Path | None = None) -> tuple[str, bool]:
     """The commit HEAD is at, and whether the tree differs from it.
+
+    Untracked files under ``runs_dir`` do not count: they are the outputs of
+    earlier runs waiting for their ``eval:`` commit, not code, and counting
+    them would make every second run in a session "dirty". Anything else — a
+    modified tracked file, including a committed run artefact, or a new
+    source file — does count.
 
     If git is unavailable the state is ("unknown", True): a run whose code
     cannot be identified is treated as uncommitted.
     """
+
+    def git(*args: str) -> str:
+        return subprocess.check_output(["git", *args], stderr=subprocess.DEVNULL, text=True)
+
     try:
-        sha = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL, text=True
-        ).strip()
-        status = subprocess.check_output(
-            ["git", "status", "--porcelain"], stderr=subprocess.DEVNULL, text=True
-        ).strip()
-        return sha, bool(status)
+        sha = git("rev-parse", "HEAD").strip()
+        lines = git("status", "--porcelain=v1", "--untracked-files=all").splitlines()
+        prefix = None
+        if runs_dir is not None:
+            top = Path(git("rev-parse", "--show-toplevel").strip()).resolve()
+            try:
+                prefix = Path(runs_dir).resolve().relative_to(top).as_posix().rstrip("/") + "/"
+            except ValueError:
+                prefix = None  # runs outside the repository never show up here
+        changes = [
+            line
+            for line in lines
+            if not (prefix and line.startswith("?? ") and line[3:].strip('"').startswith(prefix))
+        ]
+        return sha, bool(changes)
     except Exception:
         return "unknown", True
 
@@ -89,7 +107,7 @@ def _write_json(path: Path, payload: dict) -> None:
 
 def run(cfg: Config, *, require_clean: bool = False) -> Path:
     """Execute one configuration. Returns the run directory."""
-    sha, dirty = git_state()
+    sha, dirty = git_state(cfg.runs_dir)
     if require_clean and dirty:
         raise DirtyTree(
             "Working tree has uncommitted changes, or git is unavailable. "

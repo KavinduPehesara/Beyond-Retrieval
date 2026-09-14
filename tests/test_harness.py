@@ -88,7 +88,7 @@ screening:
 
 @pytest.fixture()
 def corpus(tmp_path, monkeypatch):
-    monkeypatch.setattr(harness, "git_state", lambda: ("0" * 40, False))
+    monkeypatch.setattr(harness, "git_state", lambda *args, **kwargs: ("0" * 40, False))
     conn = connect(tmp_path / "slr.db")
     ingest_frame(conn, REVIEW, _corpus())
     conn.close()
@@ -171,15 +171,45 @@ def test_responses_log_carries_no_ground_truth(corpus):
 
 
 def test_require_clean_refuses_a_dirty_tree_before_doing_anything(corpus, monkeypatch):
-    monkeypatch.setattr(harness, "git_state", lambda: ("0" * 40, True))
+    monkeypatch.setattr(harness, "git_state", lambda *args, **kwargs: ("0" * 40, True))
     cfg = load_config(_config(corpus, "screen", SCREEN))
     with pytest.raises(harness.DirtyTree):
         harness.run(cfg, require_clean=True)
     assert not (corpus / "runs").exists()
 
 
+def test_git_state_ignores_only_untracked_run_artefacts(tmp_path, monkeypatch):
+    """A second run in a session must not be refused for the first run's outputs."""
+    import subprocess
+
+    def git(*args):
+        subprocess.run(["git", *args], cwd=tmp_path, check=True, capture_output=True)
+
+    git("init", "-q")
+    git("config", "user.email", "test@example.com")
+    git("config", "user.name", "test")
+    (tmp_path / "code.py").write_text("x = 1\n", encoding="utf-8")
+    git("add", ".")
+    git("commit", "-q", "-m", "init")
+    monkeypatch.chdir(tmp_path)
+
+    artefact = tmp_path / "runs" / "r1" / "metrics.json"
+    artefact.parent.mkdir(parents=True)
+    artefact.write_text("{}", encoding="utf-8")
+    sha, dirty = harness.git_state(Path("runs"))
+    assert len(sha) == 40
+    assert not dirty
+
+    (tmp_path / "new_module.py").write_text("y = 1\n", encoding="utf-8")
+    assert harness.git_state(Path("runs"))[1]
+    (tmp_path / "new_module.py").unlink()
+
+    (tmp_path / "code.py").write_text("x = 2\n", encoding="utf-8")
+    assert harness.git_state(Path("runs"))[1]
+
+
 def test_missing_corpus_is_refused_before_a_run_directory_exists(tmp_path, monkeypatch):
-    monkeypatch.setattr(harness, "git_state", lambda: ("0" * 40, False))
+    monkeypatch.setattr(harness, "git_state", lambda *args, **kwargs: ("0" * 40, False))
     cfg = load_config(_config(tmp_path, "screen", SCREEN))
     with pytest.raises(harness.MissingCorpus):
         harness.run(cfg)
