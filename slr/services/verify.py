@@ -121,8 +121,14 @@ def verify_span(span: str | None, source: str | None) -> VerificationResult:
     # Distinguish the interesting failure modes from each other. A model that
     # wraps its quote in punctuation is behaving differently from one that
     # invents a sentence, and the report should be able to say which.
+    # The stripped span must still meet the minimum length: otherwise a span
+    # padded with punctuation passes on a handful of real characters.
     stripped = n_span.strip("\"'.,;:()[] ")
-    if stripped and stripped != n_span and stripped in n_source:
+    if (
+        len(stripped) >= MIN_SPAN_CHARS
+        and stripped != n_span
+        and stripped in n_source
+    ):
         return VerificationResult(True, "exact_after_punctuation_strip")
 
     # Did the model quote a real sentence but truncate or extend it? Check

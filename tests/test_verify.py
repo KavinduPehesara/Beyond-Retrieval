@@ -128,6 +128,19 @@ def test_short_span_is_rejected():
     assert "span_too_short" in result.note
 
 
+@pytest.mark.parametrize(
+    "span",
+    [
+        '"(((((((((((((((((( results',  # 7 real characters behind padding
+        '"............... cohorts ....',
+    ],
+)
+def test_punctuation_padding_cannot_bypass_minimum_length(span):
+    source = "The results were mixed across all five cohorts studied."
+    result = verify_span(span, source)
+    assert not result.verified
+
+
 def test_span_longer_than_source_is_rejected():
     result = verify_span(ABSTRACT + " And then some more invented text.", ABSTRACT)
     assert not result.verified
