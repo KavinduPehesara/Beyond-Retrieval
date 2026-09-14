@@ -1,16 +1,20 @@
 """Load SYNERGY reviews into SQLite.
 
-SYNERGY is fetched with ``python -m synergy_dataset get`` and read from there;
-it is never committed. Each record arrives as an OpenAlex Work object with a
-``label_included`` column recording what the human reviewers actually decided.
+Records come from the SYNERGY v1.0 release through the ``synergy-dataset``
+package; published eligibility criteria come from the pinned
+``datasets.toml`` (see ``slr.services.criteria``). Neither is committed.
 
-That column is written here and read only by ``slr.eval.metrics``. It does not
-appear in any prompt. Keeping that boundary is what makes the accuracy figures
-mean anything.
+Each record arrives as an OpenAlex Work with a ``label_included`` value
+recording what the human reviewers actually decided. That column is written
+here and read only by ``slr.eval.metrics``. It does not appear in any prompt.
+Keeping that boundary is what makes the accuracy figures mean anything.
 
 Every review is loaded in full. Capping happens at screening time, never here:
 a capped ingest changes the prevalence of what is stored, and every metric
 computed afterwards would inherit the distortion without saying so.
+
+SYNERGY's licence note: abstracts may not be republished as plain text. They
+live only in ``data/slr.db`` and in ``responses.jsonl``, both gitignored.
 """
 
 from __future__ import annotations
@@ -23,45 +27,7 @@ from pathlib import Path
 
 from slr.config import Config, load_config
 from slr.db import connect
-
-# Eligibility criteria per review. SYNERGY ships these as block quotations
-# with each dataset; these are condensed working versions for week 7, to be
-# replaced with the published text before any reported run. When they are,
-# set CRITERIA_STATUS to "published" and bump screening.prompt_version — the
-# cache refuses to serve responses produced under the old text.
-#
-# CRITERIA_STATUS is written into every metrics file, so a figure produced
-# under draft criteria cannot be mistaken for a reportable one.
-CRITERIA_STATUS = "working-draft"
-
-CRITERIA: dict[str, str] = {
-    "Radjenovic_2013": (
-        "Include studies that propose, evaluate or compare software fault "
-        "prediction metrics. Exclude studies not concerning fault prediction, "
-        "and studies with no empirical evaluation."
-    ),
-    "Smid_2020": (
-        "Include studies that report statistical methodology for structural "
-        "equation modelling or Bayesian estimation in small samples. Exclude "
-        "purely applied studies with no methodological contribution."
-    ),
-    "van_der_Waal_2022": (
-        "Include studies reporting clinical outcomes for the intervention "
-        "under review. Exclude animal studies, case reports and reviews."
-    ),
-    "Menon_2022": (
-        "Include studies reporting original empirical data on the population "
-        "and outcome of interest. Exclude protocols, editorials and reviews."
-    ),
-    "van_der_Valk_2021": (
-        "Include studies measuring the exposure and outcome of interest in "
-        "human participants. Exclude animal studies and non-empirical work."
-    ),
-    "Nelson_2002": (
-        "Include studies reporting screening or diagnostic accuracy in the "
-        "target population. Exclude studies without a reference standard."
-    ),
-}
+from slr.services import criteria as criteria_service
 
 UPSERT = """
 INSERT INTO work
@@ -80,28 +46,60 @@ ON CONFLICT(review, work_id) DO UPDATE SET
     label_included = excluded.label_included
 """
 
+SYNERGY_FIELDS = ["doi", "title", "abstract", "publication_year"]
+
 
 def _load_synergy(review: str):
-    """Return a DataFrame for one SYNERGY review.
+    """Return a DataFrame for one SYNERGY review, one row per labelled record.
 
-    Tries the ``synergy-dataset`` package first, then a local CSV fallback so
-    the pipeline can be exercised without the download.
+    Built from ``Dataset.labels`` and ``Dataset.to_dict`` rather than
+    ``Dataset.to_frame``. ``to_frame`` puts ``openalex_id`` in the index, not
+    a column, and a labelled record whose work is absent from the release
+    comes back as an all-empty row with no label. Here every record in
+    ``labels.csv`` is kept with its label; a missing work simply has no
+    title or abstract.
+
+    The release is downloaded on first use to ``~/.synergy_dataset_source``,
+    outside the repository. A local CSV at ``data/synergy/<review>.csv`` is
+    used instead when the package is not installed.
     """
-    try:
-        from synergy_dataset import Dataset
+    import pandas as pd
 
-        return Dataset(review).to_frame()
-    except Exception as exc:
+    try:
+        from synergy_dataset.base import Dataset, _dataset_available, download_raw_dataset
+    except ImportError as exc:
         fallback = Path("data/synergy") / f"{review}.csv"
         if fallback.exists():
-            import pandas as pd
-
             return pd.read_csv(fallback)
         raise RuntimeError(
-            f"Could not load SYNERGY review {review!r}: {exc}\n"
-            f"Run `python -m synergy_dataset get` first, or place a CSV at "
-            f"{fallback}."
+            f"synergy-dataset is not installed and no CSV exists at {fallback}. "
+            f"pip install -r requirements.txt"
         ) from exc
+
+    if not _dataset_available():
+        download_raw_dataset()
+
+    dataset = Dataset(review)
+    try:
+        labels = dataset.labels
+    except FileNotFoundError as exc:
+        raise RuntimeError(f"SYNERGY has no review named {review!r}") from exc
+    records = dataset.to_dict(SYNERGY_FIELDS)
+
+    rows = []
+    for work_id in sorted(labels):
+        record = records.get(work_id) or {}
+        rows.append(
+            {
+                "openalex_id": work_id,
+                "doi": record.get("doi"),
+                "title": record.get("title"),
+                "abstract": record.get("abstract"),
+                "publication_year": record.get("publication_year"),
+                "label_included": labels[work_id],
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 def _column(frame, *names: str):
@@ -224,17 +222,26 @@ def main(argv: list[str] | None = None) -> int:
 
     cfg: Config = load_config(args.config)
     conn = connect(cfg.db_path)
+    published = criteria_service.fetch_published()
 
     total = 0
     for review in cfg.dataset.reviews:
         n = ingest_review(conn, review)
         total += n
-        included = conn.execute(
-            "SELECT COUNT(*) FROM work WHERE review = ? AND label_included = 1",
+        included, no_abstract = conn.execute(
+            "SELECT SUM(label_included), SUM(abstract IS NULL) FROM work WHERE review = ?",
             (review,),
-        ).fetchone()[0]
+        ).fetchone()
         rate = 100 * included / n if n else 0
-        print(f"  {review:24} {n:>6} records, {included:>4} included ({rate:.1f}%)")
+        print(
+            f"  {review:20} {n:>6} records, {included:>4} included ({rate:.1f}%), "
+            f"{no_abstract:>4} without abstract"
+        )
+
+        if review in published:
+            criteria_service.store(conn, review, published[review], criteria_service.SOURCE)
+        else:
+            print(f"  ! no published criteria for {review}; drafts will be used")
 
     print(f"\n{total} records in {cfg.db_path}")
     conn.close()

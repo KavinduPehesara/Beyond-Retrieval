@@ -41,8 +41,8 @@ from slr.adapters.llm import BudgetExceeded, CacheMismatch, Meter, build_provide
 from slr.config import Config, load_config
 from slr.db import connect
 from slr.eval import metrics
+from slr.services import criteria as criteria_service
 from slr.services import retrieve
-from slr.services.ingest import CRITERIA, CRITERIA_STATUS
 from slr.services.screen import (
     load_prompt_template,
     persist,
@@ -166,10 +166,15 @@ def _run(conn, cfg: Config, sha: str, dirty: bool) -> Path:
     print(f"  commit     {sha}{' (dirty)' if dirty else ''}\n")
     if dirty:
         print("  ! working tree is dirty — commit before a run you intend to report (rule 3)\n")
-    if provider and provider.name != "mock" and CRITERIA_STATUS != "published":
+    review_criteria = {r: criteria_service.for_review(conn, r) for r in reviews}
+    drafts = [r for r, c in review_criteria.items() if c.status != criteria_service.PUBLISHED]
+    uses_criteria = (provider is not None and provider.name != "mock") or (
+        provider is None and cfg.ranking.strategy == "bm25"
+    )
+    if drafts and uses_criteria:
         print(
-            f"  ! eligibility criteria are '{CRITERIA_STATUS}' — replace them with "
-            f"SYNERGY's published text before any run that gets reported\n"
+            f"  ! draft eligibility criteria for {drafts} — run ingest to load the "
+            f"published criteria before any run that gets reported\n"
         )
 
     aborted: str | None = None
@@ -178,7 +183,7 @@ def _run(conn, cfg: Config, sha: str, dirty: bool) -> Path:
 
     try:
         for review in reviews:
-            criteria = CRITERIA.get(review, "See the review's published protocol.")
+            criteria = review_criteria[review].text
             order = retrieve.rank(
                 conn,
                 cfg.ranking.strategy,
@@ -280,8 +285,8 @@ def _run(conn, cfg: Config, sha: str, dirty: bool) -> Path:
             else None
         ),
         "criteria": {
-            "status": CRITERIA_STATUS,
-            "sha256": {r: _sha256(CRITERIA.get(r, "")) for r in reviews},
+            r: {"status": c.status, "source": c.source, "sha256": c.sha256}
+            for r, c in review_criteria.items()
         },
         "aborted": aborted is not None,
         "reviews_completed": [m["review"] for m in per_review],

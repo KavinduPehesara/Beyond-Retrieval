@@ -1,0 +1,47 @@
+# Week 8 — first recall figures on two reviews, with a real model.
+#
+# Before running:
+#   1. GEMINI_API_KEY in .env (check `git check-ignore -v .env` first).
+#   2. Ingest has loaded the published eligibility criteria: the harness prints
+#      a warning and every metrics file records it if they are still drafts.
+#   3. Commit, then run with --require-clean.
+#
+# Size: 2,993 records (2,627 + 366), one call each. At roughly 1,000 input and
+# 100 output tokens per call that is about $0.40 at the prices below; the
+# ceiling aborts at $2.00. Run it twice: the second run is served from cache
+# at $0 and must produce an identical metrics.json.
+#
+# gemini-2.0-flash (the week 7 default) was shut down on 1 June 2026.
+
+name: week08_gemini_flash_lite
+
+dataset:
+  reviews:
+    - Smid_2020        # 2,627 records, 1.0% inclusion
+    - Nelson_2002      # 366 records, 21.9% inclusion
+  max_records: null    # every record; TNR@95 needs the full review
+  seed: 42
+
+ranking:
+  strategy: random     # order of screening only; every record is screened
+  recall_target: 0.95
+
+screening:
+  enabled: true
+  provider: gemini
+  model: gemini-2.5-flash-lite
+  prompt_version: screen_v1
+  temperature: 0.0
+  max_output_tokens: 512
+  max_retries: 3
+  seed: 42
+
+budget:
+  ceiling_usd: 2.00
+  usd_per_1m_input: 0.10   # Gemini 2.5 Flash-Lite, paid tier, September 2026
+  usd_per_1m_output: 0.40
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts
+cache_enabled: true

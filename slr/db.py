@@ -22,7 +22,7 @@ from pathlib import Path
 
 # Bump whenever the schema changes shape. An older database is refused rather
 # than silently half-migrated: it is regenerated from SYNERGY by ingest.
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 SCHEMA = """
 PRAGMA journal_mode = WAL;
@@ -42,6 +42,16 @@ CREATE TABLE IF NOT EXISTS work (
     language        TEXT,                   -- NULL until detection exists
     label_included  INTEGER NOT NULL,       -- GROUND TRUTH. Never in a prompt.
     PRIMARY KEY (review, work_id)
+);
+
+-- Published eligibility criteria per review, stored by ingest with where the
+-- text came from. A review without a row here is screened under draft
+-- criteria, and every metrics file says so.
+CREATE TABLE IF NOT EXISTS review_criteria (
+    review          TEXT PRIMARY KEY,
+    criteria        TEXT NOT NULL,
+    source          TEXT NOT NULL,
+    sha256          TEXT NOT NULL
 );
 
 -- Full-text index over title and abstract. This is the lexical baseline.

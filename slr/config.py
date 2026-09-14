@@ -82,7 +82,9 @@ class ScreeningConfig(BaseModel):
         ),
     )
     provider: Literal["gemini", "mock"] = "mock"
-    model: str = "gemini-2.0-flash"
+    # gemini-2.0-flash was shut down on 1 June 2026. 2.5 Flash-Lite is the
+    # cheapest model still served; check the deprecations page before a run.
+    model: str = "gemini-2.5-flash-lite"
     prompt_version: str = "screen_v1"
     temperature: float = 0.0
     max_output_tokens: int = 512
@@ -105,8 +107,9 @@ class BudgetConfig(BaseModel):
     """
 
     ceiling_usd: float = 1.0
-    usd_per_1m_input: float = 0.15
-    usd_per_1m_output: float = 0.60
+    # Gemini 2.5 Flash-Lite paid tier, text input, as listed September 2026.
+    usd_per_1m_input: float = 0.10
+    usd_per_1m_output: float = 0.40
 
 
 class Config(BaseModel):

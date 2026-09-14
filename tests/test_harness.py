@@ -16,6 +16,7 @@ import pytest
 from slr.config import load_config
 from slr.db import connect
 from slr.eval import harness, report_tables
+from slr.services import criteria as criteria_service
 from slr.services.ingest import ingest_frame
 
 REPO = Path(__file__).resolve().parent.parent
@@ -29,9 +30,9 @@ def _corpus() -> pd.DataFrame:
     for i in range(N_RECORDS):
         included = i < N_INCLUDED
         topic = (
-            "screening accuracy against a reference standard in the target population"
+            "hormone replacement therapy users compared with non-users on clinical outcomes"
             if included
-            else "an unrelated outcome measured in a different population"
+            else "an unrelated exposure measured in a different cohort"
         )
         rows.append(
             {
@@ -146,8 +147,21 @@ def test_run_directory_contents(corpus):
         "run.json",
     ]
     metrics_file = _read(run_dir, "metrics.json")
-    assert metrics_file["criteria"]["status"] == "working-draft"
+    assert metrics_file["criteria"][REVIEW]["status"] == "working-draft"
     assert metrics_file["per_review"][0]["prevalence"] == pytest.approx(N_INCLUDED / N_RECORDS)
+
+
+def test_published_criteria_are_used_and_recorded(corpus):
+    text = "Include studies comparing hormone replacement therapy users with non-users."
+    conn = connect(corpus / "slr.db")
+    criteria_service.store(conn, REVIEW, text, "test-source")
+    conn.close()
+
+    run_dir = harness.run(load_config(_config(corpus, "screen", SCREEN)))
+    recorded = _read(run_dir, "metrics.json")["criteria"][REVIEW]
+    assert recorded["status"] == "published"
+    assert recorded["source"] == "test-source"
+    assert recorded["sha256"] == criteria_service.Criteria(text, "published", "x").sha256
 
 
 def test_responses_log_carries_no_ground_truth(corpus):

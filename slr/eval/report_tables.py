@@ -83,7 +83,7 @@ def rows_for(run_name: str, data: dict) -> list[dict]:
                 "strategy": data["ranking"]["strategy"],
                 "model": screening.get("model"),
                 "prompt_version": screening.get("prompt_version"),
-                "criteria_status": data["criteria"]["status"],
+                "criteria_status": data["criteria"][m["review"]]["status"],
                 "aborted": data["aborted"],
                 "n_screened": m.get("n_screened"),
                 "verification_rate": m.get("verification_rate"),
@@ -148,8 +148,9 @@ def to_markdown(rows: list[dict]) -> str:
         )
         out.append("|" + "---|" * 14)
         for r in group:
+            uses_criteria = r["mode"] == "screen" or r["strategy"] == "bm25"
             marks = ("†" if r["ranking_complete"] is False else "") + (
-                "‡" if r["criteria_status"] != "published" and r["mode"] == "screen" else ""
+                "‡" if r["criteria_status"] != "published" and uses_criteria else ""
             )
             name = f"{r['config']}{marks}{' (aborted)' if r['aborted'] else ''}"
             out.append(
