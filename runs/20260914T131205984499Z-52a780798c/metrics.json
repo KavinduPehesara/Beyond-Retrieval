@@ -1,0 +1,78 @@
+{
+  "metrics_schema": 2,
+  "config_name": "smoke",
+  "config_hash": "52a780798c",
+  "mode": "screen",
+  "ranking": {
+    "strategy": "random",
+    "query": null,
+    "recall_target": 0.95,
+    "seed": 42
+  },
+  "screening": {
+    "provider": "mock",
+    "model": "mock-1",
+    "prompt_version": "screen_v1",
+    "prompt_sha256": "f35b27e9049a5b0ca869c7800ebf693ba6beec27cc27b8717ea2a23ac9312052",
+    "temperature": 0.0,
+    "max_output_tokens": 512,
+    "seed": 42,
+    "max_records": 50,
+    "cache_enabled": true
+  },
+  "criteria": {
+    "Nelson_2002": {
+      "status": "published",
+      "source": "asreview/synergy-dataset@ca8cb9e2ea97:datasets.toml",
+      "sha256": "364122e1fe5c084a9fea20621be03b26befff323a18c505244847155cedb6308"
+    }
+  },
+  "aborted": false,
+  "reviews_completed": [
+    "Nelson_2002"
+  ],
+  "verification_failures": {
+    "not_found": 9,
+    "span_longer_than_source": 1
+  },
+  "per_review": [
+    {
+      "review": "Nelson_2002",
+      "corpus_sha256": "d52d88941889cffb9edf2cc613dbf80553e768293c584d136172c6f62ca750fa",
+      "n_records": 366,
+      "n_included_truth": 80,
+      "prevalence": 0.2185792349726776,
+      "n_screened": 50,
+      "n_included_screened": 12,
+      "screened_prevalence": 0.24,
+      "n_verified": 40,
+      "n_unverified": 10,
+      "n_errors": 0,
+      "verification_rate": 0.8,
+      "true_positives": 3,
+      "false_positives": 6,
+      "false_negatives": 8,
+      "true_negatives": 23,
+      "recall_verified": 0.2727272727272727,
+      "precision_verified": 0.3333333333333333,
+      "n_to_human": 19,
+      "recall_with_referrals": 0.3333333333333333,
+      "work_saved": 0.62,
+      "agreement_ac1": 0.4400000000000001,
+      "agreement_pabak": 0.30000000000000004,
+      "ranking": {
+        "recall_target": 0.95,
+        "n_ranked": 50,
+        "n_included": 12,
+        "complete": false,
+        "cutoff": 50,
+        "recall_at_cutoff": 1.0,
+        "tnr_at_recall": 0.0,
+        "wss_at_recall": -0.050000000000000044
+      },
+      "tokens_in": 44592,
+      "tokens_out": 2914,
+      "cost_usd_at_config_prices": 0.008437
+    }
+  ]
+}
