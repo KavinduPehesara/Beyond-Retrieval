@@ -22,7 +22,7 @@ import json
 import os
 import random
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Protocol
 
 from tenacity import (
@@ -45,6 +45,15 @@ class ProviderError(RuntimeError):
     """Transport or API failure, after retries."""
 
 
+class CacheMismatch(RuntimeError):
+    """A cached response was produced by a different request.
+
+    Raised when the prompt text or generation settings changed but the prompt
+    version did not. This aborts the run: serving the old response would
+    report results for criteria that were not the ones in the config.
+    """
+
+
 @dataclass
 class Completion:
     """One model response, with everything needed to cost and audit it."""
@@ -62,7 +71,9 @@ class Provider(Protocol):
     name: str
     model: str
 
-    def complete(self, prompt: str, *, temperature: float, max_tokens: int) -> Completion:
+    def complete(
+        self, prompt: str, *, temperature: float, max_tokens: int, seed: int | None = None
+    ) -> Completion:
         ...
 
 
@@ -86,7 +97,14 @@ class MockProvider:
         self.model = model
         self.fabricate_rate = fabricate_rate
 
-    def complete(self, prompt: str, *, temperature: float = 0.0, max_tokens: int = 512) -> Completion:
+    def complete(
+        self,
+        prompt: str,
+        *,
+        temperature: float = 0.0,
+        max_tokens: int = 512,
+        seed: int | None = None,
+    ) -> Completion:
         # Seed on the prompt so the same input always gives the same output.
         rng = random.Random(hashlib.sha256(prompt.encode()).hexdigest())
 
@@ -162,7 +180,25 @@ class GeminiProvider:
         self._genai = genai
         self._client = genai.Client(api_key=key)
 
-    def complete(self, prompt: str, *, temperature: float = 0.0, max_tokens: int = 512) -> Completion:
+    def complete(
+        self,
+        prompt: str,
+        *,
+        temperature: float = 0.0,
+        max_tokens: int = 512,
+        seed: int | None = None,
+    ) -> Completion:
+        config = {
+            "temperature": temperature,
+            "max_output_tokens": max_tokens,
+            "response_mime_type": "application/json",
+            "response_schema": self.RESPONSE_SCHEMA,
+        }
+        if seed is not None:
+            # Best effort on the provider's side, not a guarantee — which is
+            # why run-to-run agreement is measured rather than assumed.
+            config["seed"] = seed
+
         @retry(
             stop=stop_after_attempt(self.max_retries),
             wait=wait_exponential(multiplier=1, min=2, max=20),
@@ -171,14 +207,7 @@ class GeminiProvider:
         )
         def _call():
             return self._client.models.generate_content(
-                model=self.model,
-                contents=prompt,
-                config={
-                    "temperature": temperature,
-                    "max_output_tokens": max_tokens,
-                    "response_mime_type": "application/json",
-                    "response_schema": self.RESPONSE_SCHEMA,
-                },
+                model=self.model, contents=prompt, config=config
             )
 
         started = time.perf_counter()
@@ -189,10 +218,16 @@ class GeminiProvider:
         latency_ms = int((time.perf_counter() - started) * 1000)
 
         usage = getattr(response, "usage_metadata", None)
+        # Thinking tokens are billed as output but reported separately by
+        # models that use them. Leaving them out would let the budget meter
+        # undercount, and the ceiling would stop being a ceiling.
+        tokens_out = (getattr(usage, "candidates_token_count", 0) or 0) + (
+            getattr(usage, "thoughts_token_count", 0) or 0
+        )
         return Completion(
             text=response.text or "",
             tokens_in=getattr(usage, "prompt_token_count", 0) or 0,
-            tokens_out=getattr(usage, "candidates_token_count", 0) or 0,
+            tokens_out=tokens_out,
             latency_ms=latency_ms,
         )
 
@@ -202,15 +237,42 @@ class GeminiProvider:
 # --------------------------------------------------------------------------
 
 
-def cache_key(model: str, prompt_version: str, work_id: str) -> str:
+def cache_key(model: str, prompt_version: str, review: str, work_id: str) -> str:
     """Keyed on model, prompt version and record — nothing else.
 
-    Deliberately *not* keyed on the prompt text itself. If the prompt changes
-    without its version changing, that is a bug in the experiment, and a cache
-    that silently absorbs it would hide the bug.
+    A record is (review, work_id): the same paper screened for two reviews is
+    screened against two sets of criteria, and must not share a response.
+
+    The prompt text is deliberately not part of the key. It is recorded
+    alongside the response instead (``request_fingerprint``), and a mismatch
+    aborts the run — so a prompt edited without a version bump is caught
+    rather than silently served stale.
     """
-    raw = f"{model}\x1f{prompt_version}\x1f{work_id}"
+    raw = f"{model}\x1f{prompt_version}\x1f{review}\x1f{work_id}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def request_fingerprint(
+    prompt: str,
+    *,
+    model: str,
+    temperature: float,
+    max_tokens: int,
+    seed: int | None,
+) -> str:
+    """Hash of everything that determines what was asked of the model."""
+    payload = json.dumps(
+        {
+            "prompt": prompt,
+            "model": model,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "seed": seed,
+        },
+        sort_keys=True,
+        ensure_ascii=False,
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 @dataclass
@@ -227,10 +289,7 @@ class Meter:
 
     @property
     def spend_usd(self) -> float:
-        return (
-            self.tokens_in / 1_000_000 * self.usd_per_1m_input
-            + self.tokens_out / 1_000_000 * self.usd_per_1m_output
-        )
+        return self.cost_of(self.tokens_in, self.tokens_out)
 
     def cost_of(self, tokens_in: int, tokens_out: int) -> float:
         return (

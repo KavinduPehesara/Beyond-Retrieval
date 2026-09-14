@@ -59,8 +59,8 @@ def review_metrics(conn: sqlite3.Connection, run_id: str, review: str) -> Review
         SELECT d.decision, d.span_verified, d.tokens_in, d.tokens_out,
                d.cost_usd, d.latency_ms, d.from_cache, w.label_included
         FROM screening_decision d
-        JOIN work w ON w.work_id = d.work_id
-        WHERE d.run_id = ? AND w.review = ?
+        JOIN work w ON w.review = d.review AND w.work_id = d.work_id
+        WHERE d.run_id = ? AND d.review = ?
         """,
         (run_id, review),
     ).fetchall()

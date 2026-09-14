@@ -68,6 +68,13 @@ class ScreeningConfig(BaseModel):
     temperature: float = 0.0
     max_output_tokens: int = 512
     max_retries: int = 3
+    seed: int | None = Field(
+        42,
+        description=(
+            "Sent to the provider. Best effort only: run-to-run agreement is "
+            "measured in week 10, not assumed from this."
+        ),
+    )
 
 
 class BudgetConfig(BaseModel):

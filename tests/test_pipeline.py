@@ -13,6 +13,7 @@ import pytest
 
 from slr.adapters.llm import (
     BudgetExceeded,
+    CacheMismatch,
     Completion,
     Meter,
     MockProvider,
@@ -102,11 +103,53 @@ def test_cached_calls_are_free():
 
 
 def test_cache_key_depends_on_model_prompt_and_record():
-    base = cache_key("m1", "v1", "W1")
-    assert base != cache_key("m2", "v1", "W1")
-    assert base != cache_key("m1", "v2", "W1")
-    assert base != cache_key("m1", "v1", "W2")
-    assert base == cache_key("m1", "v1", "W1")
+    base = cache_key("m1", "v1", "Smid_2020", "W1")
+    assert base != cache_key("m2", "v1", "Smid_2020", "W1")
+    assert base != cache_key("m1", "v2", "Smid_2020", "W1")
+    assert base != cache_key("m1", "v1", "Smid_2020", "W2")
+    assert base != cache_key("m1", "v1", "Menon_2022", "W1")  # same paper, other review
+    assert base == cache_key("m1", "v1", "Smid_2020", "W1")
+
+
+def _screen_kwargs(conn, **overrides):
+    kwargs = dict(
+        provider=MockProvider(),
+        template="CRITERIA:\n{criteria}\n\nTITLE:\n{title}\n\nABSTRACT:\n{abstract}\n",
+        criteria="Include methodological studies.",
+        meter=Meter(ceiling_usd=1.0, usd_per_1m_input=0.15, usd_per_1m_output=0.60),
+        conn=conn,
+        prompt_version="v1",
+        temperature=0.0,
+        max_tokens=256,
+        seed=42,
+    )
+    kwargs.update(overrides)
+    return kwargs
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"criteria": "Include only randomised trials."},  # criteria replaced
+        {"template": "{criteria}\n{title}\nABSTRACT:\n{abstract}"},  # template edited
+        {"temperature": 0.7},
+        {"max_tokens": 1024},
+        {"seed": 7},
+    ],
+)
+def test_changed_request_under_same_prompt_version_is_refused(conn, change):
+    """Swapping in the published criteria must not be served stale answers."""
+    row = conn.execute("SELECT * FROM work WHERE work_id = 'W1'").fetchone()
+    screen_record(row, **_screen_kwargs(conn))
+    with pytest.raises(CacheMismatch):
+        screen_record(row, **_screen_kwargs(conn, **change))
+
+
+def test_changed_request_under_new_prompt_version_is_screened_afresh(conn):
+    row = conn.execute("SELECT * FROM work WHERE work_id = 'W1'").fetchone()
+    screen_record(row, **_screen_kwargs(conn))
+    d = screen_record(row, **_screen_kwargs(conn, criteria="Other.", prompt_version="v2"))
+    assert not d.from_cache
 
 
 def test_second_screening_hits_the_cache(conn):
@@ -165,7 +208,7 @@ def test_unverified_decision_is_not_reported_as_a_prediction(conn):
     class Fabricator:
         name, model = "fab", "fab-1"
 
-        def complete(self, prompt, *, temperature=0.0, max_tokens=512):
+        def complete(self, prompt, *, temperature=0.0, max_tokens=512, seed=None):
             return Completion(
                 text='{"decision":"include","confidence":0.99,'
                      '"evidence_span":"This sentence is nowhere in the abstract at all."}',

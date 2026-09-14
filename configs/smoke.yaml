@@ -20,6 +20,7 @@ screening:
   temperature: 0.0
   max_output_tokens: 512
   max_retries: 3
+  seed: 42             # best effort on the provider side; agreement is measured
 
 budget:
   ceiling_usd: 1.00    # aborts the run, does not warn

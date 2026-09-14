@@ -127,6 +127,7 @@ def run(cfg: Config) -> Path:
                         prompt_version=cfg.screening.prompt_version,
                         temperature=cfg.screening.temperature,
                         max_tokens=cfg.screening.max_output_tokens,
+                        seed=cfg.screening.seed,
                         use_cache=cfg.cache_enabled,
                     )
                 except BudgetExceeded as exc:

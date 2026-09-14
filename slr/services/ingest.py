@@ -7,11 +7,16 @@ it is never committed. Each record arrives as an OpenAlex Work object with a
 That column is written here and read only by ``slr.eval.metrics``. It does not
 appear in any prompt. Keeping that boundary is what makes the accuracy figures
 mean anything.
+
+Every review is loaded in full. Capping happens at screening time, never here:
+a capped ingest changes the prevalence of what is stored, and every metric
+computed afterwards would inherit the distortion without saying so.
 """
 
 from __future__ import annotations
 
 import argparse
+import math
 import sqlite3
 import sys
 from pathlib import Path
@@ -21,7 +26,8 @@ from slr.db import connect
 
 # Eligibility criteria per review. SYNERGY ships these as block quotations
 # with each dataset; these are condensed working versions for week 7, to be
-# replaced with the published text before any reported run.
+# replaced with the published text before any reported run. Replacing them
+# does not need a new prompt version: the cache detects the changed request.
 CRITERIA: dict[str, str] = {
     "Radjenovic_2013": (
         "Include studies that propose, evaluate or compare software fault "
@@ -50,6 +56,23 @@ CRITERIA: dict[str, str] = {
         "target population. Exclude studies without a reference standard."
     ),
 }
+
+UPSERT = """
+INSERT INTO work
+    (review, work_id, doi, title, abstract, year, venue, publisher, country,
+     language, label_included)
+VALUES (?,?,?,?,?,?,?,?,?,?,?)
+ON CONFLICT(review, work_id) DO UPDATE SET
+    doi = excluded.doi,
+    title = excluded.title,
+    abstract = excluded.abstract,
+    year = excluded.year,
+    venue = excluded.venue,
+    publisher = excluded.publisher,
+    country = excluded.country,
+    language = excluded.language,
+    label_included = excluded.label_included
+"""
 
 
 def _load_synergy(review: str):
@@ -82,63 +105,110 @@ def _column(frame, *names: str):
     return None
 
 
-def ingest_review(conn: sqlite3.Connection, review: str, limit: int | None) -> int:
-    """Load one review. Returns the number of records inserted."""
-    frame = _load_synergy(review)
+def _is_missing(value) -> bool:
+    if value is None:
+        return True
+    if isinstance(value, float) and math.isnan(value):
+        return True
+    try:
+        import pandas as pd
+    except ImportError:  # pragma: no cover
+        return False
+    try:
+        return bool(pd.isna(value))
+    except (TypeError, ValueError):
+        return False
 
-    if limit:
-        # Stratified head: keep every included record we can, then fill with
-        # excluded ones. A random head of a 1%-prevalence review can easily
-        # contain zero positives, which makes recall undefined and the smoke
-        # test meaningless.
-        labels = _column(frame, "label_included", "included", "label")
-        if labels is not None:
-            positives = frame[labels == 1]
-            negatives = frame[labels != 1]
-            n_pos = min(len(positives), max(2, limit // 5))
-            frame = (
-                positives.head(n_pos)
-                ._append(negatives.head(limit - n_pos))
-                if hasattr(positives, "_append")
-                else positives.head(n_pos).append(negatives.head(limit - n_pos))
-            )
-        else:
-            frame = frame.head(limit)
+
+def clean_text(value) -> str | None:
+    """Missing stays missing.
+
+    ``str(nan)`` is ``"nan"``. A model shown ``ABSTRACT: nan`` is screening a
+    record with no abstract without being told so, and the verifier cannot
+    report ``no_source_text`` for a source that is the string "nan".
+    """
+    if _is_missing(value):
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def clean_year(value) -> int | None:
+    """Accepts 2019, "2019" and 2019.0 — a year column with gaps is float."""
+    text = clean_text(value)
+    if text is None:
+        return None
+    try:
+        number = float(text)
+    except ValueError:
+        return None
+    return int(number) if number.is_integer() else None
+
+
+def clean_label(value, review: str, work_id: str) -> int:
+    """Ground truth must be exactly 0 or 1. Anything else stops the ingest."""
+    if _is_missing(value):
+        raise ValueError(f"{review}/{work_id}: label_included is missing")
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"{review}/{work_id}: label_included is {value!r}") from None
+    if number not in (0.0, 1.0):
+        raise ValueError(f"{review}/{work_id}: label_included is {value!r}")
+    return int(number)
+
+
+def ingest_frame(conn: sqlite3.Connection, review: str, frame) -> int:
+    """Load one review's records. Returns the number of distinct records.
+
+    Safe to run repeatedly: records are upserted, so the FTS index stays
+    consistent and a second ingest leaves the database unchanged.
+    """
+    labels = _column(frame, "label_included", "included", "label")
+    if labels is None:
+        raise ValueError(f"{review}: no label column, so it cannot be evaluated")
 
     titles = _column(frame, "title")
     abstracts = _column(frame, "abstract")
-    labels = _column(frame, "label_included", "included", "label")
     ids = _column(frame, "openalex_id", "id", "work_id")
     dois = _column(frame, "doi")
     years = _column(frame, "publication_year", "year")
 
-    rows = []
+    rows: dict[str, tuple] = {}
     for i in range(len(frame)):
-        work_id = str(ids.iloc[i]) if ids is not None else f"{review}:{i}"
-        rows.append(
-            (
-                work_id,
-                review,
-                str(dois.iloc[i]) if dois is not None else None,
-                str(titles.iloc[i]) if titles is not None else None,
-                str(abstracts.iloc[i]) if abstracts is not None else None,
-                int(years.iloc[i]) if years is not None and str(years.iloc[i]).isdigit() else None,
-                None,  # venue      — populated in week 9
-                None,  # publisher  — populated in week 9
-                None,  # country    — populated in week 9
-                "en",  # language   — detection added in week 9
-                int(labels.iloc[i]) if labels is not None else None,
-            )
+        work_id = clean_text(ids.iloc[i]) if ids is not None else None
+        work_id = work_id or f"{review}:{i}"
+        label = clean_label(labels.iloc[i], review, work_id)
+
+        if work_id in rows:
+            if rows[work_id][-1] != label:
+                raise ValueError(
+                    f"{review}/{work_id}: appears twice with different labels"
+                )
+            continue
+
+        rows[work_id] = (
+            review,
+            work_id,
+            clean_text(dois.iloc[i]) if dois is not None else None,
+            clean_text(titles.iloc[i]) if titles is not None else None,
+            clean_text(abstracts.iloc[i]) if abstracts is not None else None,
+            clean_year(years.iloc[i]) if years is not None else None,
+            None,  # venue      — populated in week 9
+            None,  # publisher  — populated in week 9
+            None,  # country    — populated in week 9
+            None,  # language   — NULL until detection exists; never guessed
+            label,
         )
 
-    conn.executemany(
-        "INSERT OR REPLACE INTO work "
-        "(work_id, review, doi, title, abstract, year, venue, publisher, country, language, label_included) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-        rows,
-    )
+    conn.executemany(UPSERT, list(rows.values()))
     conn.commit()
     return len(rows)
+
+
+def ingest_review(conn: sqlite3.Connection, review: str) -> int:
+    """Load one review in full."""
+    return ingest_frame(conn, review, _load_synergy(review))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -151,7 +221,7 @@ def main(argv: list[str] | None = None) -> int:
 
     total = 0
     for review in cfg.dataset.reviews:
-        n = ingest_review(conn, review, cfg.dataset.max_records)
+        n = ingest_review(conn, review)
         total += n
         included = conn.execute(
             "SELECT COUNT(*) FROM work WHERE review = ? AND label_included = 1",

@@ -16,7 +16,14 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field, ValidationError
 
-from slr.adapters.llm import Completion, Meter, Provider, cache_key
+from slr.adapters.llm import (
+    CacheMismatch,
+    Completion,
+    Meter,
+    Provider,
+    cache_key,
+    request_fingerprint,
+)
 from slr.services.verify import source_text, verify_span
 
 
@@ -56,7 +63,7 @@ def load_prompt_template(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def build_prompt(template: str, *, criteria: str, title: str, abstract: str) -> str:
+def build_prompt(template: str, *, criteria: str, title: str | None, abstract: str | None) -> str:
     """Fill the template.
 
     Note what is absent: ``label_included`` never reaches this function. The
@@ -80,19 +87,43 @@ def screen_record(
     prompt_version: str,
     temperature: float,
     max_tokens: int,
+    seed: int | None = None,
     use_cache: bool = True,
 ) -> Decision:
-    """Screen one record. Never raises for model failure — records it."""
+    """Screen one record. Never raises for model failure — records it.
 
-    key = cache_key(provider.model, prompt_version, row["work_id"])
+    Does raise ``CacheMismatch`` when a cached response was produced by a
+    different request: that is a fault in the experiment, not in the model.
+    """
+
+    prompt = build_prompt(
+        template, criteria=criteria, title=row["title"], abstract=row["abstract"]
+    )
+    fingerprint = request_fingerprint(
+        prompt,
+        model=provider.model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        seed=seed,
+    )
+    key = cache_key(provider.model, prompt_version, row["review"], row["work_id"])
     completion: Completion | None = None
 
     if use_cache:
         cached = conn.execute(
-            "SELECT raw_response, tokens_in, tokens_out FROM cached_response WHERE cache_key = ?",
+            "SELECT request_sha256, raw_response, tokens_in, tokens_out "
+            "FROM cached_response WHERE cache_key = ?",
             (key,),
         ).fetchone()
         if cached:
+            if cached["request_sha256"] != fingerprint:
+                raise CacheMismatch(
+                    f"{row['review']}/{row['work_id']}: the cached response for "
+                    f"prompt version {prompt_version!r} came from a different "
+                    f"request (criteria, template or generation settings "
+                    f"changed). Bump screening.prompt_version, or delete that "
+                    f"version's cached rows, before running."
+                )
             completion = Completion(
                 text=cached["raw_response"],
                 tokens_in=cached["tokens_in"],
@@ -101,15 +132,9 @@ def screen_record(
             )
 
     if completion is None:
-        prompt = build_prompt(
-            template,
-            criteria=criteria,
-            title=row["title"],
-            abstract=row["abstract"],
-        )
         try:
             completion = provider.complete(
-                prompt, temperature=temperature, max_tokens=max_tokens
+                prompt, temperature=temperature, max_tokens=max_tokens, seed=seed
             )
         except Exception as exc:  # provider errors are data, not crashes
             return Decision(
@@ -130,10 +155,11 @@ def screen_record(
         if use_cache:
             conn.execute(
                 "INSERT OR REPLACE INTO cached_response "
-                "(cache_key, raw_response, tokens_in, tokens_out, created_at) "
-                "VALUES (?, ?, ?, ?, ?)",
+                "(cache_key, request_sha256, raw_response, tokens_in, tokens_out, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
                 (
                     key,
+                    fingerprint,
                     completion.text,
                     completion.tokens_in,
                     completion.tokens_out,
@@ -190,11 +216,12 @@ def screen_record(
 def persist(conn: sqlite3.Connection, run_id: str, decision: Decision) -> None:
     conn.execute(
         "INSERT OR REPLACE INTO screening_decision "
-        "(run_id, work_id, decision, confidence, evidence_span, span_verified, "
+        "(run_id, review, work_id, decision, confidence, evidence_span, span_verified, "
         " verify_note, from_cache, tokens_in, tokens_out, cost_usd, latency_ms, created_at) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (
             run_id,
+            decision.review,
             decision.work_id,
             decision.decision,
             decision.confidence,
