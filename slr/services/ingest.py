@@ -26,8 +26,14 @@ from slr.db import connect
 
 # Eligibility criteria per review. SYNERGY ships these as block quotations
 # with each dataset; these are condensed working versions for week 7, to be
-# replaced with the published text before any reported run. Replacing them
-# does not need a new prompt version: the cache detects the changed request.
+# replaced with the published text before any reported run. When they are,
+# set CRITERIA_STATUS to "published" and bump screening.prompt_version — the
+# cache refuses to serve responses produced under the old text.
+#
+# CRITERIA_STATUS is written into every metrics file, so a figure produced
+# under draft criteria cannot be mistaken for a reportable one.
+CRITERIA_STATUS = "working-draft"
+
 CRITERIA: dict[str, str] = {
     "Radjenovic_2013": (
         "Include studies that propose, evaluate or compare software fault "

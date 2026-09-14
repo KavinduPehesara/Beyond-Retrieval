@@ -40,9 +40,10 @@ class DatasetConfig(BaseModel):
     max_records: int | None = Field(
         50,
         description=(
-            "Cap per review. Keep this small while developing — it is the "
-            "cheapest guard against an accidental full-corpus run. Set to "
-            "null only for runs you intend to report."
+            "Cap on records screened per review, taken from the top of the "
+            "ranking. Keep this small while developing — it is the cheapest "
+            "guard against an accidental full-corpus run. Set to null only for "
+            "runs you intend to report. Ingest always loads the full review."
         ),
     )
     seed: int = 42
@@ -59,9 +60,27 @@ class DatasetConfig(BaseModel):
         return v
 
 
+class RankingConfig(BaseModel):
+    """The order records are considered in, and the recall target reported at."""
+
+    strategy: Literal["random", "bm25"] = "random"
+    query: str | None = Field(
+        None,
+        description="bm25 query. Defaults to the review's eligibility criteria.",
+    )
+    recall_target: float = Field(0.95, gt=0.0, le=1.0)
+
+
 class ScreeningConfig(BaseModel):
     """How the language model is called."""
 
+    enabled: bool = Field(
+        True,
+        description=(
+            "false runs a ranking-only baseline: no model calls, no cost, "
+            "ranking metrics over the full review."
+        ),
+    )
     provider: Literal["gemini", "mock"] = "mock"
     model: str = "gemini-2.0-flash"
     prompt_version: str = "screen_v1"
@@ -93,6 +112,7 @@ class BudgetConfig(BaseModel):
 class Config(BaseModel):
     name: str
     dataset: DatasetConfig
+    ranking: RankingConfig = RankingConfig()
     screening: ScreeningConfig = ScreeningConfig()
     budget: BudgetConfig = BudgetConfig()
 

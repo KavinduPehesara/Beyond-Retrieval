@@ -1,0 +1,28 @@
+# Baseline 1 — random ordering. Week 8.
+#
+# No model calls and no cost. Ranks every record of each review in a seeded
+# random order and reports TNR and WSS at 95% recall. Any system that does not
+# beat this has saved no work.
+#
+# Smid_2020 and Nelson_2002 bracket the prevalence range of the subset
+# (1.0% and 21.9%), per the week 8 plan in CLAUDE.md.
+
+name: baseline_random
+
+dataset:
+  reviews:
+    - Smid_2020        # 2,627 records, 1.0% inclusion
+    - Nelson_2002      # 366 records, 21.9% inclusion
+  max_records: null    # baselines always rank the full review
+  seed: 42
+
+ranking:
+  strategy: random
+  recall_target: 0.95
+
+screening:
+  enabled: false
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts

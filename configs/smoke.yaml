@@ -3,19 +3,29 @@
 # Fifty records, one review, mock provider. Costs nothing and needs no API
 # key. This is the config the week 7 exit test runs against.
 #
+# Nelson_2002 rather than Smid_2020: ingest now loads every review in full
+# (a capped ingest distorted prevalence), so fifty random records from a 1.0%
+# review would usually hold no included record and recall would be undefined.
+# At 21.9% prevalence, fifty records hold about eleven.
+#
 # To use the real model: set provider to gemini and put GEMINI_API_KEY in .env.
 
 name: smoke
 
 dataset:
   reviews:
-    - Smid_2020        # 2,627 records, 1.0% inclusion — own discipline, small
+    - Nelson_2002      # 366 records, 21.9% inclusion
   max_records: 50
   seed: 42
 
+ranking:
+  strategy: random     # random | bm25
+  recall_target: 0.95
+
 screening:
+  enabled: true
   provider: mock       # mock | gemini
-  model: mock-1        # gemini-2.0-flash when provider is gemini
+  model: mock-1        # e.g. gemini-2.0-flash when provider is gemini
   prompt_version: screen_v1
   temperature: 0.0
   max_output_tokens: 512
