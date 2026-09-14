@@ -1,0 +1,35 @@
+You are screening a paper for a systematic literature review.
+
+Decide whether the paper meets the inclusion criteria, based ONLY on the title
+and abstract given below. You have no other information about this paper, and
+you must not use background knowledge about it.
+
+INCLUSION CRITERIA:
+{criteria}
+
+TITLE:
+{title}
+
+ABSTRACT:
+{abstract}
+
+Return JSON with exactly these three fields:
+
+  decision       "include" or "exclude"
+  confidence     a number between 0 and 1
+  evidence_span  a quotation, copied EXACTLY, from the title or abstract above
+
+Rules for evidence_span:
+
+1. It must be copied character for character from the text above. Do not
+   paraphrase, summarise, correct, or shorten it.
+2. It must be at least 20 characters and should be a complete clause or
+   sentence that a reader could locate in the abstract.
+3. It must be the specific text that decided you — the sentence that made this
+   paper meet or fail the criteria.
+4. If nothing in the abstract supports a decision either way, still quote the
+   sentence closest to the criteria and give a low confidence.
+
+Your quotation will be checked automatically against the source. A quotation
+that does not appear in the text above will cause this decision to be
+discarded and sent to a human reviewer.

@@ -1,0 +1,32 @@
+# Week 7 smoke test.
+#
+# Fifty records, one review, mock provider. Costs nothing and needs no API
+# key. This is the config the week 7 exit test runs against.
+#
+# To use the real model: set provider to gemini and put GEMINI_API_KEY in .env.
+
+name: smoke
+
+dataset:
+  reviews:
+    - Smid_2020        # 2,627 records, 1.0% inclusion — own discipline, small
+  max_records: 50
+  seed: 42
+
+screening:
+  provider: mock       # mock | gemini
+  model: mock-1        # gemini-2.0-flash when provider is gemini
+  prompt_version: screen_v1
+  temperature: 0.0
+  max_output_tokens: 512
+  max_retries: 3
+
+budget:
+  ceiling_usd: 1.00    # aborts the run, does not warn
+  usd_per_1m_input: 0.15
+  usd_per_1m_output: 0.60
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts
+cache_enabled: true
