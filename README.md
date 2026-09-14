@@ -60,22 +60,31 @@ surface the research gaps authors state in their own papers?
 
 ## Status
 
-Week 8 of 15. The evaluation harness is built and tested; first runs on real
-SYNERGY data are next.
+Week 8 of 15. The evaluation harness runs on real SYNERGY data and reproduces
+its metrics files exactly; the first screening run with a real model is next.
 
 | Weeks | Deliverable | State |
 |---|---|---|
 | 1–6 | Literature review, proposal, architecture, scope lock | Done |
-| 7–8 | Walking skeleton, then the evaluation harness | Built; exit test passes on synthetic data; real runs pending |
+| 7–8 | Walking skeleton, then the evaluation harness | Harness reproducible on real data; first model recall figures pending |
 | 9–10 | Retrieval and screening quality | |
 | 11 | Gap discovery; go / no-go checkpoint | |
 | 12–13 | Dashboard panels; usability evaluation | |
 | 14–15 | Final runs, analysis, submission | |
 
-What exists now: SYNERGY ingest, random and BM25 baselines, LLM screening with
-span verification, a mock and a Gemini provider, and a headless harness that
-reports per-review recall, TNR and WSS at 95% recall, verification rate, work
-saved, Gwet's AC1 and PABAK.
+### First numbers — baselines
+
+Every record of each review ranked; true negative rate and work saved over
+sampling at 95% recall. BM25 queries are each review's published eligibility
+criteria. Full tables: [`reports/results.md`](reports/results.md).
+
+| Review | Records | Prevalence | Random TNR@95 | BM25 TNR@95 | BM25 WSS@95 |
+|---|---|---|---|---|---|
+| Smid_2020 | 2,627 | 1.0% | 0.029 | 0.568 | 0.513 |
+| Nelson_2002 | 366 | 21.9% | 0.066 | 0.080 | 0.024 |
+
+Random is a single seed (42). Both configurations reproduced byte-identical
+metrics files on a second run.
 
 ---
 
@@ -93,26 +102,32 @@ python -m venv .venv
 
 pip install -r requirements.txt
 pytest -q
-
-copy .env.example .env          # Windows
-# cp .env.example .env          # macOS / Linux
-# add GEMINI_API_KEY only when you move off the mock provider
 ```
 
-Fetch and load the benchmark corpus (every configured review is loaded in full):
+Load the corpus. The first ingest downloads the SYNERGY v1.0 release (about
+450 MB, to `~/.synergy_dataset_source`, outside the repository) and the
+published eligibility criteria from a pinned commit:
 
 ```bash
-python -m synergy_dataset get
 python -m slr.services.ingest --config configs/baseline_random.yaml
 ```
 
 Run the baselines (no model calls, no cost) and the smoke test (mock provider,
-no key, no cost):
+no key, no cost). Commit first; `--require-clean` refuses to run otherwise:
 
 ```bash
-python -m slr.eval.harness --config configs/baseline_random.yaml
-python -m slr.eval.harness --config configs/baseline_bm25.yaml
-python -m slr.eval.harness --config configs/smoke.yaml
+python -m slr.eval.harness --config configs/baseline_random.yaml --require-clean
+python -m slr.eval.harness --config configs/baseline_bm25.yaml --require-clean
+python -m slr.eval.harness --config configs/smoke.yaml --require-clean
+```
+
+Screen with Gemini — add `GEMINI_API_KEY` to `.env` first, after checking
+`git check-ignore -v .env`:
+
+```bash
+copy .env.example .env          # Windows
+# cp .env.example .env          # macOS / Linux
+python -m slr.eval.harness --config configs/week08_gemini.yaml --require-clean
 ```
 
 Build the report tables from every run directory:
@@ -120,9 +135,6 @@ Build the report tables from every run directory:
 ```bash
 python -m slr.eval.report_tables --runs runs --out reports
 ```
-
-For a run you intend to report, commit first and add `--require-clean`; the
-harness then refuses to start with uncommitted changes.
 
 Each run writes `runs/<timestamp>-<config-hash>/`:
 
@@ -133,7 +145,7 @@ Each run writes `runs/<timestamp>-<config-hash>/`:
 | `metrics.json` | results only — identical for two runs of the same config | yes |
 | `run.json` | this execution: commit, timings, live spend, cache hits | yes |
 | `git_sha.txt` | the commit the code was at | yes |
-| `responses.jsonl` | every decision | no |
+| `responses.jsonl` | every decision, with quoted abstract text | no |
 
 ---
 
@@ -187,10 +199,11 @@ That is why the corpus is a subset. The budget ceiling is set in
 ## Data and licensing
 
 Bibliographic records come from the [OpenAlex API](https://openalex.org)
-(CC0). Ground-truth screening labels come from the
+(CC0). Ground-truth screening labels and eligibility criteria come from the
 [SYNERGY dataset](https://github.com/asreview/synergy-dataset) published by the
-ASReview project (CC0). Neither is redistributed here; both are fetched by
-script.
+ASReview project. Neither is redistributed here; both are fetched by script.
+SYNERGY asks that abstracts not be republished as plain text, so the database
+and raw responses are gitignored.
 
 Code in this repository is released under the MIT License. See `LICENSE`.
 

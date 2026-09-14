@@ -53,7 +53,7 @@ it surface the research gaps authors state in their own papers?
    does not exist.
 3. **Commit before every run.** The git SHA goes into the run artefact. Use
    `--require-clean` for any run you intend to report; without it the harness
-   only warns.
+   only warns. Untracked files under `runs/` do not count as dirty.
 4. **Ground truth is never in a prompt.** `work.label_included` is written by
    `ingest.py` and read by `eval/metrics.py`. Nothing else may touch it —
    retrieval selects named columns so screening rows never carry it. Tests
@@ -71,14 +71,16 @@ it surface the research gaps authors state in their own papers?
 ## Current state — week 8 of 15
 
 Done: literature review, proposal (submitted), architecture, scope lock, the
-walking skeleton, and the week 8 evaluation harness.
+walking skeleton, the week 8 evaluation harness, and the first baseline runs
+on real SYNERGY data.
 
 ```
 slr/
   config.py              YAML config + pydantic validation + config hashing
-  db.py                  SQLite schema v2, FTS5 index, triggers
+  db.py                  SQLite schema v3, FTS5 index, triggers
   services/
     ingest.py            SYNERGY loader; full reviews, upserts, NULLs kept NULL
+    criteria.py          published eligibility criteria, pinned + hashed
     retrieve.py          random + BM25 ranking (baselines 1 & 2)
     screen.py            ask -> validate shape -> verify quote
     verify.py            THE span verifier. RQ1 lives here.
@@ -93,52 +95,72 @@ slr/
 prompts/screen_v1.txt    prompt template, versioned by filename
 configs/smoke.yaml       Nelson_2002, 50 records, mock provider, free
 configs/baseline_*.yaml  random and BM25 over Smid_2020 + Nelson_2002, free
-tests/                   103 tests
+configs/week08_gemini.yaml  Smid_2020 + Nelson_2002, gemini-2.5-flash-lite
+tests/                   112 tests
+reports/results.{csv,md} generated from runs/
 ```
 
-**Verified working (synthetic data, mock provider):** 103 tests pass. The
-weeks 7–8 exit test passes: one config run twice gives a byte-identical
-`metrics.json`, the second run served entirely from cache at $0. AC1 and
-quadratic AC2 reproduce the irrCAC worked example (`cac.raw4raters`: AC1
-0.77544, AC2 0.914).
+**Verified on real data (commit 421e415, 15 September 2026):**
+
+- SYNERGY v1.0 downloaded; ingest of Smid_2020 (2,627 / 27, 110 without
+  abstract) and Nelson_2002 (366 / 80, 8 without abstract) matches the
+  proposal exactly. Published criteria stored for both.
+- Weeks 7–8 exit test, first half: `baseline_random`, `baseline_bm25` and
+  `smoke` each run twice with `--require-clean`; all three pairs of
+  `metrics.json` byte-identical. The second smoke run was served 50/50 from
+  cache at $0.
+- AC1 and quadratic AC2 reproduce the irrCAC worked example
+  (`cac.raw4raters`: AC1 0.77544, AC2 0.914).
+
+| Review | Prevalence | Random TNR@95 | BM25 TNR@95 | BM25 WSS@95 |
+|---|---|---|---|---|
+| Smid_2020 | 1.0% | 0.029 | 0.568 | 0.513 |
+| Nelson_2002 | 21.9% | 0.066 | 0.080 | 0.024 |
+
+**Observed 15 September 2026 (rule 7).** The lexical baseline does the
+opposite of the inflation expected below: BM25 over the published criteria
+saves most of the reading on Smid_2020 (1.0%) and almost none on Nelson_2002
+(21.9%), where it barely beats random. Not yet explained. One hypothesis to
+check, not a conclusion: Nelson_2002's candidate set was retrieved for a
+single topic (HRT), so the criteria vocabulary is shared by nearly every
+record and cannot separate them, whereas Smid_2020's candidates are lexically
+diverse. Random is one seed; do not read its two values as different.
 
 **Not yet done:**
 
-- Never run against real SYNERGY data (download not yet performed)
-- Never run against the real Gemini API (mock provider only so far). Check the
-  configured model is still served and its prices match `budget` before the
-  first real run.
-- `CRITERIA` in `ingest.py` holds *working* eligibility criteria
-  (`CRITERIA_STATUS = "working-draft"`, recorded in every metrics file).
-  Replace with SYNERGY's published protocol text, set the status to
-  `"published"`, and bump `screening.prompt_version` before any run that gets
-  reported.
+- Never run against the real Gemini API. There is no `.env` and no key yet.
+  `google-genai` is pinned at 0.3.0 (December 2024) and is untested against
+  `gemini-2.5-flash-lite`; its usage metadata has no `thoughts_token_count`.
+  If the first call fails on config or schema, upgrading the pin is a
+  deliberate change to write down, not a silent one.
+- Only Smid_2020 and Nelson_2002 are ingested. The other four load with the
+  same command once added to a config.
 - Ethics application for the usability study — not submitted. This is the only
   item whose timing is outside the author's control. It gates week 13. (The
   proposal, section 8.2, says approval is obtained in week 7.)
 
 ---
 
-## Next: finish week 8 — first real numbers
+## Next: finish week 8 — first model recall figures
 
 Exit test: *a stored configuration reproduces an identical metrics file, and a
-first recall figure exists on two reviews.* The first half passes on synthetic
-data; the second needs real data.
+first recall figure exists on two reviews.* The first half passes on real data;
+the second needs the Gemini run.
 
-1. `python -m synergy_dataset get`, then ingest Smid_2020 and Nelson_2002.
-   Check the printed counts: 2,627 / 27 and 366 / 80.
-2. Commit, then run `configs/baseline_random.yaml` and
-   `configs/baseline_bm25.yaml` with `--require-clean`. Commit the run
-   directories (`eval:`).
-3. Replace the criteria for those two reviews with the published text.
-4. Screening run with `provider: gemini` over both reviews, full size
-   (≈ 3,000 calls, well under $1). Run it twice to confirm the metrics file
-   reproduces from cache.
-5. `python -m slr.eval.report_tables`, then tag `week-08`.
+1. `copy .env.example .env`, check `git check-ignore -v .env`, add
+   `GEMINI_API_KEY`. Confirm on the Gemini deprecations page that
+   `gemini-2.5-flash-lite` is still served and the prices in
+   `configs/week08_gemini.yaml` still hold.
+2. `python -m slr.eval.harness --config configs/week08_gemini.yaml --require-clean`
+   — 2,993 calls, about $0.40, ceiling $2. Run it a second time: it must be
+   served from cache at $0 with an identical `metrics.json`.
+3. `python -m slr.eval.report_tables`, commit runs and reports as `eval:`, tag
+   `week-08`.
 
-**Expect Nelson_2002 to look far better than Smid_2020.** That gap is not a
-bug — it is exactly the inflation Khraisha et al. (2024) described, observed
-in your own data. Write it down the day you see it.
+When the model numbers arrive, set them beside the baselines above. Khraisha
+et al. (2024) predict model accuracy looks better on the high-prevalence
+review; the baselines already show prevalence is not the only thing that
+varies between these two.
 
 ---
 
@@ -168,7 +190,8 @@ actually cited. Either outcome is reportable.
 
 One pass over the full 169,288-record SYNERGY benchmark costs ≈ $25. The
 experimental design needs ≈ 20 passes. That is why the corpus is a **six-review
-subset of 12,598 records** (≈ $1.90 per pass).
+subset of 12,598 records** (≈ $1.90 per pass at the prices assumed in the
+proposal; ≈ $1.60 at Gemini 2.5 Flash-Lite's September 2026 prices).
 
 | Spend | Est. |
 |---|---|
@@ -179,6 +202,8 @@ subset of 12,598 records** (≈ $1.90 per pass).
 | Final reported runs | $4 |
 | Contingency | $15 |
 | **Total** | **≈ $43** |
+
+Spend to date: $0 (baselines and mock runs only).
 
 Four rules that keep it there:
 
@@ -243,8 +268,19 @@ discovered in week 10.
 model + prompt_version + review + work_id. Each cached row stores a hash of the
 full request (prompt, model, temperature, max tokens, seed); a hit whose
 request differs raises `CacheMismatch` and aborts. A prompt changed without a
-version bump is a bug in the experiment, and it is now caught rather than
-silently served stale.
+version bump is a bug in the experiment, and it is caught rather than silently
+served stale.
+
+**Eligibility criteria are SYNERGY's published text, pinned.** Fetched from
+`asreview/synergy-dataset@ca8cb9e2:datasets.toml` and refused if the sha256
+differs. Not committed — quoted from third-party papers — but stored in the
+database at ingest and hashed into every metrics file. A review without stored
+criteria falls back to a one-line draft marked `working-draft`, and report
+tables flag it.
+
+**SYNERGY records are read through `Dataset.labels` and `Dataset.to_dict`**,
+not `to_frame` (which hides `openalex_id` in the index and drops the label of
+any work missing from the release). The `synergy get` CLI is not used.
 
 **Records are keyed on (review, work_id).** A label belongs to the review, not
 to the paper.
@@ -262,6 +298,9 @@ first; TNR@95% is computed on that ordering.
 
 **Inter-run agreement treats unverified decisions as missing ratings**, not
 as a third category.
+
+**Default model is gemini-2.5-flash-lite.** gemini-2.0-flash was shut down on
+1 June 2026. Check the deprecations page before any reported run.
 
 **ASReview is run as an external tool**, not reimplemented. Removes an
 implementation risk and a claim that would otherwise need defending.
@@ -281,23 +320,25 @@ approximate index to be worth the accuracy loss.
 .venv\Scripts\activate
 pytest -q
 python -m slr.services.ingest --config configs/baseline_random.yaml
-python -m slr.eval.harness --config configs/baseline_random.yaml
-python -m slr.eval.harness --config configs/baseline_bm25.yaml
-python -m slr.eval.harness --config configs/smoke.yaml
+python -m slr.eval.harness --config configs/baseline_random.yaml --require-clean
+python -m slr.eval.harness --config configs/baseline_bm25.yaml --require-clean
+python -m slr.eval.harness --config configs/smoke.yaml --require-clean
+python -m slr.eval.harness --config configs/week08_gemini.yaml --require-clean
 python -m slr.eval.report_tables --runs runs --out reports
 ```
 
+The first ingest downloads SYNERGY v1.0 (≈ 450 MB) to
+`~/.synergy_dataset_source` and the criteria file to `data/synergy/`.
 `configs/smoke.yaml` uses `provider: mock` — free, no API key, no network.
-Switch to `provider: gemini` and put `GEMINI_API_KEY` in `.env` for real runs.
-Add `--require-clean` to any run you intend to report.
 
-A database created before schema v2 is refused; delete `data/slr.db` and
+A database created before schema v3 is refused; delete `data/slr.db` and
 re-run ingest.
 
 **This repository is public.** `.env` is gitignored; verify with
 `git check-ignore -v .env` before adding a real key. A leaked key is scraped
 within seconds and history rewriting does not un-leak it. Revoke first, clean
-later.
+later. SYNERGY abstracts may not be republished as plain text:
+`data/` and `responses.jsonl` stay out of git.
 
 ---
 
