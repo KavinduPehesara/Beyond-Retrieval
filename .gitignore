@@ -25,18 +25,22 @@ data/
 *.index
 
 # ---------------------------------------------------------------
-# Run artefacts — SELECTIVE.
+# Run artefacts — SELECTIVE, as an allow-list.
 # Every reported figure must trace to a run directory (rule 2), so
-# configs and metrics ARE committed. Raw model responses are not:
-# they run to hundreds of MB and add nothing a reviewer needs.
+# configs, metrics and run details ARE committed. Everything else in
+# a run directory — raw responses, logs, anything added later — is
+# not. `runs/**` ignores all of it; the `!` lines let back in only
+# the files named. (`runs/*` alone matched only top-level entries,
+# so every file inside a run directory was being committed.)
 # ---------------------------------------------------------------
-runs/*
+runs/**
+!runs/
 !runs/.gitkeep
 !runs/*/
-runs/*/responses.jsonl
-runs/*/raw/
 !runs/*/config.yaml
+!runs/*/resolved_config.json
 !runs/*/metrics.json
+!runs/*/run.json
 !runs/*/git_sha.txt
 
 # ---------------------------------------------------------------
