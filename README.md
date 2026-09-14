@@ -49,7 +49,7 @@ the code rather than assessed after the fact:
 |---|---|
 | Verifiable | A response is rejected unless its quote is found verbatim in the source |
 | Accurate | The evaluation harness measures every configuration against recorded human decisions before it is adopted |
-| Reproducible | Response caching keyed on model, prompt version and record; fixed seeds; repeated-run design |
+| Reproducible | Response cache keyed on model, prompt version and record, refusing any hit whose request differs; seed sent to the provider; inter-run agreement (Gwet's AC1) measured, not assumed |
 | Overridable | The system proposes, the reviewer disposes; overrides kept as labelled data |
 
 **RQ2 — Fast, accurate knowledge discovery.** How much reviewing effort, time
@@ -60,22 +60,28 @@ surface the research gaps authors state in their own papers?
 
 ## Status
 
-Week 7 of 15. Building the walking skeleton.
+Week 8 of 15. The evaluation harness is built and tested; first runs on real
+SYNERGY data are next.
 
 | Weeks | Deliverable | State |
 |---|---|---|
 | 1–6 | Literature review, proposal, architecture, scope lock | Done |
-| 7–8 | Walking skeleton, then the evaluation harness | In progress |
+| 7–8 | Walking skeleton, then the evaluation harness | Built; exit test passes on synthetic data; real runs pending |
 | 9–10 | Retrieval and screening quality | |
 | 11 | Gap discovery; go / no-go checkpoint | |
 | 12–13 | Dashboard panels; usability evaluation | |
 | 14–15 | Final runs, analysis, submission | |
 
+What exists now: SYNERGY ingest, random and BM25 baselines, LLM screening with
+span verification, a mock and a Gemini provider, and a headless harness that
+reports per-review recall, TNR and WSS at 95% recall, verification rate, work
+saved, Gwet's AC1 and PABAK.
+
 ---
 
 ## Quick start
 
-Requires Python 3.11.
+Requires Python 3.11 (the pinned versions in `requirements.txt` target it).
 
 ```bash
 git clone https://github.com/KavinduPehesara/Beyond-Retrieval.git
@@ -86,27 +92,48 @@ python -m venv .venv
 # source .venv/bin/activate     # macOS / Linux
 
 pip install -r requirements.txt
+pytest -q
 
 copy .env.example .env          # Windows
 # cp .env.example .env          # macOS / Linux
-# then open .env and add your API key
+# add GEMINI_API_KEY only when you move off the mock provider
 ```
 
-Fetch the benchmark corpus:
+Fetch and load the benchmark corpus (every configured review is loaded in full):
 
 ```bash
 python -m synergy_dataset get
-python -m slr.services.ingest --config configs/smoke.yaml
+python -m slr.services.ingest --config configs/baseline_random.yaml
 ```
 
-Run the pipeline:
+Run the baselines (no model calls, no cost) and the smoke test (mock provider,
+no key, no cost):
 
 ```bash
+python -m slr.eval.harness --config configs/baseline_random.yaml
+python -m slr.eval.harness --config configs/baseline_bm25.yaml
 python -m slr.eval.harness --config configs/smoke.yaml
 ```
 
-Results land in `runs/<timestamp>-<config-hash>/`, containing the config that
-produced them, the metrics, and the commit hash of the code that ran.
+Build the report tables from every run directory:
+
+```bash
+python -m slr.eval.report_tables --runs runs --out reports
+```
+
+For a run you intend to report, commit first and add `--require-clean`; the
+harness then refuses to start with uncommitted changes.
+
+Each run writes `runs/<timestamp>-<config-hash>/`:
+
+| File | Holds | Committed |
+|---|---|---|
+| `config.yaml` | the config exactly as written | yes |
+| `resolved_config.json` | the config with defaults applied | yes |
+| `metrics.json` | results only — identical for two runs of the same config | yes |
+| `run.json` | this execution: commit, timings, live spend, cache hits | yes |
+| `git_sha.txt` | the commit the code was at | yes |
+| `responses.jsonl` | every decision | no |
 
 ---
 
@@ -115,7 +142,8 @@ produced them, the metrics, and the commit hash of the code that ran.
 Six reviews from the SYNERGY benchmark, chosen so inclusion rates span 0.8% to
 21.9%. Varying prevalence deliberately is a stronger test than a larger corpus
 that does not, because screening accuracy is known to inflate on balanced data.
-Two of the six are software engineering reviews.
+Radjenović_2013 is a software engineering review; Smid_2020 reviews
+statistical methodology.
 
 | Review | Domain | Records | Included |
 |---|---|---|---|
@@ -137,7 +165,8 @@ balance that produced it.
 1. Nothing is optimised before the evaluation harness exists.
 2. Every reported number comes from a run directory containing its config and
    commit hash. If it only exists in a terminal, it does not exist.
-3. Commit before every run. The git SHA goes into the run artefact.
+3. Commit before every run. The git SHA goes into the run artefact, and
+   `--require-clean` enforces it.
 4. Ground truth is never in the prompt. `label_included` is read by the metrics
    module and by nothing else.
 5. Results are reported per review, always with the inclusion rate beside them.
@@ -150,7 +179,7 @@ balance that produced it.
 
 Screening the full 169,288-record benchmark once costs roughly USD 25 at
 low-tier model prices, and the experimental design needs about twenty passes.
-That is why the corpus is a subset. The budget ceiling is enforced in
+That is why the corpus is a subset. The budget ceiling is set in
 `configs/*.yaml` and aborts the run rather than warning.
 
 ---
@@ -179,6 +208,8 @@ Code in this repository is released under the MIT License. See `LICENSE`.
 
 - Bolaños, F., Salatino, A., Osborne, F., & Motta, E. (2024). Artificial intelligence for literature reviews: Opportunities and challenges. *Artificial Intelligence Review, 57*(10), 259.
 - De Bruin, J., Ma, Y., Ferdinands, G., Teijema, J., & Van de Schoot, R. (2023). *SYNERGY — Open machine learning dataset on study selection in systematic reviews.* DataverseNL.
+- Gwet, K. L. (2014). *Handbook of inter-rater reliability* (4th ed.). Advanced Analytics.
+- Hida, G. S., Ribeiro, D. M., & Yahata, E. (2026). Beyond accuracy: LLM variability in evidence screening for software engineering SLRs. *arXiv preprint* arXiv:2604.27006.
 - Khraisha, Q., et al. (2024). Can large language models replace humans in systematic reviews? *Research Synthesis Methods, 15*(4), 616–626.
 - Kusa, W., Lipani, A., Knoth, P., & Hanbury, A. (2023). An analysis of work saved over sampling in the evaluation of automated citation screening. *Intelligent Systems with Applications, 18*, 200193.
 - Zhang, C., et al. (2023). Automatic recognition and classification of future work sentences. *Journal of Informetrics, 17*(1), 101373.

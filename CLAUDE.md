@@ -34,7 +34,7 @@ rather than assessed after the fact:
 |---|---|---|
 | Verifiable | A response is rejected unless its quote is found verbatim in the source | `slr/services/verify.py` |
 | Accurate | The harness measures every configuration against recorded human decisions | `slr/eval/metrics.py` |
-| Reproducible | Cache keyed on model + prompt version + record; fixed seeds; repeated runs | `slr/adapters/llm.py` |
+| Reproducible | Cache keyed on model + prompt version + record, refusing hits whose request differs; seed sent; inter-run AC1 | `slr/adapters/llm.py`, `slr/eval/metrics.py` |
 | Overridable | System proposes, reviewer disposes; overrides kept as labelled data | `human_decision` table |
 
 **RQ2 — Fast, accurate knowledge discovery.** How much reviewing effort, time
@@ -51,12 +51,14 @@ it surface the research gaps authors state in their own papers?
 2. **Every reported number comes from a run directory** containing its config
    and commit hash. If a figure exists only in a terminal or a notebook, it
    does not exist.
-3. **Commit before every run.** The git SHA goes into the run artefact. The
-   harness prints a warning when the tree is dirty — do not ignore it.
+3. **Commit before every run.** The git SHA goes into the run artefact. Use
+   `--require-clean` for any run you intend to report; without it the harness
+   only warns.
 4. **Ground truth is never in a prompt.** `work.label_included` is written by
-   `ingest.py` and read by `eval/metrics.py`. Nothing else may touch it. There
-   is a test asserting this; if it ever fails, every accuracy figure in the
-   project is worthless.
+   `ingest.py` and read by `eval/metrics.py`. Nothing else may touch it —
+   retrieval selects named columns so screening rows never carry it. Tests
+   assert this; if one ever fails, every accuracy figure in the project is
+   worthless.
 5. **Results are reported per review, never pooled**, always with the
    inclusion rate beside them. Kusa et al. (2023) showed the field's default
    efficiency metric is not comparable across reviews of differing prevalence.
@@ -66,65 +68,73 @@ it surface the research gaps authors state in their own papers?
 
 ---
 
-## Current state — week 7 of 15
+## Current state — week 8 of 15
 
-Done: literature review, proposal (submitted), architecture, scope lock, and
-the walking skeleton below.
+Done: literature review, proposal (submitted), architecture, scope lock, the
+walking skeleton, and the week 8 evaluation harness.
 
 ```
 slr/
   config.py              YAML config + pydantic validation + config hashing
-  db.py                  SQLite schema, FTS5 index, triggers
+  db.py                  SQLite schema v2, FTS5 index, triggers
   services/
-    ingest.py            SYNERGY loader (stratified, so low-prevalence
-                         samples are not all negatives)
-    retrieve.py          FTS5 lexical rank + seeded random  (baselines 1 & 2)
+    ingest.py            SYNERGY loader; full reviews, upserts, NULLs kept NULL
+    retrieve.py          random + BM25 ranking (baselines 1 & 2)
     screen.py            ask -> validate shape -> verify quote
     verify.py            THE span verifier. RQ1 lives here.
   adapters/llm.py        Mock + Gemini behind one Provider protocol,
-                         response cache, budget Meter that aborts
+                         response cache with request fingerprint, budget Meter
   eval/
     metrics.py           per-review metrics. Only module reading ground truth.
-    harness.py           CLI; writes runs/<ts>-<hash>/{config,metrics,git_sha}
+    agreement.py         Gwet's AC1/AC2, PABAK
+    harness.py           CLI; writes runs/<ts>-<hash>/{config,resolved_config,
+                         metrics,run,git_sha}
+    report_tables.py     run directories -> reports/results.{csv,md}
 prompts/screen_v1.txt    prompt template, versioned by filename
-configs/smoke.yaml       50 records, mock provider, free
-tests/                   38 tests, most on the verifier
+configs/smoke.yaml       Nelson_2002, 50 records, mock provider, free
+configs/baseline_*.yaml  random and BM25 over Smid_2020 + Nelson_2002, free
+tests/                   103 tests
 ```
 
-**Verified working:** 38 tests pass; end-to-end run on a synthetic corpus
-screened 50 records, 82% verification rate, fabricated spans correctly caught
-as `not_found`; second run served 50/50 from cache at $0.0000.
+**Verified working (synthetic data, mock provider):** 103 tests pass. The
+weeks 7–8 exit test passes: one config run twice gives a byte-identical
+`metrics.json`, the second run served entirely from cache at $0. AC1 and
+quadratic AC2 reproduce the irrCAC worked example (`cac.raw4raters`: AC1
+0.77544, AC2 0.914).
 
 **Not yet done:**
 
 - Never run against real SYNERGY data (download not yet performed)
-- Never run against the real Gemini API (mock provider only so far)
-- `CRITERIA` in `ingest.py` holds *working* eligibility criteria. Replace with
-  SYNERGY's published protocol text before any run that gets reported.
+- Never run against the real Gemini API (mock provider only so far). Check the
+  configured model is still served and its prices match `budget` before the
+  first real run.
+- `CRITERIA` in `ingest.py` holds *working* eligibility criteria
+  (`CRITERIA_STATUS = "working-draft"`, recorded in every metrics file).
+  Replace with SYNERGY's published protocol text, set the status to
+  `"published"`, and bump `screening.prompt_version` before any run that gets
+  reported.
 - Ethics application for the usability study — not submitted. This is the only
-  item whose timing is outside the author's control. It gates week 13.
+  item whose timing is outside the author's control. It gates week 13. (The
+  proposal, section 8.2, says approval is obtained in week 7.)
 
 ---
 
-## Next: week 8 — the evaluation harness
+## Next: finish week 8 — first real numbers
 
 Exit test: *a stored configuration reproduces an identical metrics file, and a
-first recall figure exists on two reviews.*
+first recall figure exists on two reviews.* The first half passes on synthetic
+data; the second needs real data.
 
-Build, in this order:
-
-1. **`slr/eval/metrics.py` additions** — TNR@95% recall (normalised WSS, the
-   form Kusa et al. proved comparable across reviews), Gwet's AC2,
-   prevalence-adjusted kappa. **AC2 has no scikit-learn implementation. Write
-   it and unit-test it against a published worked example before trusting a
-   single number it produces.**
-2. **Baselines** — random ordering (done) and BM25 alone (done). Wire them
-   into the harness as selectable strategies rather than hard-coded calls.
-3. **`report_tables.py`** — reads run directories, emits the CSV/markdown
-   tables that go straight into the final report. Writing this in week 8 saves
-   a full day in week 15.
-4. **First real numbers** — run over Smid_2020 (2,627 records, 1.0%) and
-   Nelson_2002 (366 records, 21.9%). These two bracket the prevalence range.
+1. `python -m synergy_dataset get`, then ingest Smid_2020 and Nelson_2002.
+   Check the printed counts: 2,627 / 27 and 366 / 80.
+2. Commit, then run `configs/baseline_random.yaml` and
+   `configs/baseline_bm25.yaml` with `--require-clean`. Commit the run
+   directories (`eval:`).
+3. Replace the criteria for those two reviews with the published text.
+4. Screening run with `provider: gemini` over both reviews, full size
+   (≈ 3,000 calls, well under $1). Run it twice to confirm the metrics file
+   reproduces from cache.
+5. `python -m slr.eval.report_tables`, then tag `week-08`.
 
 **Expect Nelson_2002 to look far better than Smid_2020.** That gap is not a
 bug — it is exactly the inflation Khraisha et al. (2024) described, observed
@@ -172,7 +182,8 @@ subset of 12,598 records** (≈ $1.90 per pass).
 
 Four rules that keep it there:
 
-- Cache checked before every call, keyed on (model, prompt_version, work_id).
+- Cache checked before every call, keyed on (model, prompt_version, review,
+  work_id).
 - Budget ceiling lives in config and **aborts** the run. It does not warn.
 - Every run logs tokens and cost per record into SQLite.
 - While debugging, `max_records: 50`. Only runs you intend to report touch the
@@ -187,7 +198,9 @@ repeated-run measurement, which needs genuine re-sampling to quantify variance.
 
 Chosen so inclusion rates span 0.8% to 21.9%. Deliberately varying prevalence
 is a stronger test than a larger corpus that does not, because screening
-accuracy is known to inflate on balanced data. Two are software engineering.
+accuracy is known to inflate on balanced data. Radjenović_2013 is software
+engineering; Smid_2020 reviews statistical methodology (SEM, Bayesian
+estimation in small samples).
 
 | Review | Domain | Records | Included |
 |---|---|---|---|
@@ -200,7 +213,9 @@ accuracy is known to inflate on balanced data. Two are software engineering.
 | **Total** | | **12,598** | **351 (2.8%)** |
 
 `Hall_2012` (8,793, software engineering) is held as a week-14 extension if
-budget remains. `slr/config.py` rejects any review outside this set.
+budget remains. `slr/config.py` rejects any review outside this set. Hall_2012
+and Radjenović_2013 are both fault-prediction reviews and will share papers —
+which is why records are keyed on (review, work_id).
 
 ---
 
@@ -211,19 +226,42 @@ matching.** Fuzzy matching would let a paraphrase pass, and paraphrase is
 precisely the failure being guarded against. Normalisation folds only
 transport artefacts: NFKC, curly quotes → straight, en/em dash → hyphen,
 whitespace collapsed, case folded. A single changed word must fail. There is a
-test asserting that. **Do not "improve" this into fuzzy matching.**
+test asserting that. **Do not "improve" this into fuzzy matching.** The
+minimum span length applies after punctuation is stripped too.
 
 **An unverified span is not a prediction.** Its decision becomes `unverified`
-and metrics score accuracy over verified decisions only. Scoring referrals as
-predictions would flatter the system.
+and accuracy is scored over verified decisions only. Scoring referrals as
+predictions would flatter the system. `recall_with_referrals` is reported
+beside it: what a researcher following the workflow keeps, counting everything
+sent to a human.
 
 **The mock provider fabricates ~20% of the time on purpose**, so the
 verification failure path is exercised on every test run rather than being
 discovered in week 10.
 
-**Cache key excludes the prompt text.** Keyed on model + prompt_version +
-work_id. If the prompt changes without its version changing, that is a bug in
-the experiment; a cache absorbing it silently would hide the bug.
+**Cache key excludes the prompt text, but the cache checks it.** Keyed on
+model + prompt_version + review + work_id. Each cached row stores a hash of the
+full request (prompt, model, temperature, max tokens, seed); a hit whose
+request differs raises `CacheMismatch` and aborts. A prompt changed without a
+version bump is a bug in the experiment, and it is now caught rather than
+silently served stale.
+
+**Records are keyed on (review, work_id).** A label belongs to the review, not
+to the paper.
+
+**Ingest loads every review in full; `max_records` caps screening only.** A
+capped ingest changes stored prevalence, and every metric inherits it.
+
+**metrics.json is a pure function of config and corpus.** No timestamps,
+latency, cache state or commit hash — those live in run.json. This is what
+makes "a stored configuration reproduces an identical metrics file" testable.
+
+**The model's decisions are compared with baselines as a ranking.** Verified
+includes by confidence, then referrals, then verified excludes least confident
+first; TNR@95% is computed on that ordering.
+
+**Inter-run agreement treats unverified decisions as missing ratings**, not
+as a third category.
 
 **ASReview is run as an external tool**, not reimplemented. Removes an
 implementation risk and a claim that would otherwise need defending.
@@ -242,12 +280,19 @@ approximate index to be worth the accuracy loss.
 ```bash
 .venv\Scripts\activate
 pytest -q
-python -m slr.services.ingest --config configs/smoke.yaml
+python -m slr.services.ingest --config configs/baseline_random.yaml
+python -m slr.eval.harness --config configs/baseline_random.yaml
+python -m slr.eval.harness --config configs/baseline_bm25.yaml
 python -m slr.eval.harness --config configs/smoke.yaml
+python -m slr.eval.report_tables --runs runs --out reports
 ```
 
 `configs/smoke.yaml` uses `provider: mock` — free, no API key, no network.
 Switch to `provider: gemini` and put `GEMINI_API_KEY` in `.env` for real runs.
+Add `--require-clean` to any run you intend to report.
+
+A database created before schema v2 is refused; delete `data/slr.db` and
+re-run ingest.
 
 **This repository is public.** `.env` is gitignored; verify with
 `git check-ignore -v .env` before adding a real key. A leaked key is scraped
@@ -293,7 +338,8 @@ factual claim that is either true or false.
 
 - Bolaños et al. (2024), *AI Review* 57(10):259 — 21 tools surveyed, only 4 open source, 0 of 34 features concern absence
 - Khraisha et al. (2024), *Research Synthesis Methods* 15(4):616–626 — GPT-4 sensitivity 0.42 on balanced data
-- Kusa et al. (2023), *Intelligent Systems with Applications* 18:200193 — WSS not comparable across reviews; use normalised form
+- Kusa et al. (2023), *Intelligent Systems with Applications* 18:200193 — WSS not comparable across reviews; use normalised form (TNR at recall)
 - Zhang et al. (2023), *Journal of Informetrics* 17(1):101373 — future-work sentence classification; macro F1 90.73%, but problem class only 43.64%
-- Hida et al. (2026), arXiv preprint — 47pp accuracy spread between models; inter-run agreement 0.55–1.00 at temperature zero; abstract-only ablation −5.55pp
+- Hida et al. (2026), arXiv:2604.27006 — 47 pp accuracy spread between models (22 pp on their other SLR); inter-run Gwet AC2 0.55 (Gemini-2.5-Flash) to 1.0 at temperature zero; title+keywords without the abstract −5.55 pp
+- Gwet (2014), *Handbook of Inter-Rater Reliability*, 4th ed. — AC1/AC2; worked example `cac.raw4raters` used in `tests/test_agreement.py`
 - De Bruin et al. (2023) — SYNERGY dataset, 26 reviews, 169,288 records, 1.67% inclusion
