@@ -164,6 +164,17 @@ def test_published_criteria_are_used_and_recorded(corpus):
     assert recorded["sha256"] == criteria_service.Criteria(text, "published", "x").sha256
 
 
+def test_artefacts_use_lf_on_every_platform(corpus):
+    """Byte-identical has to hold across machines, not only across runs."""
+    run_dir = harness.run(load_config(_config(corpus, "screen", SCREEN)))
+    for path in sorted(run_dir.iterdir()):
+        assert b"\r\n" not in path.read_bytes(), path.name
+
+    report_tables.build(corpus / "runs", corpus / "reports")
+    for name in ("results.csv", "results.md"):
+        assert b"\r\n" not in (corpus / "reports" / name).read_bytes(), name
+
+
 def test_responses_log_carries_no_ground_truth(corpus):
     run_dir = harness.run(load_config(_config(corpus, "screen", SCREEN)))
     for line in (run_dir / "responses.jsonl").read_text(encoding="utf-8").splitlines():

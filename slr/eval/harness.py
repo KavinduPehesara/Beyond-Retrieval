@@ -101,8 +101,18 @@ def _sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _write_text(path: Path, text: str) -> None:
+    """Always LF, on every platform.
+
+    Two runs of one configuration must produce byte-identical artefacts, and
+    "identical" has to survive the week 13 test of a fresh clone on a second
+    machine. Left alone, Python translates newlines on Windows.
+    """
+    path.write_text(text, encoding="utf-8", newline="\n")
+
+
 def _write_json(path: Path, payload: dict) -> None:
-    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    _write_text(path, json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
 
 
 def run(cfg: Config, *, require_clean: bool = False) -> Path:
@@ -197,7 +207,11 @@ def _run(conn, cfg: Config, sha: str, dirty: bool) -> Path:
 
     aborted: str | None = None
     per_review: list[dict] = []
-    log = (run_dir / "responses.jsonl").open("w", encoding="utf-8") if screening else None
+    log = (
+        (run_dir / "responses.jsonl").open("w", encoding="utf-8", newline="\n")
+        if screening
+        else None
+    )
 
     try:
         for review in reviews:
@@ -330,14 +344,12 @@ def _run(conn, cfg: Config, sha: str, dirty: bool) -> Path:
         "aborted_reason": aborted,
     }
 
-    (run_dir / "config.yaml").write_text(cfg.source_text or "", encoding="utf-8")
+    _write_text(run_dir / "config.yaml", cfg.source_text or "")
     _write_json(
         run_dir / "resolved_config.json",
         cfg.model_dump(mode="json", exclude={"source_path", "source_text"}),
     )
-    (run_dir / "git_sha.txt").write_text(
-        f"{sha}{'-dirty' if dirty else ''}\n", encoding="utf-8"
-    )
+    _write_text(run_dir / "git_sha.txt", f"{sha}{'-dirty' if dirty else ''}\n")
     _write_json(run_dir / "metrics.json", results)
     _write_json(run_dir / "run.json", run_info)
 

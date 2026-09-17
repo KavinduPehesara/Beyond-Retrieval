@@ -184,11 +184,12 @@ def build(runs_dir: Path, out_dir: Path) -> list[dict]:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     with (out_dir / "results.csv").open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=COLUMNS)
+        # csv writes CRLF by default; artefacts are LF on every platform.
+        writer = csv.DictWriter(handle, fieldnames=COLUMNS, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
-    (out_dir / "results.md").write_text(to_markdown(rows), encoding="utf-8")
+    (out_dir / "results.md").write_text(to_markdown(rows), encoding="utf-8", newline="\n")
     return rows
 
 
