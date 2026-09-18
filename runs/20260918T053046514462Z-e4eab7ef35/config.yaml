@@ -1,0 +1,30 @@
+# Baseline 2 — BM25 lexical ranking. Week 8.
+#
+# No model calls and no cost. Ranks every record of each review by BM25
+# against that review's eligibility criteria (ranking.query unset) and reports
+# TNR and WSS at 95% recall. Dense retrieval in week 9 must beat this on at
+# least three reviews (proposal, objective 2).
+#
+# The query is the criteria text, which is still a working draft
+# (CRITERIA_STATUS in slr/services/ingest.py). Re-run once the published
+# criteria are in.
+
+name: baseline_bm25
+
+dataset:
+  reviews:
+    - Smid_2020        # 2,627 records, 1.0% inclusion
+    - Nelson_2002      # 366 records, 21.9% inclusion
+  max_records: null
+  seed: 42
+
+ranking:
+  strategy: bm25
+  recall_target: 0.95
+
+screening:
+  enabled: false
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts

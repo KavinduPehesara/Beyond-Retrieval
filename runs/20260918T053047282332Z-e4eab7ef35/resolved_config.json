@@ -1,0 +1,35 @@
+{
+  "name": "baseline_bm25",
+  "dataset": {
+    "reviews": [
+      "Smid_2020",
+      "Nelson_2002"
+    ],
+    "max_records": null,
+    "seed": 42
+  },
+  "ranking": {
+    "strategy": "bm25",
+    "query": null,
+    "recall_target": 0.95
+  },
+  "screening": {
+    "enabled": false,
+    "provider": "mock",
+    "model": "gemini-2.5-flash-lite",
+    "prompt_version": "screen_v1",
+    "temperature": 0.0,
+    "max_output_tokens": 512,
+    "max_retries": 3,
+    "seed": 42
+  },
+  "budget": {
+    "ceiling_usd": 1.0,
+    "usd_per_1m_input": 0.1,
+    "usd_per_1m_output": 0.4
+  },
+  "db_path": "data\\slr.db",
+  "runs_dir": "runs",
+  "prompts_dir": "prompts",
+  "cache_enabled": true
+}

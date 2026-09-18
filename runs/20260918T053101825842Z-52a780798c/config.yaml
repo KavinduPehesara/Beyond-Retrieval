@@ -1,0 +1,43 @@
+# Week 7 smoke test.
+#
+# Fifty records, one review, mock provider. Costs nothing and needs no API
+# key. This is the config the week 7 exit test runs against.
+#
+# Nelson_2002 rather than Smid_2020: ingest now loads every review in full
+# (a capped ingest distorted prevalence), so fifty random records from a 1.0%
+# review would usually hold no included record and recall would be undefined.
+# At 21.9% prevalence, fifty records hold about eleven.
+#
+# To use the real model: set provider to gemini and put GEMINI_API_KEY in .env.
+
+name: smoke
+
+dataset:
+  reviews:
+    - Nelson_2002      # 366 records, 21.9% inclusion
+  max_records: 50
+  seed: 42
+
+ranking:
+  strategy: random     # random | bm25
+  recall_target: 0.95
+
+screening:
+  enabled: true
+  provider: mock       # mock | gemini
+  model: mock-1        # e.g. gemini-2.0-flash when provider is gemini
+  prompt_version: screen_v1
+  temperature: 0.0
+  max_output_tokens: 512
+  max_retries: 3
+  seed: 42             # best effort on the provider side; agreement is measured
+
+budget:
+  ceiling_usd: 1.00    # aborts the run, does not warn
+  usd_per_1m_input: 0.15
+  usd_per_1m_output: 0.60
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts
+cache_enabled: true

@@ -17,6 +17,9 @@ criteria — not reportable.
 | baseline_random<br>`20260914T131157943219Z-96849ba0a1` | baseline | random | — | — | — | — | — | — | — | — | 0.029 | -0.021 | — |
 | baseline_bm25<br>`20260914T131159900053Z-e4eab7ef35` | baseline | bm25 | — | — | — | — | — | — | — | — | 0.568 | 0.513 | — |
 | baseline_bm25<br>`20260914T131201962898Z-e4eab7ef35` | baseline | bm25 | — | — | — | — | — | — | — | — | 0.568 | 0.513 | — |
+| baseline_bm25<br>`20260918T052905492231Z-e4eab7ef35` | baseline | bm25 | — | — | — | — | — | — | — | — | 0.568 | 0.513 | — |
+| baseline_bm25<br>`20260918T053046514462Z-e4eab7ef35` | baseline | bm25 | — | — | — | — | — | — | — | — | 0.568 | 0.513 | — |
+| baseline_bm25<br>`20260918T053047282332Z-e4eab7ef35` | baseline | bm25 | — | — | — | — | — | — | — | — | 0.568 | 0.513 | — |
 
 ## Nelson_2002 — 366 records, 21.9% included
 
@@ -28,3 +31,7 @@ criteria — not reportable.
 | baseline_bm25<br>`20260914T131201962898Z-e4eab7ef35` | baseline | bm25 | — | — | — | — | — | — | — | — | 0.080 | 0.024 | — |
 | smoke†<br>`20260914T131204021505Z-52a780798c` | screen | random | mock-1 | 50 | 80.0% | 0.273 | 0.333 | 62.0% | 0.440 | 0.300 | 0.000 | -0.050 | 0.0084 |
 | smoke†<br>`20260914T131205984499Z-52a780798c` | screen | random | mock-1 | 50 | 80.0% | 0.273 | 0.333 | 62.0% | 0.440 | 0.300 | 0.000 | -0.050 | 0.0084 |
+| baseline_bm25<br>`20260918T052905492231Z-e4eab7ef35` | baseline | bm25 | — | — | — | — | — | — | — | — | 0.080 | 0.024 | — |
+| baseline_bm25<br>`20260918T053046514462Z-e4eab7ef35` | baseline | bm25 | — | — | — | — | — | — | — | — | 0.080 | 0.024 | — |
+| baseline_bm25<br>`20260918T053047282332Z-e4eab7ef35` | baseline | bm25 | — | — | — | — | — | — | — | — | 0.080 | 0.024 | — |
+| smoke†<br>`20260918T053101825842Z-52a780798c` | screen | random | mock-1 | 50 | 80.0% | 0.273 | 0.333 | 62.0% | 0.440 | 0.300 | 0.000 | -0.050 | 0.0084 |
