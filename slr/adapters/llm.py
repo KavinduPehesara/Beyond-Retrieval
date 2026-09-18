@@ -5,14 +5,19 @@ research requirement (RQ2 asks what the accuracy-cost trade-off is), and it
 must be a config change rather than a code change, or the comparison is not
 worth reporting.
 
-Three providers:
+Four providers:
 
 * ``mock``   — deterministic, free, no network. Used by the tests and by
                anyone running the pipeline without a key. Its decisions are
                nonsense, but it exercises every code path including the
                verification failure path.
 * ``gemini`` — Google AI Studio. Cheapest viable option with JSON mode.
-* (a second tier is added in week 10 for the cost comparison)
+* ``ollama`` — local inference against the developer's own GPU, via Ollama's
+               HTTP API. $0 marginal cost by construction; added week 8 when
+               gemini-2.5-flash-lite became unavailable to this account and
+               its replacement cost ~4x more. Not a replacement for the
+               Gemini arm — RQ2's cost/time comparison is between them.
+* (a second Gemini tier is added in week 10 for the cost comparison)
 """
 
 from __future__ import annotations
@@ -233,6 +238,91 @@ class GeminiProvider:
 
 
 # --------------------------------------------------------------------------
+# Ollama provider (local GPU)
+# --------------------------------------------------------------------------
+
+
+class OllamaProvider:
+    """Local inference via Ollama's HTTP API, on the developer's own GPU.
+
+    Same JSON-schema-constrained approach as ``GeminiProvider`` — Ollama's
+    ``format`` parameter takes a JSON schema and constrains generation to it,
+    so parse-failure rates stay comparable across providers rather than being
+    confounded by one provider having weaker JSON discipline than the other.
+
+    $0 marginal cost by construction: there is no per-token bill. The budget
+    config should set ``usd_per_1m_input``/``usd_per_1m_output`` to 0 for an
+    accurate ``run.json`` — that is a real price, not a placeholder.
+    """
+
+    name = "ollama"
+
+    RESPONSE_SCHEMA = GeminiProvider.RESPONSE_SCHEMA
+
+    def __init__(
+        self,
+        model: str,
+        base_url: str = "http://localhost:11434",
+        max_retries: int = 3,
+    ) -> None:
+        self.model = model
+        self.max_retries = max_retries
+        try:
+            import httpx
+        except ImportError as exc:  # pragma: no cover
+            raise ProviderError(
+                "httpx is not installed. pip install -r requirements.txt"
+            ) from exc
+        self._client = httpx.Client(base_url=base_url, timeout=120.0)
+
+    def complete(
+        self,
+        prompt: str,
+        *,
+        temperature: float = 0.0,
+        max_tokens: int = 512,
+        seed: int | None = None,
+    ) -> Completion:
+        options = {"temperature": temperature, "num_predict": max_tokens}
+        if seed is not None:
+            # Best effort on the provider's side, not a guarantee — which is
+            # why run-to-run agreement is measured rather than assumed.
+            options["seed"] = seed
+        payload = {
+            "model": self.model,
+            "prompt": prompt,
+            "stream": False,
+            "format": self.RESPONSE_SCHEMA,
+            "options": options,
+        }
+
+        @retry(
+            stop=stop_after_attempt(self.max_retries),
+            wait=wait_exponential(multiplier=1, min=2, max=20),
+            retry=retry_if_exception_type(Exception),
+            reraise=True,
+        )
+        def _call():
+            response = self._client.post("/api/generate", json=payload)
+            response.raise_for_status()
+            return response.json()
+
+        started = time.perf_counter()
+        try:
+            data = _call()
+        except Exception as exc:
+            raise ProviderError(f"Ollama call failed after retries: {exc}") from exc
+        latency_ms = int((time.perf_counter() - started) * 1000)
+
+        return Completion(
+            text=data.get("response", ""),
+            tokens_in=data.get("prompt_eval_count", 0) or 0,
+            tokens_out=data.get("eval_count", 0) or 0,
+            latency_ms=latency_ms,
+        )
+
+
+# --------------------------------------------------------------------------
 # Caching and budget wrapper
 # --------------------------------------------------------------------------
 
@@ -321,4 +411,6 @@ def build_provider(provider: str, model: str, api_key: str | None = None, max_re
         return MockProvider(model=model)
     if provider == "gemini":
         return GeminiProvider(model=model, api_key=api_key, max_retries=max_retries)
-    raise ValueError(f"Unknown provider: {provider!r}. Use 'mock' or 'gemini'.")
+    if provider == "ollama":
+        return OllamaProvider(model=model, max_retries=max_retries)
+    raise ValueError(f"Unknown provider: {provider!r}. Use 'mock', 'gemini' or 'ollama'.")

@@ -81,7 +81,7 @@ class ScreeningConfig(BaseModel):
             "ranking metrics over the full review."
         ),
     )
-    provider: Literal["gemini", "mock"] = "mock"
+    provider: Literal["gemini", "mock", "ollama"] = "mock"
     # gemini-2.0-flash was shut down on 1 June 2026. 2.5 Flash-Lite is the
     # cheapest model still served; check the deprecations page before a run.
     model: str = "gemini-2.5-flash-lite"

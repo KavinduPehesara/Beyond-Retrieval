@@ -1,0 +1,55 @@
+# Week 8 — first recall figures on two reviews, local GPU inference.
+#
+# Added when gemini-2.5-flash-lite returned 404 ("no longer available to new
+# users") for this account and its verified replacement, gemini-3.5-flash-lite,
+# cost ~4x more. Runs on the developer's own RTX 3070 via Ollama instead.
+#
+# Before running:
+#   1. Ollama installed and running (http://localhost:11434), model pulled:
+#        ollama pull qwen2.5:7b-instruct
+#   2. Ingest has loaded the published eligibility criteria: the harness prints
+#      a warning and every metrics file records it if they are still drafts.
+#   3. Commit, then run with --require-clean.
+#
+# Size: 2,993 records (2,627 + 366), one call each. $0 spend — there is no
+# per-token bill for local inference; that is a real price, not a placeholder,
+# so it does not touch the $50 API budget. Run it twice: the second run is
+# served from cache and must produce an identical metrics.json, exactly as
+# for the Gemini config — that guarantee comes from the response cache, not
+# from the local model being deterministic run to run.
+#
+# This is a separate arm from the Gemini config, not a replacement for it:
+# RQ2's cost/time comparison is between the two.
+
+name: week08_ollama_qwen25_7b
+
+dataset:
+  reviews:
+    - Smid_2020        # 2,627 records, 1.0% inclusion
+    - Nelson_2002      # 366 records, 21.9% inclusion
+  max_records: null    # every record; TNR@95 needs the full review
+  seed: 42
+
+ranking:
+  strategy: random     # order of screening only; every record is screened
+  recall_target: 0.95
+
+screening:
+  enabled: true
+  provider: ollama
+  model: qwen2.5:7b-instruct
+  prompt_version: screen_v1
+  temperature: 0.0
+  max_output_tokens: 512
+  max_retries: 3
+  seed: 42
+
+budget:
+  ceiling_usd: 0.00
+  usd_per_1m_input: 0.0    # local GPU inference; no per-token API cost
+  usd_per_1m_output: 0.0
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts
+cache_enabled: true

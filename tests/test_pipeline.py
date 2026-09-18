@@ -17,6 +17,8 @@ from slr.adapters.llm import (
     Completion,
     Meter,
     MockProvider,
+    OllamaProvider,
+    build_provider,
     cache_key,
 )
 from slr.config import SUBSET, Config, DatasetConfig
@@ -251,3 +253,20 @@ def test_config_hash_is_stable_and_sensitive(tmp_path):
 
     p.write_text("name: t\ndataset:\n  reviews: [Menon_2022]\n", encoding="utf-8")
     assert load_config(p).config_hash != a
+
+
+# --------------------------------------------------------------------------
+# Providers
+# --------------------------------------------------------------------------
+
+
+def test_build_provider_dispatches_ollama():
+    provider = build_provider("ollama", "qwen2.5:7b-instruct")
+    assert isinstance(provider, OllamaProvider)
+    assert provider.name == "ollama"
+    assert provider.model == "qwen2.5:7b-instruct"
+
+
+def test_build_provider_rejects_unknown_name():
+    with pytest.raises(ValueError):
+        build_provider("not-a-provider", "some-model")
