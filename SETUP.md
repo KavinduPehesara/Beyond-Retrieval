@@ -98,6 +98,23 @@ accident and the budget will go with them.
 
 ---
 
+## Optional: local GPU inference
+
+The Gemini path above is what a fresh clone needs. Local inference via Ollama
+is a separate, optional experiment arm — not required for the core pipeline
+to run on a second machine.
+
+```bash
+winget install Ollama.Ollama
+ollama pull qwen2.5:7b-instruct     # ~4.7GB, needs ~8GB VRAM
+```
+
+Then set `provider: ollama` and `model: qwen2.5:7b-instruct` in a config —
+see `configs/week08_ollama.yaml`. $0 per call; not counted against the $50
+API budget.
+
+---
+
 ## 6. Working rhythm
 
 Commit small and often. Run artefacts carry a git SHA, which only works if you

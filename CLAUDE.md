@@ -84,7 +84,7 @@ slr/
     retrieve.py          random + BM25 ranking (baselines 1 & 2)
     screen.py            ask -> validate shape -> verify quote
     verify.py            THE span verifier. RQ1 lives here.
-  adapters/llm.py        Mock + Gemini behind one Provider protocol,
+  adapters/llm.py        Mock + Gemini + Ollama behind one Provider protocol,
                          response cache with request fingerprint, budget Meter
   eval/
     metrics.py           per-review metrics. Only module reading ground truth.
@@ -95,8 +95,9 @@ slr/
 prompts/screen_v1.txt    prompt template, versioned by filename
 configs/smoke.yaml       Nelson_2002, 50 records, mock provider, free
 configs/baseline_*.yaml  random and BM25 over Smid_2020 + Nelson_2002, free
-configs/week08_gemini.yaml  Smid_2020 + Nelson_2002, gemini-2.5-flash-lite
-tests/                   112 tests
+configs/week08_gemini.yaml  Smid_2020 + Nelson_2002, gemini-2.5-flash-lite (blocked, see below)
+configs/week08_ollama.yaml  same two reviews, local GPU via Ollama, qwen2.5:7b-instruct
+tests/                   115 tests
 reports/results.{csv,md} generated from runs/
 ```
 
@@ -126,13 +127,28 @@ single topic (HRT), so the criteria vocabulary is shared by nearly every
 record and cannot separate them, whereas Smid_2020's candidates are lexically
 diverse. Random is one seed; do not read its two values as different.
 
+**Observed 18 September 2026 (rule 7).** `gemini-2.5-flash-lite` returned
+`404 NOT_FOUND — no longer available to new users` on the first live call,
+even though Google's pricing page (`ai.google.dev/gemini-api/docs/pricing`)
+still lists it as available with no deprecation notice — this account is most
+likely gated as "new," not the model being globally withdrawn. The verified
+working replacement, `gemini-3.5-flash-lite`, is confirmed at $0.30/$2.50 per
+1M input/output tokens — about 4x `configs/week08_gemini.yaml`'s assumed
+price. `google-genai==0.3.0` handles the new model's response shape fine
+(the missing `thoughts_token_count` was already handled defensively). Rather
+than eat the 4x price for week 8, added `ollama` as a third provider
+(`slr/adapters/llm.py`, `OllamaProvider`) running `qwen2.5:7b-instruct` on the
+author's own RTX 3070 (8GB VRAM) — $0 marginal cost, JSON-schema-constrained
+output via Ollama's `format` parameter, same contract as `GeminiProvider`.
+Smoke-tested on 5 real records: JSON mode held (no schema failures), 4/5
+spans verified. `configs/week08_gemini.yaml` is kept as-is for a future
+reported comparison; it is not run for the week 8 headline figures.
+
 **Not yet done:**
 
-- Never run against the real Gemini API. There is no `.env` and no key yet.
-  `google-genai` is pinned at 0.3.0 (December 2024) and is untested against
-  `gemini-2.5-flash-lite`; its usage metadata has no `thoughts_token_count`.
-  If the first call fails on config or schema, upgrading the pin is a
-  deliberate change to write down, not a silent one.
+- Never run against the real Gemini API for a reported figure — the 404
+  above blocked it; `configs/week08_gemini.yaml` needs a price/ceiling update
+  (currently priced for the now-blocked model) before it is run for real.
 - Only Smid_2020 and Nelson_2002 are ingested. The other four load with the
   same command once added to a config.
 - Ethics application for the usability study — not submitted. This is the only
@@ -145,17 +161,21 @@ diverse. Random is one seed; do not read its two values as different.
 
 Exit test: *a stored configuration reproduces an identical metrics file, and a
 first recall figure exists on two reviews.* The first half passes on real data;
-the second needs the Gemini run.
+the second now runs on local Ollama instead of Gemini (see 18 September note
+above).
 
-1. `copy .env.example .env`, check `git check-ignore -v .env`, add
-   `GEMINI_API_KEY`. Confirm on the Gemini deprecations page that
-   `gemini-2.5-flash-lite` is still served and the prices in
-   `configs/week08_gemini.yaml` still hold.
-2. `python -m slr.eval.harness --config configs/week08_gemini.yaml --require-clean`
-   — 2,993 calls, about $0.40, ceiling $2. Run it a second time: it must be
-   served from cache at $0 with an identical `metrics.json`.
+1. Ollama installed, `qwen2.5:7b-instruct` pulled, server on
+   `localhost:11434`. Smoke-tested on 5 records — done.
+2. `python -m slr.eval.harness --config configs/week08_ollama.yaml --require-clean`
+   — 2,993 calls, $0. Run it a second time: it must be served from cache at
+   $0 with an identical `metrics.json`.
 3. `python -m slr.eval.report_tables`, commit runs and reports as `eval:`, tag
    `week-08`.
+
+The Gemini path (`configs/week08_gemini.yaml`) is deferred, not abandoned —
+worth running later at `gemini-3.5-flash-lite`'s real price for the RQ2
+cost/time comparison against the local arm, once the config's price and
+ceiling are updated to match.
 
 When the model numbers arrive, set them beside the baselines above. Khraisha
 et al. (2024) predict model accuracy looks better on the high-prevalence
@@ -299,8 +319,20 @@ first; TNR@95% is computed on that ordering.
 **Inter-run agreement treats unverified decisions as missing ratings**, not
 as a third category.
 
-**Default model is gemini-2.5-flash-lite.** gemini-2.0-flash was shut down on
-1 June 2026. Check the deprecations page before any reported run.
+**Default model is gemini-2.5-flash-lite** in config, though it is currently
+blocked for this account (404, "no longer available to new users") — see 18
+September note above. gemini-2.0-flash was shut down on 1 June 2026. Check
+the deprecations page before any reported run.
+
+**Local inference goes through Ollama, not llama-cpp-python.** No new pinned
+dependency (`OllamaProvider` reuses `httpx`, already pinned); GPU offload is
+automatic; and Ollama's `format` JSON-schema parameter gives the same
+constrained-output guarantee `GeminiProvider` relies on, so parse-failure
+rates stay comparable across providers instead of being confounded by one
+having weaker JSON discipline. `llama-cpp-python`'s CUDA wheels on Windows
+need a toolkit-matched build — real risk against 12h/week. Local inference is
+$0 marginal cost by construction and does not count against the $50 budget;
+it is a separate RQ2 arm, not a replacement for the Gemini figures.
 
 **ASReview is run as an external tool**, not reimplemented. Removes an
 implementation risk and a claim that would otherwise need defending.
@@ -323,13 +355,16 @@ python -m slr.services.ingest --config configs/baseline_random.yaml
 python -m slr.eval.harness --config configs/baseline_random.yaml --require-clean
 python -m slr.eval.harness --config configs/baseline_bm25.yaml --require-clean
 python -m slr.eval.harness --config configs/smoke.yaml --require-clean
-python -m slr.eval.harness --config configs/week08_gemini.yaml --require-clean
+python -m slr.eval.harness --config configs/week08_ollama.yaml --require-clean
 python -m slr.eval.report_tables --runs runs --out reports
 ```
 
 The first ingest downloads SYNERGY v1.0 (≈ 450 MB) to
 `~/.synergy_dataset_source` and the criteria file to `data/synergy/`.
 `configs/smoke.yaml` uses `provider: mock` — free, no API key, no network.
+`configs/week08_ollama.yaml` needs Ollama running locally
+(`ollama pull qwen2.5:7b-instruct`, then the default `localhost:11434` server)
+— also free, no API key, but not network-free: it needs the local GPU.
 
 A database created before schema v3 is refused; delete `data/slr.db` and
 re-run ingest.

@@ -1,0 +1,35 @@
+# Pre-flight check for the Ollama provider — 5 records, before the full
+# week08_ollama.yaml run. Checks the JSON schema mode and quote verification
+# actually work against a local model before spending the time on 2,993 calls.
+
+name: smoke_ollama
+
+dataset:
+  reviews:
+    - Nelson_2002      # 366 records, 21.9% inclusion
+  max_records: 5
+  seed: 42
+
+ranking:
+  strategy: random
+  recall_target: 0.95
+
+screening:
+  enabled: true
+  provider: ollama
+  model: qwen2.5:7b-instruct
+  prompt_version: screen_v1
+  temperature: 0.0
+  max_output_tokens: 512
+  max_retries: 3
+  seed: 42
+
+budget:
+  ceiling_usd: 0.00
+  usd_per_1m_input: 0.0
+  usd_per_1m_output: 0.0
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts
+cache_enabled: true
