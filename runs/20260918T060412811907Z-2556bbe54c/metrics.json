@@ -1,0 +1,124 @@
+{
+  "metrics_schema": 2,
+  "config_name": "week08_ollama_qwen25_7b",
+  "config_hash": "2556bbe54c",
+  "mode": "screen",
+  "ranking": {
+    "strategy": "random",
+    "query": null,
+    "recall_target": 0.95,
+    "seed": 42
+  },
+  "screening": {
+    "provider": "ollama",
+    "model": "qwen2.5:7b-instruct",
+    "prompt_version": "screen_v1",
+    "prompt_sha256": "f35b27e9049a5b0ca869c7800ebf693ba6beec27cc27b8717ea2a23ac9312052",
+    "temperature": 0.0,
+    "max_output_tokens": 512,
+    "seed": 42,
+    "max_records": null,
+    "cache_enabled": true
+  },
+  "criteria": {
+    "Smid_2020": {
+      "status": "published",
+      "source": "asreview/synergy-dataset@ca8cb9e2ea97:datasets.toml",
+      "sha256": "cd2cbe820ddffa4f10ce1c2815a86df18590bb1b0261d3b27c772aec5809b4cd"
+    },
+    "Nelson_2002": {
+      "status": "published",
+      "source": "asreview/synergy-dataset@ca8cb9e2ea97:datasets.toml",
+      "sha256": "364122e1fe5c084a9fea20621be03b26befff323a18c505244847155cedb6308"
+    }
+  },
+  "aborted": false,
+  "reviews_completed": [
+    "Smid_2020",
+    "Nelson_2002"
+  ],
+  "verification_failures": {
+    "not_found": 358,
+    "span_longer_than_source": 22,
+    "partial_match_only": 9,
+    "span_too_short(<20chars)": 4
+  },
+  "per_review": [
+    {
+      "review": "Smid_2020",
+      "corpus_sha256": "832693a7eff76591cc00c505995720e606a56225ac3de47187e995739ad9c176",
+      "n_records": 2627,
+      "n_included_truth": 27,
+      "prevalence": 0.010277883517320136,
+      "n_screened": 2627,
+      "n_included_screened": 27,
+      "screened_prevalence": 0.010277883517320136,
+      "n_verified": 2410,
+      "n_unverified": 217,
+      "n_errors": 0,
+      "verification_rate": 0.9173962695089456,
+      "true_positives": 8,
+      "false_positives": 2,
+      "false_negatives": 18,
+      "true_negatives": 2382,
+      "recall_verified": 0.3076923076923077,
+      "precision_verified": 0.8,
+      "n_to_human": 227,
+      "recall_with_referrals": 0.3333333333333333,
+      "work_saved": 0.9135896459840122,
+      "agreement_ac1": 0.9915763542321305,
+      "agreement_pabak": 0.9834024896265561,
+      "ranking": {
+        "recall_target": 0.95,
+        "n_ranked": 2627,
+        "n_included": 27,
+        "complete": true,
+        "cutoff": 2332,
+        "recall_at_cutoff": 0.9629629629629629,
+        "tnr_at_recall": 0.11307692307692307,
+        "wss_at_recall": 0.06229539398553478
+      },
+      "tokens_in": 1988084,
+      "tokens_out": 137825,
+      "cost_usd_at_config_prices": 0.0
+    },
+    {
+      "review": "Nelson_2002",
+      "corpus_sha256": "d52d88941889cffb9edf2cc613dbf80553e768293c584d136172c6f62ca750fa",
+      "n_records": 366,
+      "n_included_truth": 80,
+      "prevalence": 0.2185792349726776,
+      "n_screened": 366,
+      "n_included_screened": 80,
+      "screened_prevalence": 0.2185792349726776,
+      "n_verified": 190,
+      "n_unverified": 176,
+      "n_errors": 0,
+      "verification_rate": 0.5191256830601093,
+      "true_positives": 48,
+      "false_positives": 66,
+      "false_negatives": 5,
+      "true_negatives": 71,
+      "recall_verified": 0.9056603773584906,
+      "precision_verified": 0.42105263157894735,
+      "n_to_human": 290,
+      "recall_with_referrals": 0.9375,
+      "work_saved": 0.20765027322404372,
+      "agreement_ac1": 0.2634251549318845,
+      "agreement_pabak": 0.2526315789473683,
+      "ranking": {
+        "recall_target": 0.95,
+        "n_ranked": 366,
+        "n_included": 80,
+        "complete": true,
+        "cutoff": 315,
+        "recall_at_cutoff": 0.95,
+        "tnr_at_recall": 0.16433566433566432,
+        "wss_at_recall": 0.08934426229508191
+      },
+      "tokens_in": 301151,
+      "tokens_out": 20680,
+      "cost_usd_at_config_prices": 0.0
+    }
+  ]
+}
