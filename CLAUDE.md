@@ -71,8 +71,9 @@ it surface the research gaps authors state in their own papers?
 ## Current state — week 8 of 15
 
 Done: literature review, proposal (submitted), architecture, scope lock, the
-walking skeleton, the week 8 evaluation harness, and the first baseline runs
-on real SYNERGY data.
+walking skeleton, the week 8 evaluation harness, the first baseline runs on
+real SYNERGY data, and the first model recall figures (local Ollama). Week 8
+exit test passed.
 
 ```
 slr/
@@ -113,10 +114,17 @@ reports/results.{csv,md} generated from runs/
 - AC1 and quadratic AC2 reproduce the irrCAC worked example
   (`cac.raw4raters`: AC1 0.77544, AC2 0.914).
 
-| Review | Prevalence | Random TNR@95 | BM25 TNR@95 | BM25 WSS@95 |
-|---|---|---|---|---|
-| Smid_2020 | 1.0% | 0.029 | 0.568 | 0.513 |
-| Nelson_2002 | 21.9% | 0.066 | 0.080 | 0.024 |
+| Review | Prevalence | Random TNR@95 | BM25 TNR@95 | BM25 WSS@95 | Model TNR@95 | Model Verif | Model Rec(v) |
+|---|---|---|---|---|---|---|---|
+| Smid_2020 | 1.0% | 0.029 | 0.568 | 0.513 | 0.113 | 91.7% | 0.308 |
+| Nelson_2002 | 21.9% | 0.066 | 0.080 | 0.024 | 0.164 | 51.9% | 0.906 |
+
+Model column: `qwen2.5:7b-instruct` via Ollama, `runs/20260918T060412811907Z-2556bbe54c`
+(config `week08_ollama.yaml`; run twice, byte-identical, second run 100% cache
+at $0). Verif is the fraction of decisions whose evidence span verified —
+everything else became `unverified` and was scored as a referral, not a
+prediction. Rec(v) is recall over verified decisions only; the Nelson_2002 rate
+looks strong but rests on barely half the decisions being verified at all.
 
 **Observed 15 September 2026 (rule 7).** The lexical baseline does the
 opposite of the inflation expected below: BM25 over the published criteria
@@ -144,6 +152,18 @@ Smoke-tested on 5 real records: JSON mode held (no schema failures), 4/5
 spans verified. `configs/week08_gemini.yaml` is kept as-is for a future
 reported comparison; it is not run for the week 8 headline figures.
 
+**Observed 18 September 2026, second entry (rule 7).** The full week 8 run
+(`qwen2.5:7b-instruct`, both reviews, 2,993 records, $0) shows a large gap in
+verification failure rate between reviews: 8.3% of Smid_2020 decisions failed
+to verify vs. 48.1% of Nelson_2002's (`not_found` dominates: 358 of 393 total
+failures). Not yet explained — candidate hypotheses, none checked yet: Qwen's
+quoting discipline may degrade on shorter/simpler abstracts (Nelson_2002 has
+more, per record, than Smid_2020), or on the higher-prevalence review the
+model has more genuine matches to quote from and takes more liberty
+paraphrasing them. Also pulled and smoke-tested `qwen3:8b` (5 records, 4/5
+verified, JSON mode held even with its thinking mode on) as a candidate for
+the week 10 model-tier comparison — not used for the week 8 headline run.
+
 **Not yet done:**
 
 - Never run against the real Gemini API for a reported figure — the 404
@@ -157,30 +177,28 @@ reported comparison; it is not run for the week 8 headline figures.
 
 ---
 
-## Next: finish week 8 — first model recall figures
+## Week 8 exit test: passed
 
-Exit test: *a stored configuration reproduces an identical metrics file, and a
-first recall figure exists on two reviews.* The first half passes on real data;
-the second now runs on local Ollama instead of Gemini (see 18 September note
-above).
-
-1. Ollama installed, `qwen2.5:7b-instruct` pulled, server on
-   `localhost:11434`. Smoke-tested on 5 records — done.
-2. `python -m slr.eval.harness --config configs/week08_ollama.yaml --require-clean`
-   — 2,993 calls, $0. Run it a second time: it must be served from cache at
-   $0 with an identical `metrics.json`.
-3. `python -m slr.eval.report_tables`, commit runs and reports as `eval:`, tag
-   `week-08`.
+*A stored configuration reproduces an identical metrics file, and a first
+recall figure exists on two reviews.* Both halves done on real data:
+`week08_ollama.yaml` (`qwen2.5:7b-instruct`) run twice with `--require-clean`,
+`metrics.json` byte-identical, second run 100% cache at $0
+(`runs/20260918T060412811907Z-2556bbe54c`,
+`runs/20260918T072515193074Z-2556bbe54c`). Figures are in the table above.
 
 The Gemini path (`configs/week08_gemini.yaml`) is deferred, not abandoned —
 worth running later at `gemini-3.5-flash-lite`'s real price for the RQ2
 cost/time comparison against the local arm, once the config's price and
 ceiling are updated to match.
 
-When the model numbers arrive, set them beside the baselines above. Khraisha
-et al. (2024) predict model accuracy looks better on the high-prevalence
-review; the baselines already show prevalence is not the only thing that
-varies between these two.
+## Next: week 9 — SPECTER2, FAISS, rank fusion
+
+Exit test: beats the lexical baseline on ≥3 reviews (see schedule below).
+
+Khraisha et al. (2024) predict model accuracy looks better on the
+high-prevalence review; week 8's figures instead show verification, not
+accuracy, as the property that varies most sharply between these two — worth
+keeping in view once week 10 adds real accuracy numbers.
 
 ---
 
@@ -223,7 +241,8 @@ proposal; ≈ $1.60 at Gemini 2.5 Flash-Lite's September 2026 prices).
 | Contingency | $15 |
 | **Total** | **≈ $43** |
 
-Spend to date: $0 (baselines and mock runs only).
+Spend to date: $0 (baselines, mock runs, and the week 8 Ollama run — local
+GPU inference doesn't touch this budget at all).
 
 Four rules that keep it there:
 
