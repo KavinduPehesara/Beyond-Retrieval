@@ -1,0 +1,30 @@
+{
+  "config_name": "extract_demo_smid2020",
+  "config_hash": "454fea8b50",
+  "source_run_id": "20260918T060412811907Z-2556bbe54c",
+  "review": "Smid_2020",
+  "records": 10,
+  "aborted": false,
+  "field_verification": {
+    "study_design": {
+      "verified": 10,
+      "not_stated": 0,
+      "failed": 0
+    },
+    "sample_size": {
+      "verified": 2,
+      "not_stated": 8,
+      "failed": 0
+    },
+    "country": {
+      "verified": 0,
+      "not_stated": 10,
+      "failed": 0
+    },
+    "key_finding": {
+      "verified": 10,
+      "not_stated": 0,
+      "failed": 0
+    }
+  }
+}
