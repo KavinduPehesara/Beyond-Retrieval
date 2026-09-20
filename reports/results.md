@@ -23,6 +23,13 @@ criteria — not reportable.
 | week08_ollama_qwen25_7b<br>`20260918T060412811907Z-2556bbe54c` | screen | random | qwen2.5:7b-instruct | 2627 | 91.7% | 0.308 | 0.333 | 91.4% | 0.992 | 0.983 | 0.113 | 0.062 | 0.0000 |
 | week08_ollama_qwen25_7b<br>`20260918T072515193074Z-2556bbe54c` | screen | random | qwen2.5:7b-instruct | 2627 | 91.7% | 0.308 | 0.333 | 91.4% | 0.992 | 0.983 | 0.113 | 0.062 | 0.0000 |
 
+## van_der_Valk_2021 — 725 records, 12.3% included
+
+| Run | Mode | Strategy | Model | N screened | Verified | Rec (v) | Rec (+h) | Saved | AC1 | PABAK | TNR@r | WSS@r | Cost (USD) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| valk2021_ollama_qwen25_7b<br>`20260920T131834130857Z-89b8a49fec` | screen | random | qwen2.5:7b-instruct | 725 | 39.3% | 0.320 | 0.809 | 37.8% | 0.920 | 0.860 | 0.138 | 0.077 | 0.0000 |
+| valk2021_ollama_qwen25_7b<br>`20260920T133509350330Z-89b8a49fec` | screen | random | qwen2.5:7b-instruct | 725 | 39.3% | 0.320 | 0.809 | 37.8% | 0.920 | 0.860 | 0.138 | 0.077 | 0.0000 |
+
 ## Nelson_2002 — 366 records, 21.9% included
 
 | Run | Mode | Strategy | Model | N screened | Verified | Rec (v) | Rec (+h) | Saved | AC1 | PABAK | TNR@r | WSS@r | Cost (USD) |
