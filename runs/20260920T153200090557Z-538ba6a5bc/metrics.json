@@ -1,0 +1,90 @@
+{
+  "metrics_schema": 2,
+  "config_name": "week09_hybrid",
+  "config_hash": "538ba6a5bc",
+  "mode": "baseline",
+  "ranking": {
+    "strategy": "hybrid",
+    "query": null,
+    "recall_target": 0.95,
+    "seed": 42
+  },
+  "screening": null,
+  "criteria": {
+    "Smid_2020": {
+      "status": "published",
+      "source": "asreview/synergy-dataset@ca8cb9e2ea97:datasets.toml",
+      "sha256": "cd2cbe820ddffa4f10ce1c2815a86df18590bb1b0261d3b27c772aec5809b4cd"
+    },
+    "Nelson_2002": {
+      "status": "published",
+      "source": "asreview/synergy-dataset@ca8cb9e2ea97:datasets.toml",
+      "sha256": "364122e1fe5c084a9fea20621be03b26befff323a18c505244847155cedb6308"
+    },
+    "van_der_Valk_2021": {
+      "status": "published",
+      "source": "asreview/synergy-dataset@ca8cb9e2ea97:datasets.toml",
+      "sha256": "1bfc8d0c941db5aab9b6efeaca256c9200ce6867ac2850c40390c95357c5421b"
+    }
+  },
+  "aborted": false,
+  "reviews_completed": [
+    "Smid_2020",
+    "Nelson_2002",
+    "van_der_Valk_2021"
+  ],
+  "verification_failures": {},
+  "per_review": [
+    {
+      "review": "Smid_2020",
+      "corpus_sha256": "832693a7eff76591cc00c505995720e606a56225ac3de47187e995739ad9c176",
+      "n_records": 2627,
+      "n_included_truth": 27,
+      "prevalence": 0.010277883517320136,
+      "ranking": {
+        "recall_target": 0.95,
+        "n_ranked": 2627,
+        "n_included": 27,
+        "complete": true,
+        "cutoff": 656,
+        "recall_at_cutoff": 0.9629629629629629,
+        "tnr_at_recall": 0.7576923076923077,
+        "wss_at_recall": 0.7002854967643699
+      }
+    },
+    {
+      "review": "Nelson_2002",
+      "corpus_sha256": "d52d88941889cffb9edf2cc613dbf80553e768293c584d136172c6f62ca750fa",
+      "n_records": 366,
+      "n_included_truth": 80,
+      "prevalence": 0.2185792349726776,
+      "ranking": {
+        "recall_target": 0.95,
+        "n_ranked": 366,
+        "n_included": 80,
+        "complete": true,
+        "cutoff": 325,
+        "recall_at_cutoff": 0.95,
+        "tnr_at_recall": 0.12937062937062938,
+        "wss_at_recall": 0.06202185792349722
+      }
+    },
+    {
+      "review": "van_der_Valk_2021",
+      "corpus_sha256": "0d99de234080e7c280f388a657b34fbea887a6cd54b98e8512b1e1de53e853b3",
+      "n_records": 725,
+      "n_included_truth": 89,
+      "prevalence": 0.12275862068965518,
+      "ranking": {
+        "recall_target": 0.95,
+        "n_ranked": 725,
+        "n_included": 89,
+        "complete": true,
+        "cutoff": 652,
+        "recall_at_cutoff": 0.9550561797752809,
+        "tnr_at_recall": 0.10849056603773585,
+        "wss_at_recall": 0.05068965517241375
+      }
+    }
+  ]
+}
