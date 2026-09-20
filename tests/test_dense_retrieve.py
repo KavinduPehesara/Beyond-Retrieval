@@ -24,6 +24,14 @@ RECORDS = [
 
 
 @pytest.fixture()
+def cache_dir(tmp_path):
+    # Every call in this file must pass this explicitly — dense_rank's
+    # default cache_dir is the real data/embeddings/, and a test that omits
+    # it writes fake vectors into the project's actual embedding cache.
+    return tmp_path / "embeddings"
+
+
+@pytest.fixture()
 def conn(tmp_path):
     c = connect(tmp_path / "t.db")
     ingest_frame(
@@ -125,26 +133,25 @@ def test_rrf_ties_break_on_work_id():
 # --------------------------------------------------------------------------
 
 
-def test_dense_rank_orders_by_cosine_similarity(conn):
+def test_dense_rank_orders_by_cosine_similarity(conn, cache_dir):
     embedder = _FakeEmbedder()
-    ranked = dense_retrieve.dense_rank(conn, "the query", "Smid_2020", embedder=embedder)
+    ranked = dense_retrieve.dense_rank(conn, "the query", "Smid_2020", embedder=embedder, cache_dir=cache_dir)
     assert [r["work_id"] for r in ranked] == ["W1", "W3", "W2", "W4"]
 
 
-def test_dense_rank_returns_the_full_review(conn):
-    ranked = dense_retrieve.dense_rank(conn, "the query", "Smid_2020", embedder=_FakeEmbedder())
+def test_dense_rank_returns_the_full_review(conn, cache_dir):
+    ranked = dense_retrieve.dense_rank(conn, "the query", "Smid_2020", embedder=_FakeEmbedder(), cache_dir=cache_dir)
     assert sorted(r["work_id"] for r in ranked) == ["W1", "W2", "W3", "W4"]
 
 
-def test_dense_rank_carries_no_ground_truth(conn):
-    ranked = dense_retrieve.dense_rank(conn, "the query", "Smid_2020", embedder=_FakeEmbedder())
+def test_dense_rank_carries_no_ground_truth(conn, cache_dir):
+    ranked = dense_retrieve.dense_rank(conn, "the query", "Smid_2020", embedder=_FakeEmbedder(), cache_dir=cache_dir)
     for row in ranked:
         assert "label_included" not in row.keys()
 
 
-def test_embedding_cache_avoids_recomputing_the_corpus(conn, tmp_path):
+def test_embedding_cache_avoids_recomputing_the_corpus(conn, cache_dir):
     embedder = _FakeEmbedder()
-    cache_dir = tmp_path / "embeddings"
     dense_retrieve.dense_rank(conn, "the query", "Smid_2020", embedder=embedder, cache_dir=cache_dir)
     calls_after_first = embedder.encode_calls
     dense_retrieve.dense_rank(conn, "the query", "Smid_2020", embedder=embedder, cache_dir=cache_dir)
@@ -157,16 +164,16 @@ def test_embedding_cache_avoids_recomputing_the_corpus(conn, tmp_path):
 # --------------------------------------------------------------------------
 
 
-def test_hybrid_rank_returns_the_full_review(conn):
+def test_hybrid_rank_returns_the_full_review(conn, cache_dir):
     ranked = dense_retrieve.hybrid_rank(
-        conn, "Bayesian", "Smid_2020", embedder=_FakeEmbedder()
+        conn, "Bayesian", "Smid_2020", embedder=_FakeEmbedder(), cache_dir=cache_dir
     )
     assert sorted(r["work_id"] for r in ranked) == ["W1", "W2", "W3", "W4"]
 
 
-def test_hybrid_rank_carries_no_ground_truth(conn):
+def test_hybrid_rank_carries_no_ground_truth(conn, cache_dir):
     ranked = dense_retrieve.hybrid_rank(
-        conn, "Bayesian", "Smid_2020", embedder=_FakeEmbedder()
+        conn, "Bayesian", "Smid_2020", embedder=_FakeEmbedder(), cache_dir=cache_dir
     )
     for row in ranked:
         assert "label_included" not in row.keys()
@@ -177,13 +184,13 @@ def test_hybrid_rank_carries_no_ground_truth(conn):
 # --------------------------------------------------------------------------
 
 
-def test_rerank_only_reorders_the_top_k_window(conn):
+def test_rerank_only_reorders_the_top_k_window(conn, cache_dir):
     # Ground truth for "before reranking" comes from hybrid_rank itself,
     # rather than a hand-computed RRF score — the fusion combines a real BM25
     # ranking with the fake dense one, and hand-predicting their combined
     # order (including a genuine tie) is exactly the kind of arithmetic this
     # test should not have to get right independently.
-    fused = dense_retrieve.hybrid_rank(conn, "the query", "Smid_2020", embedder=_FakeEmbedder())
+    fused = dense_retrieve.hybrid_rank(conn, "the query", "Smid_2020", embedder=_FakeEmbedder(), cache_dir=cache_dir)
     fused_ids = [r["work_id"] for r in fused]
 
     ranked = dense_retrieve.rerank_rank(
@@ -192,6 +199,7 @@ def test_rerank_only_reorders_the_top_k_window(conn):
         "Smid_2020",
         embedder=_FakeEmbedder(),
         cross_encoder=_FakeCrossEncoder(),
+        cache_dir=cache_dir,
         top_k=2,
     )
     ids = [r["work_id"] for r in ranked]
