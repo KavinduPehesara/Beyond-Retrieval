@@ -22,7 +22,7 @@ from pathlib import Path
 
 # Bump whenever the schema changes shape. An older database is refused rather
 # than silently half-migrated: it is regenerated from SYNERGY by ingest.
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 SCHEMA = """
 PRAGMA journal_mode = WAL;
@@ -131,6 +131,26 @@ CREATE TABLE IF NOT EXISTS gap_statement (
     cluster_id      INTEGER,
     created_at      TEXT
 );
+
+-- Structured data extraction over verified-include records from a prior
+-- screening run. One row per (run, record, field) — mirrors screening's
+-- ask -> validate shape -> verify quote discipline, just per field instead
+-- of per decision. span_verified is set by the verifier, never the model,
+-- same as screening_decision.span_verified.
+CREATE TABLE IF NOT EXISTS extraction (
+    run_id          TEXT NOT NULL,          -- the extraction run
+    source_run_id   TEXT NOT NULL,          -- the screening run it reads from
+    review          TEXT NOT NULL,
+    work_id         TEXT NOT NULL,
+    field_name      TEXT NOT NULL,
+    value           TEXT,
+    evidence_span   TEXT,
+    span_verified   INTEGER NOT NULL,       -- 0/1. Set by the verifier only.
+    verify_note     TEXT,                   -- includes "not_stated"
+    created_at      TEXT,
+    PRIMARY KEY (run_id, review, work_id, field_name)
+);
+CREATE INDEX IF NOT EXISTS idx_extraction_run ON extraction(run_id);
 """
 
 # Keep the FTS index in step with the work table.

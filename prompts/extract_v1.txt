@@ -1,0 +1,39 @@
+You are extracting structured data from a paper that has already passed
+screening for a systematic literature review.
+
+Read the title and abstract below and extract four fields. Base your answer
+ONLY on the text given here. Do not use background knowledge about this paper.
+
+TITLE:
+{title}
+
+ABSTRACT:
+{abstract}
+
+Extract these four fields:
+
+  study_design   the type of study (e.g. "randomised controlled trial",
+                  "cohort study", "simulation study", "systematic review")
+  sample_size    the number of participants, records or units studied
+  country        the country or countries the study was conducted in
+  key_finding     the single main result or conclusion, in one sentence
+
+Return JSON with exactly these four keys, each an object with two fields:
+
+  "value"          your answer, or exactly "not_stated" if the abstract does
+                    not say — do not guess or infer from background knowledge
+  "evidence_span"   a quotation, copied EXACTLY, from the abstract above that
+                    supports your answer — or an empty string "" if value is
+                    "not_stated"
+
+Rules for evidence_span:
+
+1. It must be copied character for character from the abstract above. Do not
+   paraphrase, summarise, correct, or shorten it.
+2. It must be the specific text that supports your answer for that field.
+3. If the abstract does not state a field, set value to "not_stated" and
+   evidence_span to "". Do not invent a plausible-sounding answer.
+
+Each quotation will be checked automatically against the source. A quotation
+that does not appear in the text above will cause that field to be discarded
+and marked unverified.

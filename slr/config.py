@@ -167,3 +167,66 @@ def load_config(path: str | Path) -> Config:
     cfg.source_path = path
     cfg.source_text = text
     return cfg
+
+
+class ExtractConfig(BaseModel):
+    """Structured data extraction over a prior screening run's verified
+    includes. Deliberately separate from ``Config``: extraction doesn't rank
+    or retrieve, it reads another run's output, so ``RankingConfig`` and
+    ``DatasetConfig``'s subset validation don't apply.
+    """
+
+    name: str
+    source_run_id: str = Field(
+        ..., description="Screening run to read verified-include decisions from."
+    )
+    review: str = Field(..., description="SYNERGY review name, e.g. 'Nelson_2002'.")
+    provider: Literal["gemini", "mock", "ollama"] = "mock"
+    model: str = "mock-1"
+    prompt_version: str = "extract_v1"
+    temperature: float = 0.0
+    max_output_tokens: int = 512
+    max_retries: int = 3
+    seed: int | None = 42
+    max_records: int | None = Field(
+        None, description="Cap on records extracted, taken from the source run's order."
+    )
+
+    ceiling_usd: float = 1.0
+    usd_per_1m_input: float = 0.10
+    usd_per_1m_output: float = 0.40
+
+    db_path: Path = Path("data/slr.db")
+    runs_dir: Path = Path("runs")
+    prompts_dir: Path = Path("prompts")
+    cache_enabled: bool = True
+
+    source_path: Path | None = None
+    source_text: str | None = None
+
+    @property
+    def config_hash(self) -> str:
+        payload = self.source_text or json.dumps(
+            self.model_dump(mode="json", exclude={"source_path", "source_text"}),
+            sort_keys=True,
+        )
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:10]
+
+    @property
+    def prompt_path(self) -> Path:
+        return self.prompts_dir / f"{self.prompt_version}.txt"
+
+    def api_key(self) -> str | None:
+        if self.provider == "gemini":
+            return os.getenv("GEMINI_API_KEY")
+        return None
+
+
+def load_extract_config(path: str | Path) -> ExtractConfig:
+    path = Path(path)
+    text = path.read_text(encoding="utf-8")
+    raw = yaml.safe_load(text) or {}
+    cfg = ExtractConfig(**raw)
+    cfg.source_path = path
+    cfg.source_text = text
+    return cfg

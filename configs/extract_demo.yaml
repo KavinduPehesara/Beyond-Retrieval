@@ -1,0 +1,33 @@
+# Data extraction demo — supervisor-requested report, week of 20 September
+# 2026. Runs over the week 8 screening run's verified-include records for
+# Nelson_2002 (114 records, real clinical literature on hormone replacement
+# therapy — a better fit for study-design/sample-size/country fields than
+# Smid_2020's simulation-methodology review).
+#
+# Before running:
+#   1. Ollama running locally, qwen2.5:7b-instruct pulled (already true from
+#      week 8).
+#   2. Commit, then run with --require-clean.
+
+name: extract_demo_nelson2002
+
+source_run_id: 20260918T060412811907Z-2556bbe54c
+review: Nelson_2002
+max_records: null   # every verified-include record from the source run
+
+provider: ollama
+model: qwen2.5:7b-instruct
+prompt_version: extract_v1
+temperature: 0.0
+max_output_tokens: 512
+max_retries: 3
+seed: 42
+
+ceiling_usd: 0.00
+usd_per_1m_input: 0.0    # local GPU inference; no per-token API cost
+usd_per_1m_output: 0.0
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts
+cache_enabled: true
