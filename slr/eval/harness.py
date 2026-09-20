@@ -222,6 +222,8 @@ def _run(conn, cfg: Config, sha: str, dirty: bool) -> Path:
                 review,
                 seed=cfg.dataset.seed,
                 query=cfg.ranking.query or criteria,
+                rrf_k=cfg.ranking.rrf_k,
+                rerank_top_k=cfg.ranking.rerank_top_k,
             )
 
             if not screening:

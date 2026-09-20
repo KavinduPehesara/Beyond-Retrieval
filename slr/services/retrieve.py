@@ -4,8 +4,11 @@ These are baselines one and two of four (random, BM25, dense-without-rerank,
 ASReview). They are nearly free to build and they make every later number
 meaningful — an improvement over nothing is not an improvement.
 
-Dense retrieval, rank fusion and cross-encoder reranking arrive in week 9. The
-harness must exist first (rule 1).
+Dense retrieval, rank fusion and cross-encoder reranking (``dense``,
+``hybrid``, ``rerank``) live in ``dense_retrieve.py``, dispatched from
+``rank()`` below via a lazy import — that module imports back from this one
+(``_SELECT``, ``lexical_rank``), so importing it at the top of this file
+would be circular.
 
 Rows returned here go straight to screening, so they carry the columns
 screening needs and nothing else. ``label_included`` is not selected: ground
@@ -26,7 +29,31 @@ _SELECT = ", ".join(f"w.{c}" for c in SCREENING_COLUMNS)
 # question marks, FTS5 operators — is a separator, never query syntax.
 _TERM = re.compile(r"\w+", re.UNICODE)
 
-STRATEGIES = ("random", "bm25")
+STRATEGIES = ("random", "bm25", "dense", "hybrid", "rerank")
+
+# Lazy singletons: the embedder and cross-encoder are real models (SPECTER2,
+# MiniLM) that are expensive to load. Built once per process on first use,
+# not once per review, so a multi-review run doesn't reload them each time.
+_embedder = None
+_cross_encoder = None
+
+
+def _get_embedder():
+    global _embedder
+    if _embedder is None:
+        from slr.adapters.embed import Specter2Embedder
+
+        _embedder = Specter2Embedder()
+    return _embedder
+
+
+def _get_cross_encoder():
+    global _cross_encoder
+    if _cross_encoder is None:
+        from slr.adapters.rerank import MiniLMCrossEncoder
+
+        _cross_encoder = MiniLMCrossEncoder()
+    return _cross_encoder
 
 
 def to_match_query(text: str | None) -> str:
@@ -108,6 +135,8 @@ def rank(
     seed: int,
     query: str | None = None,
     limit: int | None = None,
+    rrf_k: int = 60,
+    rerank_top_k: int = 200,
 ) -> list[sqlite3.Row]:
     """Dispatch on the configured strategy name."""
     if strategy == "random":
@@ -116,4 +145,27 @@ def rank(
         if not query:
             raise ValueError("bm25 ranking needs a query")
         return lexical_rank(conn, query, review, limit=limit)
+    if strategy in ("dense", "hybrid", "rerank"):
+        if not query:
+            raise ValueError(f"{strategy} ranking needs a query")
+        from slr.services import dense_retrieve
+
+        if strategy == "dense":
+            return dense_retrieve.dense_rank(
+                conn, query, review, embedder=_get_embedder(), limit=limit
+            )
+        if strategy == "hybrid":
+            return dense_retrieve.hybrid_rank(
+                conn, query, review, embedder=_get_embedder(), rrf_k=rrf_k, limit=limit
+            )
+        return dense_retrieve.rerank_rank(
+            conn,
+            query,
+            review,
+            embedder=_get_embedder(),
+            cross_encoder=_get_cross_encoder(),
+            rrf_k=rrf_k,
+            top_k=rerank_top_k,
+            limit=limit,
+        )
     raise ValueError(f"Unknown ranking strategy {strategy!r}. Use one of {STRATEGIES}.")

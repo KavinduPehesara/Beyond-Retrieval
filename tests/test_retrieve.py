@@ -73,9 +73,15 @@ def test_query_with_no_usable_terms_returns_unranked_review(conn):
     assert [r["work_id"] for r in ranked] == ["W1", "W2", "W3", "W4"]
 
 
-@pytest.mark.parametrize("strategy", retrieve.STRATEGIES)
+@pytest.mark.parametrize("strategy", ("random", "bm25"))
 def test_rows_handed_to_screening_carry_no_ground_truth(conn, strategy):
-    """Rule 4: label_included is read by the metrics module and nothing else."""
+    """Rule 4: label_included is read by the metrics module and nothing else.
+
+    dense/hybrid/rerank get the same check in test_dense_retrieve.py, against
+    dense_retrieve.py's functions directly with a fake embedder — going
+    through retrieve.rank() here would load the real SPECTER2/MiniLM models,
+    which this suite deliberately never does.
+    """
     rows = retrieve.rank(conn, strategy, "Smid_2020", seed=1, query="Bayesian")
     assert rows
     for row in rows:
@@ -92,4 +98,8 @@ def test_random_rank_is_independent_of_insertion_order(tmp_path):
 
 def test_unknown_strategy_is_rejected(conn):
     with pytest.raises(ValueError):
-        retrieve.rank(conn, "dense", "Smid_2020", seed=1)
+        retrieve.rank(conn, "not-a-real-strategy", "Smid_2020", seed=1)
+
+
+def test_new_strategies_are_registered():
+    assert set(retrieve.STRATEGIES) == {"random", "bm25", "dense", "hybrid", "rerank"}

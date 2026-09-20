@@ -63,12 +63,16 @@ class DatasetConfig(BaseModel):
 class RankingConfig(BaseModel):
     """The order records are considered in, and the recall target reported at."""
 
-    strategy: Literal["random", "bm25"] = "random"
+    strategy: Literal["random", "bm25", "dense", "hybrid", "rerank"] = "random"
     query: str | None = Field(
         None,
-        description="bm25 query. Defaults to the review's eligibility criteria.",
+        description="Ranking query. Defaults to the review's eligibility criteria.",
     )
     recall_target: float = Field(0.95, gt=0.0, le=1.0)
+    rrf_k: int = Field(60, description="Reciprocal rank fusion constant, for hybrid/rerank.")
+    rerank_top_k: int = Field(
+        200, description="How many fused top records the cross-encoder reranks, for rerank only."
+    )
 
 
 class ScreeningConfig(BaseModel):

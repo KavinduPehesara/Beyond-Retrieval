@@ -1,0 +1,26 @@
+# Week 9 — hybrid fusion, then a MiniLM cross-encoder reranks the top 200
+# fused records only. Third and final stage: run after week09_hybrid.yaml,
+# compare against it.
+
+name: week09_rerank
+
+dataset:
+  reviews:
+    - Smid_2020
+    - Nelson_2002
+    - van_der_Valk_2021
+  max_records: null
+  seed: 42
+
+ranking:
+  strategy: rerank
+  recall_target: 0.95
+  rrf_k: 60
+  rerank_top_k: 200
+
+screening:
+  enabled: false
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts

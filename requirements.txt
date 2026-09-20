@@ -1,8 +1,13 @@
-# Python 3.11
+# Python 3.13
 #
 # Pinned on day one, deliberately. A silent library upgrade in week 13 that
 # changes the embeddings would invalidate every number produced before it.
 # Regenerate with `pip freeze > requirements.txt` only when you intend to.
+#
+# Originally documented as Python 3.11; the actual venv on this machine was
+# always 3.13 (3.11 isn't installed here), and some pins silently drifted
+# from what's below before this was caught in week 9 (numpy, notably). Reset
+# to match what's actually running rather than force a disruptive reinstall.
 
 # --- core ---
 pydantic==2.9.2
@@ -14,15 +19,16 @@ tenacity==9.0.0
 # --- data ---
 synergy-dataset==1.0.2
 pandas==2.2.3
-numpy==1.26.4
+numpy==2.5.3
 
 # --- LLM provider ---
 google-genai==0.3.0
 
 # --- retrieval (week 9; installed now so the environment is pinned once) ---
 sentence-transformers==3.2.1
-faiss-cpu==1.9.0
+faiss-cpu==1.15.1
 scikit-learn==1.5.2
+adapters==1.3.0    # SPECTER2's proximity adapter needs this, not just sentence-transformers
 
 # --- service layer and interface (week 12) ---
 fastapi==0.115.5
