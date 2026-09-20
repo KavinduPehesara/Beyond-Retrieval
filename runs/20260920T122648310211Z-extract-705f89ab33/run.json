@@ -1,0 +1,17 @@
+{
+  "run_id": "20260920T122648310211Z-extract-705f89ab33",
+  "git_sha": "a56a889ac3a9f3225e33d89f0d792efa078ecaf6",
+  "git_dirty": false,
+  "started_at": "2026-09-20T12:26:48.310211+00:00",
+  "finished_at": "2026-09-20T12:36:32.235662+00:00",
+  "duration_s": 583.93,
+  "python": "3.13.5",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "calls": 114,
+  "cached_calls": 0,
+  "live_tokens_in": 96636,
+  "live_tokens_out": 32319,
+  "live_spend_usd": 0.0,
+  "ceiling_usd": 0.0,
+  "aborted_reason": null
+}
