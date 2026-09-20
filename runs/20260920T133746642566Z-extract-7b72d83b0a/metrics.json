@@ -1,0 +1,30 @@
+{
+  "config_name": "extract_demo_valk2021",
+  "config_hash": "7b72d83b0a",
+  "source_run_id": "20260920T131834130857Z-89b8a49fec",
+  "review": "van_der_Valk_2021",
+  "records": 11,
+  "aborted": false,
+  "field_verification": {
+    "study_design": {
+      "verified": 7,
+      "not_stated": 3,
+      "failed": 1
+    },
+    "sample_size": {
+      "verified": 9,
+      "not_stated": 1,
+      "failed": 1
+    },
+    "country": {
+      "verified": 2,
+      "not_stated": 8,
+      "failed": 1
+    },
+    "key_finding": {
+      "verified": 8,
+      "not_stated": 0,
+      "failed": 3
+    }
+  }
+}
