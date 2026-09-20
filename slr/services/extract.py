@@ -30,6 +30,21 @@ FIELDS = ["study_design", "sample_size", "country", "key_finding"]
 
 NOT_STATED = "not_stated"
 
+_FIELD_SCHEMA = {
+    "type": "object",
+    "properties": {"value": {"type": "string"}, "evidence_span": {"type": "string"}},
+    "required": ["value", "evidence_span"],
+}
+
+# Passed explicitly to provider.complete() — a provider's own RESPONSE_SCHEMA
+# default is screening-shaped, and extraction's shape has nothing to do with
+# that. See the note on Provider.complete in slr/adapters/llm.py.
+EXTRACTION_SCHEMA = {
+    "type": "object",
+    "properties": {field: _FIELD_SCHEMA for field in FIELDS},
+    "required": FIELDS,
+}
+
 
 class FieldAnswer(BaseModel):
     value: str
@@ -147,7 +162,11 @@ def extract_record(
     if completion is None:
         try:
             completion = provider.complete(
-                prompt, temperature=temperature, max_tokens=max_tokens, seed=seed
+                prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                seed=seed,
+                response_schema=EXTRACTION_SCHEMA,
             )
         except Exception as exc:  # provider errors are data, not crashes
             return _error_rows(row, verify_note="provider_error", error=str(exc))

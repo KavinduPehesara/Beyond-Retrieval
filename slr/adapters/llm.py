@@ -71,13 +71,30 @@ class Completion:
 
 
 class Provider(Protocol):
-    """What every provider must offer. Deliberately tiny."""
+    """What every provider must offer. Deliberately tiny.
+
+    ``response_schema`` lets a caller override the JSON shape the provider
+    constrains output to. A provider's own ``RESPONSE_SCHEMA`` is only the
+    *default* it uses when no schema is given — screening relies on that
+    default rather than passing one explicitly. Any caller that needs a
+    different shape (e.g. extraction's multi-field response) MUST pass its
+    own schema: leaving this to a provider-side default means every new
+    response shape silently gets forced into whatever shape the provider
+    happened to be built for first, which is exactly the bug this parameter
+    exists to prevent.
+    """
 
     name: str
     model: str
 
     def complete(
-        self, prompt: str, *, temperature: float, max_tokens: int, seed: int | None = None
+        self,
+        prompt: str,
+        *,
+        temperature: float,
+        max_tokens: int,
+        seed: int | None = None,
+        response_schema: dict | None = None,
     ) -> Completion:
         ...
 
@@ -109,7 +126,11 @@ class MockProvider:
         temperature: float = 0.0,
         max_tokens: int = 512,
         seed: int | None = None,
+        response_schema: dict | None = None,
     ) -> Completion:
+        # Always fabricates a screening-shaped response, regardless of
+        # response_schema — it exists to exercise screening's verification
+        # failure path, not to stand in for every provider's response shape.
         # Seed on the prompt so the same input always gives the same output.
         rng = random.Random(hashlib.sha256(prompt.encode()).hexdigest())
 
@@ -192,12 +213,13 @@ class GeminiProvider:
         temperature: float = 0.0,
         max_tokens: int = 512,
         seed: int | None = None,
+        response_schema: dict | None = None,
     ) -> Completion:
         config = {
             "temperature": temperature,
             "max_output_tokens": max_tokens,
             "response_mime_type": "application/json",
-            "response_schema": self.RESPONSE_SCHEMA,
+            "response_schema": response_schema or self.RESPONSE_SCHEMA,
         }
         if seed is not None:
             # Best effort on the provider's side, not a guarantee — which is
@@ -282,6 +304,7 @@ class OllamaProvider:
         temperature: float = 0.0,
         max_tokens: int = 512,
         seed: int | None = None,
+        response_schema: dict | None = None,
     ) -> Completion:
         options = {"temperature": temperature, "num_predict": max_tokens}
         if seed is not None:
@@ -292,7 +315,7 @@ class OllamaProvider:
             "model": self.model,
             "prompt": prompt,
             "stream": False,
-            "format": self.RESPONSE_SCHEMA,
+            "format": response_schema or self.RESPONSE_SCHEMA,
             "options": options,
         }
 

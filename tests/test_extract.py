@@ -50,7 +50,7 @@ class _FakeProvider:
     def __init__(self, payload: dict):
         self.payload = payload
 
-    def complete(self, prompt, *, temperature=0.0, max_tokens=512, seed=None):
+    def complete(self, prompt, *, temperature=0.0, max_tokens=512, seed=None, response_schema=None):
         return Completion(text=json.dumps(self.payload), tokens_in=10, tokens_out=10)
 
 
