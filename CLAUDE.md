@@ -73,32 +73,41 @@ it surface the research gaps authors state in their own papers?
 Done: literature review, proposal (submitted), architecture, scope lock, the
 walking skeleton, the week 8 evaluation harness, the first baseline runs on
 real SYNERGY data, and the first model recall figures (local Ollama). Week 8
-exit test passed.
+exit test passed. Also done, outside the original schedule: a structured
+data-extraction feature and report, added at the supervisor's request (see
+21 September note below).
 
 ```
 slr/
   config.py              YAML config + pydantic validation + config hashing
-  db.py                  SQLite schema v3, FTS5 index, triggers
+  db.py                  SQLite schema v4, FTS5 index, triggers
   services/
     ingest.py            SYNERGY loader; full reviews, upserts, NULLs kept NULL
     criteria.py          published eligibility criteria, pinned + hashed
     retrieve.py          random + BM25 ranking (baselines 1 & 2)
     screen.py            ask -> validate shape -> verify quote
-    verify.py            THE span verifier. RQ1 lives here.
+    extract.py            same pattern, per field: study_design, sample_size,
+                         country, key_finding. extraction's sibling to screening.
+    verify.py            THE span verifier. RQ1 lives here. Shared by both.
   adapters/llm.py        Mock + Gemini + Ollama behind one Provider protocol,
-                         response cache with request fingerprint, budget Meter
+                         response cache with request fingerprint (now includes
+                         response_schema), budget Meter
   eval/
     metrics.py           per-review metrics. Only module reading ground truth.
     agreement.py         Gwet's AC1/AC2, PABAK
     harness.py           CLI; writes runs/<ts>-<hash>/{config,resolved_config,
                          metrics,run,git_sha}
+    extract_harness.py   CLI; reads a screening run's verified-includes,
+                         writes runs/<ts>-extract-<hash>/{...,extraction.jsonl}
     report_tables.py     run directories -> reports/results.{csv,md}
 prompts/screen_v1.txt    prompt template, versioned by filename
+prompts/extract_v1.txt   extraction prompt: 4 fields, each with a quote or "not_stated"
 configs/smoke.yaml       Nelson_2002, 50 records, mock provider, free
 configs/baseline_*.yaml  random and BM25 over Smid_2020 + Nelson_2002, free
 configs/week08_gemini.yaml  Smid_2020 + Nelson_2002, gemini-2.5-flash-lite (blocked, see below)
 configs/week08_ollama.yaml  same two reviews, local GPU via Ollama, qwen2.5:7b-instruct
-tests/                   115 tests
+configs/extract_demo.yaml  Nelson_2002 verified-includes, local Ollama, $0
+tests/                   121 tests
 reports/results.{csv,md} generated from runs/
 ```
 
@@ -163,6 +172,50 @@ model has more genuine matches to quote from and takes more liberty
 paraphrasing them. Also pulled and smoke-tested `qwen3:8b` (5 records, 4/5
 verified, JSON mode held even with its thinking mode on) as a candidate for
 the week 10 model-tier comparison — not used for the week 8 headline run.
+
+**21 September 2026 — data extraction, added outside the original schedule.**
+The supervisor asked for a report this week showing extracted data (tables,
+geographic view). Not in RQ1/RQ2 or the 15-week schedule, so built to fit the
+project's own rules rather than as a one-off script: `slr/services/extract.py`
+mirrors `screen.py` exactly — ask, validate shape, verify quote — per field
+instead of per decision, reusing `verify_span` unchanged. New `extraction`
+table (`SCHEMA_VERSION` 3 → 4; `data/slr.db` deleted and re-ingested — counts
+matched exactly, 2,627/27 and 366/80). Ran over the week 8 run's 114
+Nelson_2002 verified-includes, `qwen2.5:7b-instruct`, $0:
+
+| Field | Verified | Not stated | Unverified |
+|---|---|---|---|
+| study_design | 102 | 7 | 5 |
+| sample_size | 91 | 10 | 13 |
+| country | 22 | 90 | 2 |
+| key_finding | 110 | 0 | 4 |
+
+`country` is the honest negative result: verified in under a fifth of
+records. Nelson_2002's criteria don't require it, so most abstracts simply
+don't say — reported `not_stated`, not guessed.
+
+Two real bugs surfaced building this, both fixed at the `Provider`
+architecture level, not patched around:
+
+1. `OllamaProvider`/`GeminiProvider` hardcoded `RESPONSE_SCHEMA` to
+   screening's shape. The first extraction run scored 0% on every field —
+   Ollama's structured-output constraint was silently forcing the model into
+   the wrong JSON shape regardless of the prompt. `Provider.complete` now
+   takes an optional `response_schema`, defaulting to each provider's own
+   schema (screening's callers are unchanged) but overridable per call.
+2. `request_fingerprint` didn't hash `response_schema`, so the *second*
+   extraction run silently served the first (broken) run's cached responses
+   instead of raising `CacheMismatch` — exactly the staleness that fingerprint
+   exists to catch. Fixed the same way: `response_schema` is now part of the
+   hashed payload, but only when given, so screening's existing cache entries
+   fingerprint identically to before (checked against the pre-migration DB
+   backup). The 114 poisoned extraction cache rows were deleted.
+
+Report published as an Artifact: KPI tiles per field, a country bar chart +
+world map (only cleanly-resolvable single-country quotes are plotted; two
+multi-region/multi-national answers are shown in the table but not mapped),
+and the full 114-record table with per-field verified/not-stated/unverified
+badges. Traces to `runs/20260920T122648310211Z-extract-705f89ab33`.
 
 **Not yet done:**
 
