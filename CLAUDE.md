@@ -68,14 +68,15 @@ it surface the research gaps authors state in their own papers?
 
 ---
 
-## Current state — week 8 of 15
+## Current state — week 9 of 15
 
 Done: literature review, proposal (submitted), architecture, scope lock, the
 walking skeleton, the week 8 evaluation harness, the first baseline runs on
-real SYNERGY data, and the first model recall figures (local Ollama). Week 8
-exit test passed. Also done, outside the original schedule: a structured
-data-extraction feature and report, added at the supervisor's request (see
-21 September note below).
+real SYNERGY data, the first model recall figures (local Ollama), and week
+9's dense retrieval (SPECTER2 + FAISS, RRF fusion, cross-encoder rerank).
+Weeks 8 and 9 exit tests both passed. Also done, outside the original
+schedule: a structured data-extraction feature and report, added at the
+supervisor's request (see 21 September note below).
 
 ```
 slr/
@@ -84,14 +85,20 @@ slr/
   services/
     ingest.py            SYNERGY loader; full reviews, upserts, NULLs kept NULL
     criteria.py          published eligibility criteria, pinned + hashed
-    retrieve.py          random + BM25 ranking (baselines 1 & 2)
+    retrieve.py          random + BM25 ranking (baselines 1 & 2), dispatches
+                         dense/hybrid/rerank into dense_retrieve.py
+    dense_retrieve.py    SPECTER2 + FAISS cosine search, RRF fusion (k=60),
+                         cross-encoder rerank over the fused top 200
     screen.py            ask -> validate shape -> verify quote
     extract.py            same pattern, per field: study_design, sample_size,
                          country, key_finding. extraction's sibling to screening.
     verify.py            THE span verifier. RQ1 lives here. Shared by both.
-  adapters/llm.py        Mock + Gemini + Ollama behind one Provider protocol,
+  adapters/
+    llm.py                Mock + Gemini + Ollama behind one Provider protocol,
                          response cache with request fingerprint (now includes
                          response_schema), budget Meter
+    embed.py              SPECTER2 via AutoAdapterModel + proximity adapter
+    rerank.py              MiniLM cross-encoder (ms-marco-MiniLM-L-6-v2)
   eval/
     metrics.py           per-review metrics. Only module reading ground truth.
     agreement.py         Gwet's AC1/AC2, PABAK
@@ -106,8 +113,11 @@ configs/smoke.yaml       Nelson_2002, 50 records, mock provider, free
 configs/baseline_*.yaml  random and BM25 over Smid_2020 + Nelson_2002, free
 configs/week08_gemini.yaml  Smid_2020 + Nelson_2002, gemini-2.5-flash-lite (blocked, see below)
 configs/week08_ollama.yaml  same two reviews, local GPU via Ollama, qwen2.5:7b-instruct
-configs/extract_demo.yaml  Nelson_2002 verified-includes, local Ollama, $0
-tests/                   121 tests
+configs/extract_demo*.yaml  verified-includes per review, local Ollama, $0
+configs/valk2021_ollama.yaml  van_der_Valk_2021 screening, local Ollama, $0
+configs/week09_*.yaml    bm25/dense/hybrid/rerank across all 3 ingested reviews
+data/embeddings/         SPECTER2 vectors cached per review (gitignored)
+tests/                   132 tests
 reports/results.{csv,md} generated from runs/
 ```
 
@@ -255,6 +265,46 @@ validation outright, and `key_finding` (96%+ verified in both other
 reviews) only verified 8/11 here. With n=11 this could be noise; flagged,
 not concluded. The report now switches across all three reviews.
 
+**21 September 2026 — week 9: dense retrieval, staged and verified.** Two
+environment problems had to be resolved before any of this could run (both
+now settled decisions, see below): the venv turned out to have been Python
+3.13.5 all along (3.11 isn't installed on this machine), and SPECTER2 needs
+the `adapters` library's proximity adapter, not plain `sentence-transformers`
+— verified the adapter is genuinely active by comparing embeddings with vs.
+without it (max abs diff 0.80), since the library prints a misleading "none
+activated" warning during loading.
+
+Built and run in three stages, each checked against BM25 before adding the
+next layer, across all three ingested reviews:
+
+| Review | BM25 TNR@95 | Dense TNR@95 | Hybrid TNR@95 | Rerank TNR@95 |
+|---|---|---|---|---|
+| Smid_2020 (1.0%) | 0.618 | 0.696 | 0.758 | 0.758 |
+| Nelson_2002 (21.9%) | 0.094 | 0.178 | 0.129 | 0.129 |
+| van_der_Valk_2021 (12.3%) | 0.068 | 0.181 | 0.108 | 0.108 |
+
+(`runs/20260920T141238874787Z-2ecaa4d8d7` BM25,
+`.../20260920T141257485896Z-423a543937` dense,
+`.../20260920T153200090557Z-538ba6a5bc` hybrid,
+`.../20260920T153252374417Z-da2f69f68d` rerank.)
+
+**Dense alone already clears the exit test** on all three reviews, before
+fusion or reranking. **RRF fusion is a tradeoff, not a strict win**: it helps
+Smid_2020 (where BM25 is already strong, 0.618) and hurts the other two
+(where BM25 is weak, 0.094/0.068) — pulling a weak lexical ranking into the
+fusion drags it down there. **Rerank's TNR@95/WSS@95 are byte-identical to
+hybrid's on every review** — verified this is real, not a stalled reranker:
+hybrid and rerank orderings differ completely within the top-200 window
+(confirmed directly, e.g. Smid_2020's top-10 work_ids are entirely
+different), the tail past 200 is untouched by design, and all three
+reviews' 95%-recall cutoffs (656, 325, 652) fall beyond that 200-record
+window — reordering records whose set membership doesn't change can't move
+a cutoff that's already past where the reordering happened. The
+cross-encoder is doing real work; TNR@95 at this recall target simply can't
+see it. A metric sensitive to top-200 ordering (precision@k, or a lower
+recall target whose cutoff lands inside 200) would be needed to measure
+reranking's actual contribution, if that number is wanted later.
+
 **Not yet done:**
 
 - Never run against the real Gemini API for a reported figure — the 404
@@ -283,14 +333,24 @@ worth running later at `gemini-3.5-flash-lite`'s real price for the RQ2
 cost/time comparison against the local arm, once the config's price and
 ceiling are updated to match.
 
-## Next: week 9 — SPECTER2, FAISS, rank fusion
-
-Exit test: beats the lexical baseline on ≥3 reviews (see schedule below).
-
 Khraisha et al. (2024) predict model accuracy looks better on the
 high-prevalence review; week 8's figures instead show verification, not
 accuracy, as the property that varies most sharply between these two — worth
 keeping in view once week 10 adds real accuracy numbers.
+
+## Week 9 exit test: passed
+
+*Beats the lexical baseline on ≥3 reviews.* Cleared at every stage — dense,
+hybrid and rerank all beat BM25's TNR@95 on all three reviews (table above).
+Dense alone is the strongest single choice on 2 of 3 reviews (Nelson_2002,
+van_der_Valk_2021); hybrid is strongest on the third (Smid_2020). No
+combination is uniformly best — worth carrying into week 10 as a real
+finding rather than picking one "winner" prematurely.
+
+## Next: week 10 — prompt variants, model tiers, agreement
+
+Exit test: every property in the RQ1 table (verifiable, accurate,
+reproducible, overridable) has a number.
 
 ---
 
@@ -455,6 +515,23 @@ approximate index to be worth the accuracy loss.
 
 **RRF constant k=60, untuned.** No budget to justify a tuned value.
 
+**The venv is Python 3.13, not the documented 3.11.** Discovered week 9
+installing `faiss-cpu` (`1.9.0`, the original pin, has no 3.13 wheel — 3.11
+isn't installed anywhere on this machine, and never has been on this venv;
+`numpy` had already silently drifted off its own pin for the same reason
+before this was caught). Decided to fix the pins and the `requirements.txt`
+header to match what's actually running rather than force a disruptive
+reinstall onto a Python version nothing here has ever used.
+
+**SPECTER2 embeddings go through the `adapters` library's proximity
+adapter, not plain `sentence-transformers`.** `allenai/specter2_base` alone
+gives generic base embeddings; `AutoAdapterModel` + `load_adapter
+("allenai/specter2", load_as="proximity", set_active=True)` is what makes
+them retrieval-tuned. The library prints a misleading "none activated"
+warning during loading — verified directly that the adapter is genuinely
+active (embeddings with vs. without it differ, max abs diff 0.80) rather
+than trusting or dismissing that warning either way.
+
 ---
 
 ## Running it
@@ -467,6 +544,10 @@ python -m slr.eval.harness --config configs/baseline_random.yaml --require-clean
 python -m slr.eval.harness --config configs/baseline_bm25.yaml --require-clean
 python -m slr.eval.harness --config configs/smoke.yaml --require-clean
 python -m slr.eval.harness --config configs/week08_ollama.yaml --require-clean
+python -m slr.eval.harness --config configs/week09_baseline_bm25.yaml --require-clean
+python -m slr.eval.harness --config configs/week09_dense.yaml --require-clean
+python -m slr.eval.harness --config configs/week09_hybrid.yaml --require-clean
+python -m slr.eval.harness --config configs/week09_rerank.yaml --require-clean
 python -m slr.eval.report_tables --runs runs --out reports
 ```
 
@@ -476,6 +557,11 @@ The first ingest downloads SYNERGY v1.0 (≈ 450 MB) to
 `configs/week08_ollama.yaml` needs Ollama running locally
 (`ollama pull qwen2.5:7b-instruct`, then the default `localhost:11434` server)
 — also free, no API key, but not network-free: it needs the local GPU.
+`configs/week09_*.yaml` need no API key or Ollama — SPECTER2/MiniLM run
+locally via `transformers`/`sentence-transformers`, CPU-only here (no CUDA
+wheel installed). The first `dense`/`hybrid`/`rerank` run per review computes
+and caches embeddings to `data/embeddings/` (~20 min for all three reviews
+from cold); reruns are fast, served from that cache.
 
 A database created before schema v3 is refused; delete `data/slr.db` and
 re-run ingest.
