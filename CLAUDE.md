@@ -236,13 +236,33 @@ model said so every time rather than inventing one. `sample_size` mostly
 quoted but not capturable by a single-value field. The published report now
 switches between both reviews.
 
+**Third review added: van_der_Valk_2021** (725 records, 12.3% prevalence,
+medicine/psychology — hair cortisol and obesity). Ingest matched the
+proposal exactly (725/89/12.3%). Screened with `qwen2.5:7b-instruct`
+(`configs/valk2021_ollama.yaml`), run twice with `--require-clean`,
+`metrics.json` byte-identical:
+
+| Verif | Rec(v) | Rec(+h) | Saved | TNR@r |
+|---|---|---|---|---|
+| 39.3% | 0.320 | 0.809 | 37.8% | 0.138 |
+
+Verification rate (39.3%) is lower than both Smid_2020 (91.7%) and
+Nelson_2002 (51.9%) — across three reviews now, verification rate does not
+track prevalence in any simple direction. Extracted from its 11
+verified-includes (`runs/20260920T133746642566Z-extract-7b72d83b0a`) — the
+noisiest extraction run of the three: one record failed JSON-shape
+validation outright, and `key_finding` (96%+ verified in both other
+reviews) only verified 8/11 here. With n=11 this could be noise; flagged,
+not concluded. The report now switches across all three reviews.
+
 **Not yet done:**
 
 - Never run against the real Gemini API for a reported figure — the 404
   above blocked it; `configs/week08_gemini.yaml` needs a price/ceiling update
   (currently priced for the now-blocked model) before it is run for real.
-- Only Smid_2020 and Nelson_2002 are ingested. The other four load with the
-  same command once added to a config.
+- Smid_2020, Nelson_2002 and van_der_Valk_2021 are ingested. The other three
+  (Radjenović_2013, van_der_Waal_2022, Menon_2022) load with the same
+  command once added to a config.
 - Ethics application for the usability study — not submitted. This is the only
   item whose timing is outside the author's control. It gates week 13. (The
   proposal, section 8.2, says approval is obtained in week 7.)
