@@ -372,19 +372,29 @@ def request_fingerprint(
     temperature: float,
     max_tokens: int,
     seed: int | None,
+    response_schema: dict | None = None,
 ) -> str:
-    """Hash of everything that determines what was asked of the model."""
-    payload = json.dumps(
-        {
-            "prompt": prompt,
-            "model": model,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "seed": seed,
-        },
-        sort_keys=True,
-        ensure_ascii=False,
-    )
+    """Hash of everything that determines what was asked of the model.
+
+    ``response_schema`` is only added to the payload when given, so callers
+    that never pass one (screening, unchanged since before extraction
+    existed) get byte-identical fingerprints to before — this must not
+    invalidate cached_response rows that already exist from real runs.
+    Extraction passes its schema explicitly: two requests that differ only
+    in the JSON shape they constrained the model to are different requests,
+    and serving one's cached response for the other is exactly the silent
+    staleness this fingerprint exists to catch.
+    """
+    fields = {
+        "prompt": prompt,
+        "model": model,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "seed": seed,
+    }
+    if response_schema is not None:
+        fields["response_schema"] = response_schema
+    payload = json.dumps(fields, sort_keys=True, ensure_ascii=False)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 

@@ -133,7 +133,12 @@ def extract_record(
     """
     prompt = build_extract_prompt(template, title=row["title"], abstract=row["abstract"])
     fingerprint = request_fingerprint(
-        prompt, model=provider.model, temperature=temperature, max_tokens=max_tokens, seed=seed
+        prompt,
+        model=provider.model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        seed=seed,
+        response_schema=EXTRACTION_SCHEMA,
     )
     key = cache_key(provider.model, prompt_version, row["review"], row["work_id"])
     completion: Completion | None = None
