@@ -22,6 +22,10 @@ criteria — not reportable.
 | baseline_bm25<br>`20260918T053047282332Z-e4eab7ef35` | baseline | bm25 | — | — | — | — | — | — | — | — | 0.568 | 0.513 | — |
 | week08_ollama_qwen25_7b<br>`20260918T060412811907Z-2556bbe54c` | screen | random | qwen2.5:7b-instruct | 2627 | 91.7% | 0.308 | 0.333 | 91.4% | 0.992 | 0.983 | 0.113 | 0.062 | 0.0000 |
 | week08_ollama_qwen25_7b<br>`20260918T072515193074Z-2556bbe54c` | screen | random | qwen2.5:7b-instruct | 2627 | 91.7% | 0.308 | 0.333 | 91.4% | 0.992 | 0.983 | 0.113 | 0.062 | 0.0000 |
+| week09_baseline_bm25<br>`20260920T141238874787Z-2ecaa4d8d7` | baseline | bm25 | — | — | — | — | — | — | — | — | 0.618 | 0.562 | — |
+| week09_dense<br>`20260920T141257485896Z-423a543937` | baseline | dense | — | — | — | — | — | — | — | — | 0.696 | 0.639 | — |
+| week09_hybrid<br>`20260920T153200090557Z-538ba6a5bc` | baseline | hybrid | — | — | — | — | — | — | — | — | 0.758 | 0.700 | — |
+| week09_rerank<br>`20260920T153252374417Z-da2f69f68d` | baseline | rerank | — | — | — | — | — | — | — | — | 0.758 | 0.700 | — |
 
 ## van_der_Valk_2021 — 725 records, 12.3% included
 
@@ -29,6 +33,10 @@ criteria — not reportable.
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | valk2021_ollama_qwen25_7b<br>`20260920T131834130857Z-89b8a49fec` | screen | random | qwen2.5:7b-instruct | 725 | 39.3% | 0.320 | 0.809 | 37.8% | 0.920 | 0.860 | 0.138 | 0.077 | 0.0000 |
 | valk2021_ollama_qwen25_7b<br>`20260920T133509350330Z-89b8a49fec` | screen | random | qwen2.5:7b-instruct | 725 | 39.3% | 0.320 | 0.809 | 37.8% | 0.920 | 0.860 | 0.138 | 0.077 | 0.0000 |
+| week09_baseline_bm25<br>`20260920T141238874787Z-2ecaa4d8d7` | baseline | bm25 | — | — | — | — | — | — | — | — | 0.068 | 0.015 | — |
+| week09_dense<br>`20260920T141257485896Z-423a543937` | baseline | dense | — | — | — | — | — | — | — | — | 0.181 | 0.114 | — |
+| week09_hybrid<br>`20260920T153200090557Z-538ba6a5bc` | baseline | hybrid | — | — | — | — | — | — | — | — | 0.108 | 0.051 | — |
+| week09_rerank<br>`20260920T153252374417Z-da2f69f68d` | baseline | rerank | — | — | — | — | — | — | — | — | 0.108 | 0.051 | — |
 
 ## Nelson_2002 — 366 records, 21.9% included
 
@@ -47,3 +55,7 @@ criteria — not reportable.
 | smoke_ollama†<br>`20260918T060009642242Z-0ec56fd833` | screen | random | qwen2.5:7b-instruct | 5 | 80.0% | — | — | 20.0% | -0.412 | -0.500 | — | — | 0.0000 |
 | week08_ollama_qwen25_7b<br>`20260918T060412811907Z-2556bbe54c` | screen | random | qwen2.5:7b-instruct | 366 | 51.9% | 0.906 | 0.938 | 20.8% | 0.263 | 0.253 | 0.164 | 0.089 | 0.0000 |
 | week08_ollama_qwen25_7b<br>`20260918T072515193074Z-2556bbe54c` | screen | random | qwen2.5:7b-instruct | 366 | 51.9% | 0.906 | 0.938 | 20.8% | 0.263 | 0.253 | 0.164 | 0.089 | 0.0000 |
+| week09_baseline_bm25<br>`20260920T141238874787Z-2ecaa4d8d7` | baseline | bm25 | — | — | — | — | — | — | — | — | 0.094 | 0.035 | — |
+| week09_dense<br>`20260920T141257485896Z-423a543937` | baseline | dense | — | — | — | — | — | — | — | — | 0.178 | 0.100 | — |
+| week09_hybrid<br>`20260920T153200090557Z-538ba6a5bc` | baseline | hybrid | — | — | — | — | — | — | — | — | 0.129 | 0.062 | — |
+| week09_rerank<br>`20260920T153252374417Z-da2f69f68d` | baseline | rerank | — | — | — | — | — | — | — | — | 0.129 | 0.062 | — |
