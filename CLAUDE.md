@@ -217,6 +217,25 @@ multi-region/multi-national answers are shown in the table but not mapped),
 and the full 114-record table with per-field verified/not-stated/unverified
 badges. Traces to `runs/20260920T122648310211Z-extract-705f89ab33`.
 
+Also ran extraction on Smid_2020's 10 verified-includes
+(`runs/20260920T130935713644Z-extract-454fea8b50`) as a direct comparison —
+a cleaner result, 0 unverified on any field:
+
+| Field | Verified | Not stated | Unverified |
+|---|---|---|---|
+| study_design | 10 | 0 | 0 |
+| sample_size | 2 | 8 | 0 |
+| country | 0 | 10 | 0 |
+| key_finding | 10 | 0 | 0 |
+
+`country` at 0/10 is a clean null result, not a gap: a Bayesian-estimation
+simulation-methodology review has no real-world setting to state, and the
+model said so every time rather than inventing one. `sample_size` mostly
+`not_stated` too — several papers describe it as a simulated condition (e.g.
+`"n = d·a, where d = 2, 3, 4 and 5"`) rather than a fixed number, correctly
+quoted but not capturable by a single-value field. The published report now
+switches between both reviews.
+
 **Not yet done:**
 
 - Never run against the real Gemini API for a reported figure — the 404
