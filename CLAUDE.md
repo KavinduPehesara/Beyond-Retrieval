@@ -115,6 +115,7 @@ configs/week08_gemini.yaml  Smid_2020 + Nelson_2002, gemini-2.5-flash-lite (bloc
 configs/week08_ollama.yaml  same two reviews, local GPU via Ollama, qwen2.5:7b-instruct
 configs/extract_demo*.yaml  verified-includes per review, local Ollama, $0
 configs/valk2021_ollama.yaml  van_der_Valk_2021 screening, local Ollama, $0
+configs/radjenovic2013_ollama.yaml  Radjenovic_2013 screening, local Ollama, $0
 configs/week09_*.yaml    bm25/dense/hybrid/rerank across all 3 ingested reviews
 data/embeddings/         SPECTER2 vectors cached per review (gitignored)
 tests/                   136 tests
@@ -265,6 +266,48 @@ validation outright, and `key_finding` (96%+ verified in both other
 reviews) only verified 8/11 here. With n=11 this could be noise; flagged,
 not concluded. The report now switches across all three reviews.
 
+**Fourth review added: Radjenovic_2013** (5,935 records, 0.8% prevalence,
+software engineering — fault prediction). The largest review screened so
+far and the only SE domain besides Smid_2020's CS-methodology one. Ingest
+matched the proposal exactly (5935/48/0.8%, 0 without abstract). Screened
+with `qwen2.5:7b-instruct` (`configs/radjenovic2013_ollama.yaml`), single
+run (not run-twice — that property is already proven at this point):
+
+| Verif | Rec(v) | Rec(+h) | Saved | TNR@r | AC1 |
+|---|---|---|---|---|---|
+| 35.6% | 0.925 | 0.938 | 33.4% | 0.209 | 0.950 |
+
+Extracted from its 132 verified-includes
+(`runs/20260921T090058751699Z-extract-e1e1617c75`) — the largest extraction
+batch, and the clearest domain-generalisation result yet:
+
+| Field | Verified | Not stated | Unverified |
+|---|---|---|---|
+| study_design | 47 | 83 | 2 |
+| sample_size | 10 | 122 | 0 |
+| country | 3 | 128 | 1 |
+| key_finding | 129 | 2 | 1 |
+
+`study_design` (35.6%) and `sample_size` (7.6%, the lowest of any review)
+both collapse here: SE papers describe datasets, repositories and metrics,
+not patient cohorts with a stated design and N — the extraction schema was
+shaped by clinical-trial reporting conventions, and empirical software
+engineering simply doesn't report that way. `country` is as sparse as
+Smid_2020's (2.3% vs 0%), same reason. `key_finding` is the one field that
+holds up regardless of domain: 97.7% here, 96-100% in every review so far.
+The report now switches across all four reviews.
+
+**A correction, made the same day it was noticed (rule 7).** Pausing the
+Radjenovic_2013 screening run mid-way via a process kill was described to
+the user as preserving the 1,509 records already screened, on the assumption
+the response cache is written per record. It is not: `harness.py` only
+commits the SQLite transaction once a review's full loop completes, so the
+abrupt kill discarded the whole in-progress transaction. The resumed run
+showed `0 cached_calls` of 5,935 and redid the review from scratch — still
+$0, but ~28 minutes of the first session's compute was wasted. Worth a
+proper fix (commit periodically within a review, not just at the end) before
+this project pauses a long run again.
+
 **21 September 2026 — week 9: dense retrieval, staged and verified.** Two
 environment problems had to be resolved before any of this could run (both
 now settled decisions, see below): the venv turned out to have been Python
@@ -374,10 +417,8 @@ research tools should be checkable should not quietly rewrite its own numbers.
   above blocked it; `configs/week08_gemini.yaml` needs a price/ceiling update
   (currently priced for the now-blocked model) before it is run for real.
 - Smid_2020, Nelson_2002, van_der_Valk_2021 and Radjenovic_2013 are ingested
-  (the last mid-screened, paused at 1,509/5,935 — see
-  `configs/radjenovic2013_ollama.yaml`, resume with the same command,
-  already-screened records are cache hits). The other two (van_der_Waal_2022,
-  Menon_2022) load with the same ingest command once added to a config.
+  and fully screened. The other two (van_der_Waal_2022, Menon_2022) load
+  with the same ingest command once added to a config.
 - Ethics application for the usability study — not submitted. This is the only
   item whose timing is outside the author's control. It gates week 13. (The
   proposal, section 8.2, says approval is obtained in week 7.)
