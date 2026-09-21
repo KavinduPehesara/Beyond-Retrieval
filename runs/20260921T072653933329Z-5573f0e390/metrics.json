@@ -1,0 +1,80 @@
+{
+  "metrics_schema": 2,
+  "config_name": "radjenovic2013_ollama_qwen25_7b",
+  "config_hash": "5573f0e390",
+  "mode": "screen",
+  "ranking": {
+    "strategy": "random",
+    "query": null,
+    "recall_target": 0.95,
+    "seed": 42
+  },
+  "screening": {
+    "provider": "ollama",
+    "model": "qwen2.5:7b-instruct",
+    "prompt_version": "screen_v1",
+    "prompt_sha256": "f35b27e9049a5b0ca869c7800ebf693ba6beec27cc27b8717ea2a23ac9312052",
+    "temperature": 0.0,
+    "max_output_tokens": 512,
+    "seed": 42,
+    "max_records": null,
+    "cache_enabled": true
+  },
+  "criteria": {
+    "Radjenovic_2013": {
+      "status": "published",
+      "source": "asreview/synergy-dataset@ca8cb9e2ea97:datasets.toml",
+      "sha256": "ccb3d3cac082d47217bcaf16aa103824f2d7e10e1f220280cc288a758766585b"
+    }
+  },
+  "aborted": false,
+  "reviews_completed": [
+    "Radjenovic_2013"
+  ],
+  "verification_failures": {
+    "not_found": 3816,
+    "partial_match_only": 3,
+    "span_longer_than_source": 1,
+    "span_too_short(<20chars)": 1
+  },
+  "per_review": [
+    {
+      "review": "Radjenovic_2013",
+      "corpus_sha256": "43a7fcf7c5770fe487022fd80ed06117b80c1c4ef864e1ffa20b07abccd93282",
+      "n_records": 5935,
+      "n_included_truth": 48,
+      "prevalence": 0.008087615838247682,
+      "n_screened": 5935,
+      "n_included_screened": 48,
+      "screened_prevalence": 0.008087615838247682,
+      "n_verified": 2114,
+      "n_unverified": 3821,
+      "n_errors": 0,
+      "verification_rate": 0.3561920808761584,
+      "true_positives": 37,
+      "false_positives": 95,
+      "false_negatives": 3,
+      "true_negatives": 1979,
+      "recall_verified": 0.925,
+      "precision_verified": 0.2803030303030303,
+      "n_to_human": 3953,
+      "recall_with_referrals": 0.9375,
+      "work_saved": 0.33395113732097725,
+      "agreement_ac1": 0.9497177307787512,
+      "agreement_pabak": 0.9072847682119205,
+      "ranking": {
+        "recall_target": 0.95,
+        "n_ranked": 5935,
+        "n_included": 48,
+        "complete": true,
+        "cutoff": 4704,
+        "recall_at_cutoff": 0.9583333333333334,
+        "tnr_at_recall": 0.20876507559028368,
+        "wss_at_recall": 0.157413647851727
+      },
+      "tokens_in": 4055521,
+      "tokens_out": 291869,
+      "cost_usd_at_config_prices": 0.0
+    }
+  ]
+}

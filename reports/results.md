@@ -9,6 +9,12 @@ human; *TNR@r* true negative rate at the recall target (normalised WSS).
 `†` ranking covers only the screened records; `‡` draft eligibility
 criteria — not reportable.
 
+## Radjenovic_2013 — 5,935 records, 0.8% included
+
+| Run | Mode | Strategy | Model | N screened | Verified | Rec (v) | Rec (+h) | Saved | AC1 | PABAK | TNR@r | WSS@r | Cost (USD) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| radjenovic2013_ollama_qwen25_7b<br>`20260921T072653933329Z-5573f0e390` | screen | random | qwen2.5:7b-instruct | 5935 | 35.6% | 0.925 | 0.938 | 33.4% | 0.950 | 0.907 | 0.209 | 0.157 | 0.0000 |
+
 ## Smid_2020 — 2,627 records, 1.0% included
 
 | Run | Mode | Strategy | Model | N screened | Verified | Rec (v) | Rec (+h) | Saved | AC1 | PABAK | TNR@r | WSS@r | Cost (USD) |
