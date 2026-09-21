@@ -1,0 +1,34 @@
+# Data extraction demo — Radjenovic_2013, 21 September 2026. Runs over this
+# review's own screening run's verified-include records (132 — the largest
+# extraction batch so far). Software engineering (fault prediction), not
+# medicine or methodology — a genuinely different domain from the other
+# three: expect study_design/sample_size to mean something different here
+# (e.g. "empirical study", dataset sizes rather than patient counts) and
+# country to be about as sparse as Smid_2020's (SE papers rarely state one).
+#
+# Before running:
+#   1. Ollama running locally, qwen2.5:7b-instruct pulled (already true).
+#   2. Commit, then run with --require-clean.
+
+name: extract_demo_radjenovic2013
+
+source_run_id: 20260921T072653933329Z-5573f0e390
+review: Radjenovic_2013
+max_records: null
+
+provider: ollama
+model: qwen2.5:7b-instruct
+prompt_version: extract_v1
+temperature: 0.0
+max_output_tokens: 512
+max_retries: 3
+seed: 42
+
+ceiling_usd: 0.00
+usd_per_1m_input: 0.0
+usd_per_1m_output: 0.0
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts
+cache_enabled: true

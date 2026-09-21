@@ -1,0 +1,30 @@
+{
+  "config_name": "extract_demo_radjenovic2013",
+  "config_hash": "e1e1617c75",
+  "source_run_id": "20260921T072653933329Z-5573f0e390",
+  "review": "Radjenovic_2013",
+  "records": 132,
+  "aborted": false,
+  "field_verification": {
+    "study_design": {
+      "verified": 47,
+      "not_stated": 83,
+      "failed": 2
+    },
+    "sample_size": {
+      "verified": 10,
+      "not_stated": 122,
+      "failed": 0
+    },
+    "country": {
+      "verified": 3,
+      "not_stated": 128,
+      "failed": 1
+    },
+    "key_finding": {
+      "verified": 129,
+      "not_stated": 2,
+      "failed": 1
+    }
+  }
+}
