@@ -1,0 +1,18 @@
+Screen this paper against the inclusion criteria, using only the title and
+abstract given.
+
+CRITERIA:
+{criteria}
+
+TITLE:
+{title}
+
+ABSTRACT:
+{abstract}
+
+Return JSON: {{"decision": "include"|"exclude", "confidence": 0-1,
+"evidence_span": "<exact quote from above, >=20 chars, that decided it>"}}
+
+evidence_span must be copied character-for-character from the text above —
+it is checked against the source, and an invented or paraphrased quote sends
+this decision to a human reviewer instead of being used.

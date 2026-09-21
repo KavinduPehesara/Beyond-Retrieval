@@ -1,0 +1,39 @@
+# Week 10 — model tier 2: qwen3:8b, same review/prompt/settings as
+# week10_prompt_v1_nelson.yaml (qwen2.5:7b-instruct, tier 1), so the only
+# thing that differs is the model. qwen3:8b was smoke-tested on 5 records
+# during week 8 (4/5 verified, JSON mode held even with thinking mode on) --
+# this is its first full-review run.
+#
+# New model -> not cached, real local-GPU calls, $0.
+
+name: week10_model_qwen3_nelson
+
+dataset:
+  reviews:
+    - Nelson_2002
+  max_records: null
+  seed: 42
+
+ranking:
+  strategy: random
+  recall_target: 0.95
+
+screening:
+  enabled: true
+  provider: ollama
+  model: qwen3:8b
+  prompt_version: screen_v1
+  temperature: 0.0
+  max_output_tokens: 512
+  max_retries: 3
+  seed: 42
+
+budget:
+  ceiling_usd: 0.00
+  usd_per_1m_input: 0.0
+  usd_per_1m_output: 0.0
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts
+cache_enabled: true
