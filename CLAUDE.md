@@ -117,7 +117,7 @@ configs/extract_demo*.yaml  verified-includes per review, local Ollama, $0
 configs/valk2021_ollama.yaml  van_der_Valk_2021 screening, local Ollama, $0
 configs/week09_*.yaml    bm25/dense/hybrid/rerank across all 3 ingested reviews
 data/embeddings/         SPECTER2 vectors cached per review (gitignored)
-tests/                   132 tests
+tests/                   136 tests
 reports/results.{csv,md} generated from runs/
 ```
 
@@ -343,12 +343,25 @@ Nelson_2002 +0.140 rather than +0.084, van_der_Valk_2021 +0.132 rather than
 and do not depend on what else is indexed. Verified by construction, not
 assumed.
 
-*Hybrid and rerank are not yet re-run and their figures are still suspect.*
-`hybrid_rank` calls `lexical_rank`; `rerank_rank` calls `hybrid_rank`. Both
-inherit the defect. The week 9 reading — *"RRF fusion helps Smid_2020, where
-BM25 is already strong (0.618)"* — rests on a strength that was partly an
-artefact; corrected, it is 0.520. Whether fusion still helps there is an open
-question until those two configs are re-run.
+*Hybrid and rerank, re-run under commit `393db15` — the Smid_2020 gain
+holds, the cost elsewhere got worse.*
+
+| Review | BM25 (fixed) | Dense | Hybrid | Rerank |
+|---|---|---|---|---|
+| Smid_2020 (1.0%) | 0.520 | 0.696 | 0.757 | 0.757 |
+| Nelson_2002 (21.9%) | 0.038 | 0.178 | 0.094 | 0.094 |
+| van_der_Valk_2021 (12.3%) | 0.049 | 0.181 | 0.068 | 0.068 |
+
+Hybrid's margin over dense on Smid_2020 is ~0.06 either side of the fix —
+that gain was real, not an artefact of inflated BM25. But its cost on the
+other two reviews is *worse* now that their BM25 is correctly much weaker:
+hybrid trails dense by 0.084 on Nelson_2002 and 0.113 on van_der_Valk_2021,
+both larger gaps than the pre-fix numbers showed. Rerank is still
+byte-identical to hybrid on every review — cutoffs (658/335/678) still fall
+past the 200-record reranking window, same explanation as before, unaffected
+by this fix. Every strategy still beats the corrected BM25 on all three
+reviews (`runs/20260921T072321083927Z-2ecaa4d8d7` through
+`.../20260921T072421885220Z-da2f69f68d`).
 
 *The `week-09` tag is kept as-is.* It records what was observed at the time.
 Corrected runs are recorded alongside rather than overwriting it, because the
@@ -357,18 +370,14 @@ research tools should be checkable should not quietly rewrite its own numbers.
 
 **Not yet done:**
 
-- Re-run `week09_hybrid` and `week09_rerank` with the scoped BM25. Until then
-  their numbers, and the fusion conclusion drawn from them, stand corrected-
-  pending. `week09_baseline_bm25` and `week09_dense` also need re-running as
-  committed artefacts (the figures above were computed directly against
-  `data/slr.db`, not through the harness).
-
 - Never run against the real Gemini API for a reported figure — the 404
   above blocked it; `configs/week08_gemini.yaml` needs a price/ceiling update
   (currently priced for the now-blocked model) before it is run for real.
-- Smid_2020, Nelson_2002 and van_der_Valk_2021 are ingested. The other three
-  (Radjenović_2013, van_der_Waal_2022, Menon_2022) load with the same
-  command once added to a config.
+- Smid_2020, Nelson_2002, van_der_Valk_2021 and Radjenovic_2013 are ingested
+  (the last mid-screened, paused at 1,509/5,935 — see
+  `configs/radjenovic2013_ollama.yaml`, resume with the same command,
+  already-screened records are cache hits). The other two (van_der_Waal_2022,
+  Menon_2022) load with the same ingest command once added to a config.
 - Ethics application for the usability study — not submitted. This is the only
   item whose timing is outside the author's control. It gates week 13. (The
   proposal, section 8.2, says approval is obtained in week 7.)
@@ -397,11 +406,13 @@ keeping in view once week 10 adds real accuracy numbers.
 ## Week 9 exit test: passed
 
 *Beats the lexical baseline on ≥3 reviews.* Cleared at every stage — dense,
-hybrid and rerank all beat BM25's TNR@95 on all three reviews (table above).
-Dense alone is the strongest single choice on 2 of 3 reviews (Nelson_2002,
-van_der_Valk_2021); hybrid is strongest on the third (Smid_2020). No
-combination is uniformly best — worth carrying into week 10 as a real
-finding rather than picking one "winner" prematurely.
+hybrid and rerank all beat BM25's TNR@95 on all three reviews, more
+comfortably after the BM25 corpus-independence fix (correcting the baseline
+downward, not the treatments). Dense alone is the strongest single choice on
+2 of 3 reviews (Nelson_2002, van_der_Valk_2021); hybrid is strongest on the
+third (Smid_2020), and by a margin the fix confirmed as real rather than
+explained away. No combination is uniformly best — worth carrying into week
+10 as a real finding rather than picking one "winner" prematurely.
 
 ## Next: week 10 — prompt variants, model tiers, agreement
 
