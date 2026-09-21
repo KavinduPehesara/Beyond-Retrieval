@@ -1,0 +1,24 @@
+# Week 9 — RRF fusion (k=60) of dense (SPECTER2) and BM25. Second stage:
+# run after week09_dense.yaml, compare against both it and the BM25 baseline.
+
+name: week09_hybrid
+
+dataset:
+  reviews:
+    - Smid_2020
+    - Nelson_2002
+    - van_der_Valk_2021
+  max_records: null
+  seed: 42
+
+ranking:
+  strategy: hybrid
+  recall_target: 0.95
+  rrf_k: 60
+
+screening:
+  enabled: false
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts

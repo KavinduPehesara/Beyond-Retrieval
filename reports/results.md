@@ -26,6 +26,10 @@ criteria — not reportable.
 | week09_dense<br>`20260920T141257485896Z-423a543937` | baseline | dense | — | — | — | — | — | — | — | — | 0.696 | 0.639 | — |
 | week09_hybrid<br>`20260920T153200090557Z-538ba6a5bc` | baseline | hybrid | — | — | — | — | — | — | — | — | 0.758 | 0.700 | — |
 | week09_rerank<br>`20260920T153252374417Z-da2f69f68d` | baseline | rerank | — | — | — | — | — | — | — | — | 0.758 | 0.700 | — |
+| week09_baseline_bm25<br>`20260921T072321083927Z-2ecaa4d8d7` | baseline | bm25 | — | — | — | — | — | — | — | — | 0.520 | 0.465 | — |
+| week09_dense<br>`20260921T072327017657Z-423a543937` | baseline | dense | — | — | — | — | — | — | — | — | 0.696 | 0.639 | — |
+| week09_hybrid<br>`20260921T072358111413Z-538ba6a5bc` | baseline | hybrid | — | — | — | — | — | — | — | — | 0.757 | 0.700 | — |
+| week09_rerank<br>`20260921T072421885220Z-da2f69f68d` | baseline | rerank | — | — | — | — | — | — | — | — | 0.757 | 0.700 | — |
 
 ## van_der_Valk_2021 — 725 records, 12.3% included
 
@@ -37,6 +41,10 @@ criteria — not reportable.
 | week09_dense<br>`20260920T141257485896Z-423a543937` | baseline | dense | — | — | — | — | — | — | — | — | 0.181 | 0.114 | — |
 | week09_hybrid<br>`20260920T153200090557Z-538ba6a5bc` | baseline | hybrid | — | — | — | — | — | — | — | — | 0.108 | 0.051 | — |
 | week09_rerank<br>`20260920T153252374417Z-da2f69f68d` | baseline | rerank | — | — | — | — | — | — | — | — | 0.108 | 0.051 | — |
+| week09_baseline_bm25<br>`20260921T072321083927Z-2ecaa4d8d7` | baseline | bm25 | — | — | — | — | — | — | — | — | 0.049 | -0.002 | — |
+| week09_dense<br>`20260921T072327017657Z-423a543937` | baseline | dense | — | — | — | — | — | — | — | — | 0.181 | 0.114 | — |
+| week09_hybrid<br>`20260921T072358111413Z-538ba6a5bc` | baseline | hybrid | — | — | — | — | — | — | — | — | 0.068 | 0.015 | — |
+| week09_rerank<br>`20260921T072421885220Z-da2f69f68d` | baseline | rerank | — | — | — | — | — | — | — | — | 0.068 | 0.015 | — |
 
 ## Nelson_2002 — 366 records, 21.9% included
 
@@ -59,3 +67,7 @@ criteria — not reportable.
 | week09_dense<br>`20260920T141257485896Z-423a543937` | baseline | dense | — | — | — | — | — | — | — | — | 0.178 | 0.100 | — |
 | week09_hybrid<br>`20260920T153200090557Z-538ba6a5bc` | baseline | hybrid | — | — | — | — | — | — | — | — | 0.129 | 0.062 | — |
 | week09_rerank<br>`20260920T153252374417Z-da2f69f68d` | baseline | rerank | — | — | — | — | — | — | — | — | 0.129 | 0.062 | — |
+| week09_baseline_bm25<br>`20260921T072321083927Z-2ecaa4d8d7` | baseline | bm25 | — | — | — | — | — | — | — | — | 0.038 | -0.009 | — |
+| week09_dense<br>`20260921T072327017657Z-423a543937` | baseline | dense | — | — | — | — | — | — | — | — | 0.178 | 0.100 | — |
+| week09_hybrid<br>`20260921T072358111413Z-538ba6a5bc` | baseline | hybrid | — | — | — | — | — | — | — | — | 0.094 | 0.035 | — |
+| week09_rerank<br>`20260921T072421885220Z-da2f69f68d` | baseline | rerank | — | — | — | — | — | — | — | — | 0.094 | 0.035 | — |
