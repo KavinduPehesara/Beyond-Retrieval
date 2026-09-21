@@ -88,6 +88,88 @@ def test_rows_handed_to_screening_carry_no_ground_truth(conn, strategy):
         assert "label_included" not in row.keys()
 
 
+# --------------------------------------------------------------------------
+# Corpus independence — the defect found 21 September 2026
+# --------------------------------------------------------------------------
+
+
+def _conn_with_second_review(tmp_path, name):
+    """Smid_2020 exactly as above, plus a large unrelated review.
+
+    The second review is deliberately full of the same vocabulary the query
+    uses. That is what shifts IDF: terms that are rare in Smid_2020 alone
+    become common once these are indexed too.
+    """
+    c = _conn(tmp_path, name, [0, 1, 2, 3])
+    ingest_frame(
+        c,
+        "Nelson_2002",
+        pd.DataFrame(
+            {
+                "openalex_id": [f"N{i}" for i in range(200)],
+                "title": [f"Bayesian estimation in trials {i}" for i in range(200)],
+                "abstract": [
+                    "Bayesian estimation of treatment effects in small samples." for _ in range(200)
+                ],
+                "label_included": [0] * 200,
+            }
+        ),
+    )
+    return c
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "Bayesian estimation small samples",
+        "Bayesian structural equation modelling",
+    ],
+)
+def test_bm25_is_unaffected_by_other_reviews_in_the_database(tmp_path, query):
+    """A review's ranking must not depend on what else has been ingested.
+
+    ``bm25()`` derives IDF from the whole index it is called on. Querying the
+    shared ``work_fts`` and filtering by review afterwards made a review's
+    scores move whenever another review was added — observed for real between
+    the week 8 and week 9 baseline runs (Smid_2020 TNR@95 0.568 -> 0.618),
+    with an identical ``corpus_sha256`` in both metrics files.
+
+    Scores, not just order: an ordering can survive an IDF shift by luck.
+    """
+    alone = _conn(tmp_path, "alone.db", [0, 1, 2, 3])
+    with_other = _conn_with_second_review(tmp_path, "with_other.db")
+
+    def signature(conn):
+        return [
+            (r["work_id"], None if r["score"] is None else round(r["score"], 10))
+            for r in retrieve.lexical_rank(conn, query, "Smid_2020")
+        ]
+
+    assert signature(alone) == signature(with_other)
+    alone.close()
+    with_other.close()
+
+
+def test_bm25_scope_does_not_leak_records_from_other_reviews(tmp_path):
+    """The per-review index must hold that review and nothing else."""
+    conn = _conn_with_second_review(tmp_path, "scoped.db")
+    ranked = retrieve.lexical_rank(conn, "Bayesian estimation", "Smid_2020")
+    assert sorted(r["work_id"] for r in ranked) == ["W1", "W2", "W3", "W4"]
+    assert all(r["review"] == "Smid_2020" for r in ranked)
+    conn.close()
+
+
+def test_bm25_leaves_no_temporary_table_behind(tmp_path):
+    """The temp index is scaffolding; it must not outlive the call."""
+    conn = _conn_with_second_review(tmp_path, "temp.db")
+    retrieve.lexical_rank(conn, "Bayesian estimation", "Smid_2020")
+    leftover = conn.execute(
+        "SELECT name FROM temp.sqlite_master WHERE name LIKE 'review_fts%'"
+    ).fetchall()
+    assert leftover == []
+    conn.close()
+
+
 def test_random_rank_is_independent_of_insertion_order(tmp_path):
     a = _conn(tmp_path, "a.db", [0, 1, 2, 3])
     b = _conn(tmp_path, "b.db", [3, 1, 0, 2])

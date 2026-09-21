@@ -84,21 +84,54 @@ def lexical_rank(
     the full corpus is always returned — screening must consider every record,
     and retrieval only decides the order in which it does so. Ties are broken
     by work_id so the ranking is reproducible.
+
+    BM25 is computed over a temporary index holding **only this review**, not
+    over the shared ``work_fts``. This is not an optimisation; it is required
+    for the number to mean anything. ``bm25()`` derives IDF from the whole
+    index it is called on, so querying ``work_fts`` and filtering by review
+    afterwards makes a review's score depend on which *other* reviews happen
+    to be ingested. Observed 21 September 2026: Smid_2020's TNR@95 read 0.568
+    with two reviews in the database and 0.618 with three — same review, same
+    code, same criteria, and an identical ``corpus_sha256`` in both metrics
+    files, because that fingerprint covers the review's own text and not the
+    rest of the index.
+
+    Scoping the index also matches how results are reported. Rule 5 says
+    per review, never pooled, because a metric pooled across reviews of
+    different prevalence is not comparable (Kusa et al., 2023). An IDF pooled
+    across reviews is the same mistake one level further down.
+
+    Cost is rebuilding an index of at most 5,935 rows per review per run,
+    which is well under a second.
     """
     match = to_match_query(query)
     ranked: list[sqlite3.Row] = []
 
     if match:
-        ranked = conn.execute(
-            f"""
-            SELECT {_SELECT}, bm25(work_fts) AS score
-            FROM work_fts
-            JOIN work w ON w.rowid = work_fts.rowid
-            WHERE work_fts MATCH ? AND w.review = ?
-            ORDER BY score, w.work_id
-            """,
-            (match, review),
-        ).fetchall()
+        try:
+            conn.executescript(
+                "DROP TABLE IF EXISTS temp.review_fts;"
+                "CREATE VIRTUAL TABLE temp.review_fts USING fts5("
+                "  work_id UNINDEXED, title, abstract,"
+                "  tokenize='porter unicode61');"
+            )
+            conn.execute(
+                "INSERT INTO review_fts (work_id, title, abstract) "
+                "SELECT work_id, title, abstract FROM work WHERE review = ?",
+                (review,),
+            )
+            ranked = conn.execute(
+                f"""
+                SELECT {_SELECT}, bm25(review_fts) AS score
+                FROM review_fts
+                JOIN work w ON w.work_id = review_fts.work_id AND w.review = ?
+                WHERE review_fts MATCH ?
+                ORDER BY score, w.work_id
+                """,
+                (review, match),
+            ).fetchall()
+        finally:
+            conn.executescript("DROP TABLE IF EXISTS temp.review_fts;")
 
     seen = {r["work_id"] for r in ranked}
     rest = conn.execute(

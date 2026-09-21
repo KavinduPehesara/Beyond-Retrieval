@@ -305,7 +305,63 @@ see it. A metric sensitive to top-200 ordering (precision@k, or a lower
 recall target whose cutoff lands inside 200) would be needed to measure
 reranking's actual contribution, if that number is wanted later.
 
+**Observed 21 September 2026 (rule 7) — the BM25 baseline was not
+corpus-independent, and every number resting on it has moved.**
+
+`lexical_rank` queried the shared `work_fts` index and filtered by review
+*afterwards*. SQLite's `bm25()` derives IDF from the whole index it is called
+on, so a review's scores depended on which *other* reviews happened to be
+ingested. Two independent observations of the same defect:
+
+| Review | wk8 tag (2 reviews in DB) | wk9 tag (3 reviews) | old code, 4 reviews | **scoped (correct)** |
+|---|---|---|---|---|
+| Smid_2020 | 0.568 | 0.618 | 0.633 | **0.520** |
+| Nelson_2002 | 0.080 | 0.094 | 0.077 | **0.038** |
+| van_der_Valk_2021 | — | 0.068 | 0.074 | **0.049** |
+
+(TNR@95. `corpus_sha256` is **identical** across every column — that
+fingerprint covers the review's own text, not the rest of the index, so the
+artefacts looked reproducible while the number drifted underneath them. This
+is the same class of staleness `CacheMismatch` catches on the LLM path; the
+retrieval path had no equivalent guard.)
+
+Fixed by building a temporary FTS index holding only the review being ranked.
+Verified bit-identical across a 3-review and 4-review database. Three
+regression tests added in `tests/test_retrieve.py`; the corpus-independence
+one fails on the pre-fix code (W3 scores −3.467 alone vs −22.143 with a
+second review present) and passes after.
+
+**Consequences, in order of how much they matter.**
+
+*The corrected BM25 baseline is weaker than reported on all three reviews.*
+Cross-review IDF was flattering it. Dense's margin over BM25 is therefore
+**larger** than the week 9 table says — Smid_2020 +0.176 rather than +0.078,
+Nelson_2002 +0.140 rather than +0.084, van_der_Valk_2021 +0.132 rather than
++0.113. The week 9 exit test passes more comfortably, not less.
+
+*Dense figures are unaffected.* SPECTER2 embeddings are computed per record
+and do not depend on what else is indexed. Verified by construction, not
+assumed.
+
+*Hybrid and rerank are not yet re-run and their figures are still suspect.*
+`hybrid_rank` calls `lexical_rank`; `rerank_rank` calls `hybrid_rank`. Both
+inherit the defect. The week 9 reading — *"RRF fusion helps Smid_2020, where
+BM25 is already strong (0.618)"* — rests on a strength that was partly an
+artefact; corrected, it is 0.520. Whether fusion still helps there is an open
+question until those two configs are re-run.
+
+*The `week-09` tag is kept as-is.* It records what was observed at the time.
+Corrected runs are recorded alongside rather than overwriting it, because the
+drift is itself a finding about the instrument, and a project arguing that
+research tools should be checkable should not quietly rewrite its own numbers.
+
 **Not yet done:**
+
+- Re-run `week09_hybrid` and `week09_rerank` with the scoped BM25. Until then
+  their numbers, and the fusion conclusion drawn from them, stand corrected-
+  pending. `week09_baseline_bm25` and `week09_dense` also need re-running as
+  committed artefacts (the figures above were computed directly against
+  `data/slr.db`, not through the harness).
 
 - Never run against the real Gemini API for a reported figure — the 404
   above blocked it; `configs/week08_gemini.yaml` needs a price/ceiling update
