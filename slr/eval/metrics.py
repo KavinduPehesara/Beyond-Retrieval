@@ -353,6 +353,55 @@ def inter_run_agreement(conn: sqlite3.Connection, run_ids: Sequence[str], review
     return gwet_ac1([units[w] for w in sorted(units)], categories=CATEGORIES)
 
 
+@dataclass
+class OverrideRecord:
+    """One human disposition, with the system's proposal and the ground truth beside it."""
+
+    work_id: str
+    model_decision: str | None
+    model_verified: bool
+    human_decision: str
+    rationale: str | None
+    label_included: int
+    matches_truth: bool
+
+    def as_dict(self) -> dict:
+        return asdict(self)
+
+
+def override_accuracy(conn: sqlite3.Connection, run_id: str, review: str) -> list[OverrideRecord]:
+    """Every human override for one run, with whether it matches ground truth.
+
+    Separate from ``slr.services.override``, which never touches
+    ``label_included`` -- the override mechanism itself stays blind to truth,
+    the same way ``screen.py`` does. This is the reporting-layer join, done
+    only here, the one module allowed to read ground truth.
+    """
+    rows = conn.execute(
+        "SELECT h.work_id, h.decision AS human_decision, h.rationale, "
+        "s.decision AS model_decision, s.span_verified, w.label_included "
+        "FROM human_decision h "
+        "JOIN screening_decision s "
+        "  ON h.run_id = s.run_id AND h.review = s.review AND h.work_id = s.work_id "
+        "JOIN work w ON h.review = w.review AND h.work_id = w.work_id "
+        "WHERE h.run_id = ? AND h.review = ? "
+        "ORDER BY h.work_id",
+        (run_id, review),
+    ).fetchall()
+    return [
+        OverrideRecord(
+            work_id=r["work_id"],
+            model_decision=r["model_decision"],
+            model_verified=bool(r["span_verified"]),
+            human_decision=r["human_decision"],
+            rationale=r["rationale"],
+            label_included=r["label_included"],
+            matches_truth=(r["human_decision"] == "include") == bool(r["label_included"]),
+        )
+        for r in rows
+    ]
+
+
 def verification_failures(conn: sqlite3.Connection, run_id: str) -> dict[str, int]:
     """Why verification failed, and how often.
 

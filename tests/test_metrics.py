@@ -204,3 +204,31 @@ def test_verification_failures_order_is_stable(conn):
     _decide(conn, "r1", "W1", "unverified", False)
     conn.execute("UPDATE screening_decision SET verify_note = 'a_note' WHERE work_id = 'W1'")
     assert list(metrics.verification_failures(conn, "r1")) == ["a_note", "b_note"]
+
+
+def test_override_accuracy_joins_human_decisions_with_ground_truth(conn):
+    """W0-W2 are truth-included, W3+ truth-excluded (fixture labels above).
+
+    A disposed referral (W2) and a corrected verified decision (W3) both
+    show up, each carrying whether the human's call matched the label --
+    the one join in the codebase allowed to compare a human decision with
+    ground truth, kept out of slr.services.override on purpose.
+    """
+    _decide(conn, "r1", "W2", "unverified", False)  # referral, disposed by a human
+    _decide(conn, "r1", "W3", "include", True)  # model wrong; verified anyway
+    conn.execute(
+        "INSERT INTO human_decision (run_id, review, work_id, decision, rationale) VALUES "
+        "('r1', 'Nelson_2002', 'W2', 'include', 'clear RCT on reread'), "
+        "('r1', 'Nelson_2002', 'W3', 'exclude', 'model verified a real but misleading quote')"
+    )
+    records = metrics.override_accuracy(conn, "r1", "Nelson_2002")
+    by_id = {r.work_id: r for r in records}
+
+    assert by_id["W2"].model_decision == "unverified"
+    assert by_id["W2"].human_decision == "include"
+    assert by_id["W2"].matches_truth is True  # W2 is truth-included
+
+    assert by_id["W3"].model_decision == "include"
+    assert by_id["W3"].model_verified is True
+    assert by_id["W3"].human_decision == "exclude"
+    assert by_id["W3"].matches_truth is True  # W3 is truth-excluded; override was correct

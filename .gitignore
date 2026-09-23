@@ -42,6 +42,7 @@ runs/**
 !runs/*/metrics.json
 !runs/*/run.json
 !runs/*/git_sha.txt
+!runs/*/overrides.json
 
 # ---------------------------------------------------------------
 # Python
