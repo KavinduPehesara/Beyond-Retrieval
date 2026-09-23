@@ -15,7 +15,7 @@ from pydantic import ValidationError
 
 from slr.adapters.llm import Completion, Meter
 from slr.db import connect
-from slr.services.gap import GapResponse, build_gap_prompt, extract_gap
+from slr.services.gap import GapResponse, build_gap_prompt, extract_gap, persist, precision, rate
 
 
 @pytest.fixture()
@@ -117,3 +117,47 @@ def test_ground_truth_never_reaches_the_gap_prompt(conn):
     template = Path("prompts/gap_v1.txt").read_text(encoding="utf-8")
     prompt = build_gap_prompt(template, title=row["title"], abstract=row["abstract"])
     assert "label_included" not in prompt
+
+
+# --------------------------------------------------------------------------
+# Precision rating (week 11 checkpoint)
+# --------------------------------------------------------------------------
+
+
+def test_rating_requires_a_gap_stated_row(conn):
+    provider = _FakeProvider({"value": "not_stated", "evidence_span": ""})
+    result = _run(conn, provider)
+    persist(conn, "R1", "S1", result)
+    with pytest.raises(ValueError, match="nothing to rate"):
+        rate(conn, run_id="R1", review="Nelson_2002", work_id="W1", rating="valid")
+
+
+def test_rating_rejects_an_unknown_value(conn):
+    provider = _FakeProvider({"value": "gap_stated", "evidence_span": "remain an important direction for future research"})
+    result = _run(conn, provider)
+    persist(conn, "R1", "S1", result)
+    with pytest.raises(ValueError, match="valid.*invalid"):
+        rate(conn, run_id="R1", review="Nelson_2002", work_id="W1", rating="maybe")
+
+
+def test_precision_over_rated_gap_statements(conn):
+    provider = _FakeProvider({"value": "gap_stated", "evidence_span": "remain an important direction for future research"})
+    result = _run(conn, provider)
+    persist(conn, "R1", "S1", result)
+    rate(conn, run_id="R1", review="Nelson_2002", work_id="W1", rating="valid", rating_note="genuine future-work statement")
+
+    summary = precision(conn, "R1", "Nelson_2002")
+    assert summary.n_gap_stated == 1
+    assert summary.n_rated == 1
+    assert summary.n_valid == 1
+    assert summary.precision == 1.0
+
+
+def test_precision_is_none_when_nothing_rated_yet(conn):
+    provider = _FakeProvider({"value": "gap_stated", "evidence_span": "remain an important direction for future research"})
+    result = _run(conn, provider)
+    persist(conn, "R1", "S1", result)
+    summary = precision(conn, "R1", "Nelson_2002")
+    assert summary.n_gap_stated == 1
+    assert summary.n_rated == 0
+    assert summary.precision is None

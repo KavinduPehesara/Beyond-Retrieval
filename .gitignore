@@ -43,6 +43,7 @@ runs/**
 !runs/*/run.json
 !runs/*/git_sha.txt
 !runs/*/overrides.json
+!runs/*/gap_ratings.json
 
 # ---------------------------------------------------------------
 # Python

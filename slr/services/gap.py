@@ -232,3 +232,72 @@ def persist(conn: sqlite3.Connection, run_id: str, source_run_id: str, row: GapE
 
 def to_jsonl(row: GapExtraction) -> str:
     return json.dumps(asdict(row), ensure_ascii=False)
+
+
+RATINGS = ("valid", "invalid")
+
+
+def rate(
+    conn: sqlite3.Connection,
+    *,
+    run_id: str,
+    review: str,
+    work_id: str,
+    rating: str,
+    rating_note: str | None = None,
+) -> None:
+    """Record a human precision judgement on one discovered gap statement.
+
+    Only a row whose value is ``gap_stated`` can be rated -- rating
+    ``not_stated`` or a failed attempt would be rating the absence of a
+    claim, not a claim. The week 11 checkpoint's precision number is
+    ``valid`` / (``valid`` + ``invalid``) over the rated subset.
+    """
+    if rating not in RATINGS:
+        raise ValueError(f"rating must be one of {RATINGS}, got {rating!r}")
+    row = conn.execute(
+        "SELECT value FROM gap_statement WHERE run_id = ? AND review = ? AND work_id = ?",
+        (run_id, review, work_id),
+    ).fetchone()
+    if row is None:
+        raise ValueError(f"{review}/{work_id} has no gap_statement row in run {run_id!r}")
+    if row["value"] != GAP_STATED:
+        raise ValueError(
+            f"{review}/{work_id} in run {run_id!r} is {row['value']!r}, not "
+            f"{GAP_STATED!r} -- nothing to rate"
+        )
+    conn.execute(
+        "UPDATE gap_statement SET rating = ?, rating_note = ? "
+        "WHERE run_id = ? AND review = ? AND work_id = ?",
+        (rating, rating_note, run_id, review, work_id),
+    )
+    conn.commit()
+
+
+@dataclass
+class PrecisionSummary:
+    n_gap_stated: int
+    n_rated: int
+    n_valid: int
+    n_invalid: int
+    precision: float | None  # n_valid / n_rated
+
+    def as_dict(self) -> dict:
+        return asdict(self)
+
+
+def precision(conn: sqlite3.Connection, run_id: str, review: str) -> PrecisionSummary:
+    rows = conn.execute(
+        "SELECT rating FROM gap_statement WHERE run_id = ? AND review = ? AND value = ?",
+        (run_id, review, GAP_STATED),
+    ).fetchall()
+    rated = [r["rating"] for r in rows if r["rating"] is not None]
+    n_valid = sum(1 for r in rated if r == "valid")
+    n_invalid = sum(1 for r in rated if r == "invalid")
+    return PrecisionSummary(
+        n_gap_stated=len(rows),
+        n_rated=len(rated),
+        n_valid=n_valid,
+        n_invalid=n_invalid,
+        precision=n_valid / len(rated) if rated else None,
+    )
