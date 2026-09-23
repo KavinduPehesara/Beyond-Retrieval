@@ -68,15 +68,17 @@ it surface the research gaps authors state in their own papers?
 
 ---
 
-## Current state — week 9 of 15
+## Current state — week 10 of 15
 
 Done: literature review, proposal (submitted), architecture, scope lock, the
 walking skeleton, the week 8 evaluation harness, the first baseline runs on
-real SYNERGY data, the first model recall figures (local Ollama), and week
-9's dense retrieval (SPECTER2 + FAISS, RRF fusion, cross-encoder rerank).
-Weeks 8 and 9 exit tests both passed. Also done, outside the original
-schedule: a structured data-extraction feature and report, added at the
-supervisor's request (see 21 September note below).
+real SYNERGY data, the first model recall figures (local Ollama), week 9's
+dense retrieval (SPECTER2 + FAISS, RRF fusion, cross-encoder rerank), and
+week 10's prompt variants, model tier comparison, the overridable mechanism,
+and genuine inter-run reproducibility. Weeks 8, 9 and 10 exit tests all
+passed. Also done, outside the original schedule: a structured
+data-extraction feature and report, added at the supervisor's request (see
+21 September note below).
 
 ```
 slr/
@@ -93,6 +95,8 @@ slr/
     extract.py            same pattern, per field: study_design, sample_size,
                          country, key_finding. extraction's sibling to screening.
     verify.py            THE span verifier. RQ1 lives here. Shared by both.
+    override.py           human_decision reads/writes. Blind to label_included,
+                         same boundary screen.py keeps.
   adapters/
     llm.py                Mock + Gemini + Ollama behind one Provider protocol,
                          response cache with request fingerprint (now includes
@@ -100,14 +104,21 @@ slr/
     embed.py              SPECTER2 via AutoAdapterModel + proximity adapter
     rerank.py              MiniLM cross-encoder (ms-marco-MiniLM-L-6-v2)
   eval/
-    metrics.py           per-review metrics. Only module reading ground truth.
+    metrics.py           per-review metrics + override_accuracy (the one join
+                         allowed to compare a human override with ground
+                         truth). Only module reading ground truth.
     agreement.py         Gwet's AC1/AC2, PABAK
     harness.py           CLI; writes runs/<ts>-<hash>/{config,resolved_config,
                          metrics,run,git_sha}
     extract_harness.py   CLI; reads a screening run's verified-includes,
                          writes runs/<ts>-extract-<hash>/{...,extraction.jsonl}
+    override_cli.py       records one human disposition against a run
+    override_report.py   writes runs/<ts>-<hash>/overrides.json
+    inter_run.py          genuine inter-run Gwet AC1 across repeated runs
     report_tables.py     run directories -> reports/results.{csv,md}
 prompts/screen_v1.txt    prompt template, versioned by filename
+prompts/screen_v2.txt    step-by-step + one-sentence reasoning (week 10, underperformed v1)
+prompts/screen_v3.txt    terse, minimal rules (week 10, underperformed v1)
 prompts/extract_v1.txt   extraction prompt: 4 fields, each with a quote or "not_stated"
 configs/smoke.yaml       Nelson_2002, 50 records, mock provider, free
 configs/baseline_*.yaml  random and BM25 over Smid_2020 + Nelson_2002, free
@@ -117,8 +128,12 @@ configs/extract_demo*.yaml  verified-includes per review, local Ollama, $0
 configs/valk2021_ollama.yaml  van_der_Valk_2021 screening, local Ollama, $0
 configs/radjenovic2013_ollama.yaml  Radjenovic_2013 screening, local Ollama, $0
 configs/week09_*.yaml    bm25/dense/hybrid/rerank across all 3 ingested reviews
+configs/week10_prompt_v*_nelson.yaml  prompt variant comparison, Nelson_2002
+configs/week10_model_qwen3_nelson.yaml  model tier 2, Nelson_2002
+configs/week10_repeat_nelson.yaml  cache_enabled: false, 5x for inter-run AC1
+configs/week10_full_subset.yaml  all 4 ingested reviews under one run_id
 data/embeddings/         SPECTER2 vectors cached per review (gitignored)
-tests/                   136 tests
+tests/                   152 tests
 reports/results.{csv,md} generated from runs/
 ```
 
@@ -455,10 +470,112 @@ third (Smid_2020), and by a margin the fix confirmed as real rather than
 explained away. No combination is uniformly best — worth carrying into week
 10 as a real finding rather than picking one "winner" prematurely.
 
-## Next: week 10 — prompt variants, model tiers, agreement
+## Week 10 — prompt variants, model tiers, overridable, agreement
 
-Exit test: every property in the RQ1 table (verifiable, accurate,
-reproducible, overridable) has a number.
+**The overridable property had no code, only a schema.** `human_decision`
+existed in `db.py` since week 7 but nothing ever read or wrote it. Built
+`slr/services/override.py` (`record_override` — refuses to override a record
+never screened in that run; stays blind to `label_included`, the same
+boundary `screen.py` keeps), `slr/eval/override_cli.py` (one disposition at a
+time, prints the system's original proposal before writing), and
+`slr/eval/override_report.py` (writes `overrides.json` into the run
+directory, joining the override with ground truth — the one place that join
+is allowed, kept out of `override.py` itself). 152 tests passing (was 136 at
+the start of the week).
+
+**23 September 2026 — full-subset consolidation run revealed a second cache
+loss, this time from the 21 September schema migration (rule 7).**
+`week10_full_subset.yaml` re-screens all four ingested reviews under one
+`run_id`, same model/prompt/temperature/seed as every prior real run of
+them — expected ~100% cache hit, effectively free. Only `Radjenovic_2013`
+(5,935/5,935) actually was. `Smid_2020`, `van_der_Valk_2021` and
+`Nelson_2002` — 3,718 records combined — re-screened live from scratch.
+Cause: the 21 September `data/slr.db` delete-and-reingest for the extraction
+`SCHEMA_VERSION` 3→4 migration wiped `cached_response` along with
+everything else; only `Radjenovic_2013` was screened *after* that reset, so
+it is the only review whose cache survived. Still $0 (local inference), and
+the regenerated Smid_2020 figure (91.6% verified) is within noise of the
+original (91.7%) — but it means every run directory recorded before 21
+September is reproducible only as a *stored artifact*, not as a *free
+replay*, until rescreened. `runs/20260921T112221881735Z-86c962f1d6`.
+
+**Prompt variants v2 and v3 both made verification worse on Nelson_2002, not
+better — a real negative result, not a tuning failure to paper over.**
+`screen_v2` (step-by-step, asks for one sentence of reasoning before the
+decision) dropped verification to 13.4%, and 149 of 366 responses failed
+`schema_validation_failed` — adding a `reasoning` field ahead of the
+required three in the prompt's own instructions measurably degraded
+qwen2.5:7b-instruct's JSON discipline, it did not just add ignorable tokens.
+`screen_v3` (terse, minimal rules) dropped to 13.9%, almost entirely
+`not_found` (312/366) — the detailed evidence-span rules in `screen_v1` are
+carrying real weight, not padding. `screen_v1` remains the prompt used
+everywhere else. (`runs/20260922T115430121258Z-33c61120f3` v2,
+`.../20260922T123132050251Z-6e54fdd202` v3, both vs. the v1 baseline at
+`.../20260921T122043060429Z-df0fc175b2`.)
+
+**Model tier 2 (qwen3:8b) is weaker on this task than qwen2.5:7b-instruct,
+with a different failure shape.** 42.1% verified vs. qwen2.5's 51.9%, and
+every failure was `not_found` — no `schema_validation_failed` at all, so
+qwen3's JSON discipline held even with its thinking mode enabled, it simply
+quotes less faithfully. Bigger and newer is not better here.
+(`runs/20260922T123756418737Z-298d2bcad2`.)
+
+**Reproducible now has a genuine number: inter-run Gwet AC1 = 1.0 across 5
+cache-bypassed repeats.** `week10_repeat_nelson.yaml` (`cache_enabled:
+false`, the one experiment the budget section permits to bypass the cache)
+run 5 times against Nelson_2002, qwen2.5:7b-instruct, temperature 0, seed
+42 — each a genuine independent call to the model, not a cache hit.
+Verification rate held at 50.5–50.8% across all five, and `slr.eval.
+inter_run` (`python -m slr.eval.inter_run`) computes AC1 = 1.0 on the 186
+records verified in common: perfect agreement, not near-perfect. This is
+the temperature-zero edge of Hida et al. (2026)'s reported 0.55–1.0 AC2
+range (theirs on Gemini-2.5-Flash) — local Ollama inference on fixed
+hardware reproduces it exactly, at least at this sample size. A weaker
+version of the same claim ("identical config, cache hit, byte-identical
+metrics.json") was already proven in weeks 7–8; this is the first time the
+*model's actual output*, not the cache, was shown to be stable run to run.
+(`runs/20260922T124547509237Z-9a8ec8f4db` through
+`.../20260923T074803087022Z-9a8ec8f4db`, five runs.)
+
+**Overridable demonstrated on 13 real Nelson_2002 records, not synthetic
+ones.** Sampled 8 referrals (`unverified`, e.g. `not_found`) and 5 verified
+decisions from the v1 baseline run, read each title/abstract in full against
+the review's actual published criteria (comparison group of HRT nonusers,
+outcomes reported; excluded if the population was risk-selected), and
+recorded a genuine disposition for each via `override_cli.py` — blind to
+`label_included` at decision time, the same way the model is. Result: 9 of
+13 (69.2%) changed the system's proposal, 4 confirmed it. Checked against
+ground truth afterward, as a bonus, not as part of the decision: 13/13
+matched — including one case (`W2061891899`) where the model's `include`
+had verified cleanly (the quote was real) but was substantively wrong: it
+compared two *active* HRT regimens against each other with no non-user arm,
+which the criteria require, and no verifier catches, because verification
+checks whether a quote is real, not whether it supports the criterion it is
+attached to. That is precisely the gap the overridable property exists to
+cover, demonstrated on the project's own real data rather than argued in the
+abstract. `runs/20260921T122043060429Z-df0fc175b2/overrides.json`.
+
+## Week 10 exit test: passed
+
+*Every property in the RQ1 table has a number.* Verifiable and accurate were
+already numeric per review since week 8 (verification rate;
+recall/precision over verified decisions; `agreement_ac1` vs. the human
+label). Reproducible and overridable were the two gaps this week closed:
+reproducible now has genuine inter-run AC1 (1.0, five cache-bypassed
+repeats) beside the existing byte-identical-metrics.json property;
+overridable now has a working mechanism and a real 69.2% override rate on
+13 disposed records, 13/13 matching ground truth on review. Two negative
+results land alongside the positive ones (rule 7): both new prompt variants
+underperformed the existing one, and the second model tier underperformed
+the first — worth carrying into week 11 as "screen_v1 and qwen2.5:7b-instruct
+stay the default," not re-litigated every week without new evidence.
+
+## Next: week 11 — gap discovery + go/no-go checkpoint
+
+Exit test: 30 gap statements rated, precision recorded, decision minuted
+with supervisor. Real, not decorative (see the schedule table): if precision
+on the 30 sampled statements is unacceptable, redirect remaining effort to
+the prior-art-retrieval variant, which has ground truth for free.
 
 ---
 
