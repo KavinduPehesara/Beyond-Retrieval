@@ -1,0 +1,44 @@
+{
+  "run_id": "20260923T102838078110Z-gap-c8a03baad8",
+  "review": "Radjenovic_2013",
+  "generated_at": "2026-09-23T10:33:02.773319+00:00",
+  "summary": {
+    "n_gap_stated": 5,
+    "n_rated": 5,
+    "n_valid": 4,
+    "n_invalid": 1,
+    "precision": 0.8
+  },
+  "records": [
+    {
+      "work_id": "https://openalex.org/W1982685453",
+      "evidence_span": "However, there is very limited knowledge about which coupling properties in aspect-oriented programming (AOP) are effective indicators of faults in modules.",
+      "rating": "valid",
+      "rating_note": "valid -- names a real literature gap, but as motivation for this very paper, which then addresses it -- not an open gap for a future researcher"
+    },
+    {
+      "work_id": "https://openalex.org/W2112873091",
+      "evidence_span": "At present, work on developing a dynamic coupling tracer and ripple-effect prediction models for Java programs is underway.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W2119016061",
+      "evidence_span": "However, similar types of studies are required to be carried out in order to establish the acceptability of the RF model.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W2120738100",
+      "evidence_span": "This research did not, however, distinguish among faults according to the severity of impact.",
+      "rating": "valid",
+      "rating_note": "valid -- names a real literature gap, but as motivation for this very paper, which then addresses it -- not an open gap for a future researcher"
+    },
+    {
+      "work_id": "https://openalex.org/W2164782637",
+      "evidence_span": "Finally we compare the results and methods and give some directions and ideas for future work.",
+      "rating": "invalid",
+      "rating_note": "announces a future-work section exists ('we give directions and ideas for future work') without stating any actual gap content"
+    }
+  ]
+}

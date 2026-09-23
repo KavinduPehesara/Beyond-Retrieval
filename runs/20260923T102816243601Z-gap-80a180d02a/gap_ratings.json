@@ -1,0 +1,20 @@
+{
+  "run_id": "20260923T102816243601Z-gap-80a180d02a",
+  "review": "Smid_2020",
+  "generated_at": "2026-09-23T10:33:02.236376+00:00",
+  "summary": {
+    "n_gap_stated": 1,
+    "n_rated": 1,
+    "n_valid": 1,
+    "n_invalid": 0,
+    "precision": 1.0
+  },
+  "records": [
+    {
+      "work_id": "https://openalex.org/W2184900176",
+      "evidence_span": "This can only be known by systematically investigating the interval estimates.",
+      "rating": "valid",
+      "rating_note": "valid -- names a real literature gap, but as motivation for this very paper, which then addresses it -- not an open gap for a future researcher"
+    }
+  ]
+}

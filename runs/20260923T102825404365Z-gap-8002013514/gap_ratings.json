@@ -1,0 +1,32 @@
+{
+  "run_id": "20260923T102825404365Z-gap-8002013514",
+  "review": "van_der_Valk_2021",
+  "generated_at": "2026-09-23T10:33:02.503354+00:00",
+  "summary": {
+    "n_gap_stated": 3,
+    "n_rated": 3,
+    "n_valid": 3,
+    "n_invalid": 0,
+    "precision": 1.0
+  },
+  "records": [
+    {
+      "work_id": "https://openalex.org/W2557287018",
+      "evidence_span": "Future studies investigating hair cortisol levels, in particular those involving longitudinal designs and interventions, may greatly expand knowledge about the relationship between cortisol exposure and cardiometabolic health in the general population.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W2949828305",
+      "evidence_span": "Further studies are required to delineate the association between overweight/obesity and HCC.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3091328600",
+      "evidence_span": "Given the limitation of small sample size and cross-sectional study design, the findings need to be interpreted with caution, and further investigation is warranted.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work statement, open for a researcher to pursue"
+    }
+  ]
+}

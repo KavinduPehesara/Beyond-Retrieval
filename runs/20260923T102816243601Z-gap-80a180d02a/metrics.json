@@ -1,0 +1,13 @@
+{
+  "config_name": "gap_demo_smid2020",
+  "config_hash": "80a180d02a",
+  "source_run_id": "20260918T060412811907Z-2556bbe54c",
+  "review": "Smid_2020",
+  "records": 10,
+  "aborted": false,
+  "counts": {
+    "gap_stated": 1,
+    "not_stated": 9,
+    "failed": 0
+  }
+}

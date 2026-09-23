@@ -1,0 +1,86 @@
+{
+  "run_id": "20260923T102642236622Z-gap-3496ae576f",
+  "review": "Nelson_2002",
+  "generated_at": "2026-09-23T10:33:01.966802+00:00",
+  "summary": {
+    "n_gap_stated": 12,
+    "n_rated": 12,
+    "n_valid": 11,
+    "n_invalid": 1,
+    "precision": 0.9166666666666666
+  },
+  "records": [
+    {
+      "work_id": "https://openalex.org/W1530933665",
+      "evidence_span": "Long-term safety of the preparations is best established for estradiol tablets (1 year), but is lacking for all preparations.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W1963970016",
+      "evidence_span": "Further studies are needed to determine whether these osteogenic effects of HRT in elderly women are associated with a reduction in osteoporotic fractures.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W1969305972",
+      "evidence_span": "The possibility that IL-1ra acts as an independent bone-sparing factor unrelated to estrogen withdrawal warrants further investigation.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W1970169800",
+      "evidence_span": "For breast and endometrial cancers, SMRs were below baseline but tended to increase with follow-up time. We conclude that hormone replacement increases the endometrial-cancer risk after unopposed estrogens and the breast-cancer risk-notably after estrogen-progestin combined therapy-and tentatively suggest that it exerts a protective effect against colon and liver cancer risks.",
+      "rating": "invalid",
+      "rating_note": "quotes the paper's own risk conclusions ('We conclude that...'), not a stated gap"
+    },
+    {
+      "work_id": "https://openalex.org/W1995055473",
+      "evidence_span": "The association between menopausal hormone replacement therapy and ovarian cancer is unclear.",
+      "rating": "valid",
+      "rating_note": "valid -- names a real literature gap, but as motivation for this very paper, which then addresses it -- not an open gap for a future researcher"
+    },
+    {
+      "work_id": "https://openalex.org/W2011426730",
+      "evidence_span": "This study was unable to demonstrate a scientific basis for the use of PL for improving the health of postmenopausal women in general. However, the effect of PL on cognitive function deserves further study.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W2015090484",
+      "evidence_span": "In women without vasomotor symptoms, estrogen therapy did not seem to increase postural balance significantly more than placebo. However, we could not rule out that estrogens affect postural balance in women with vasomotor symptoms.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W2101176548",
+      "evidence_span": "The implications for early risk of coronary heart disease require further studies.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W2122073186",
+      "evidence_span": "Future research into other compounds is recommended to identify safe and effective therapies for hot flashes in breast cancer survivors.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W2466601150",
+      "evidence_span": "Further research is needed to assess the potential risks and benefits of various formulations, combinations, doses, and delivery routes of estrogen for postmenopausal women.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W4251833922",
+      "evidence_span": "Trends in other disease outcomes were not favorable and should be assessed in larger trials and in broader populations.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W4301255698",
+      "evidence_span": "It is not known whether the benefit observed at the end of the trial persisted after the end of treatment.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work statement, open for a researcher to pursue"
+    }
+  ]
+}

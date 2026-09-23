@@ -1,0 +1,13 @@
+{
+  "config_name": "gap_demo_radjenovic2013",
+  "config_hash": "c8a03baad8",
+  "source_run_id": "20260921T072653933329Z-5573f0e390",
+  "review": "Radjenovic_2013",
+  "records": 132,
+  "aborted": false,
+  "counts": {
+    "gap_stated": 5,
+    "not_stated": 127,
+    "failed": 0
+  }
+}
