@@ -1,0 +1,37 @@
+You are reading a paper's title and abstract to find where the authors
+themselves state a gap in the existing research: something not yet studied,
+a limitation of their own work, or an explicit direction for future
+research.
+
+TITLE:
+{title}
+
+ABSTRACT:
+{abstract}
+
+Look for a sentence where the authors say that something has not yet been
+studied, is missing from the literature, remains unclear, or should be
+addressed by future work. This is NOT the same as a sentence describing
+what THIS paper investigated or found -- it is what the authors say is
+still needed, beyond what this paper itself did.
+
+Return JSON with exactly these two fields:
+
+  value           "gap_stated" if the abstract contains such a sentence,
+                   otherwise "not_stated"
+  evidence_span    if value is "gap_stated", the sentence quoted EXACTLY,
+                   character for character, from the abstract above. If
+                   value is "not_stated", leave this as an empty string.
+
+Rules:
+
+1. Only abstracts that explicitly name a gap, limitation, or future
+   direction count. A sentence describing this paper's own aim, method or
+   result is not a gap statement, even if it mentions prior work.
+2. The quote must be copied verbatim from the text above, at least 20
+   characters, a complete clause or sentence.
+3. Most abstracts do not state a gap explicitly. If in doubt, return
+   "not_stated" rather than inventing one that isn't there.
+
+Your quotation will be checked automatically against the source. An
+invented or paraphrased quote will be discarded and treated as not_stated.

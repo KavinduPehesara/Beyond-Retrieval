@@ -123,13 +123,25 @@ CREATE TABLE IF NOT EXISTS cached_response (
 );
 
 -- Populated in week 11, for the included subset only.
+-- Gap-statement discovery over verified-include records from a prior
+-- screening run -- extraction's sibling for one field (RQ2). Same
+-- ask -> validate shape -> verify quote discipline: span_verified is set by
+-- the verifier, never the model. rating/rating_note hold the week 11
+-- precision check -- a human judgement on whether an extracted "gap_stated"
+-- really is one, filled in for a sampled subset, not every row.
 CREATE TABLE IF NOT EXISTS gap_statement (
+    run_id          TEXT NOT NULL,          -- the gap-discovery run
+    source_run_id   TEXT NOT NULL,          -- the screening run it reads verified-includes from
     review          TEXT NOT NULL,
     work_id         TEXT NOT NULL,
-    sentence        TEXT NOT NULL,
-    category        TEXT,
-    cluster_id      INTEGER,
-    created_at      TEXT
+    value           TEXT,                   -- 'gap_stated' | 'not_stated'
+    evidence_span   TEXT,
+    span_verified   INTEGER NOT NULL,
+    verify_note     TEXT,
+    rating          TEXT,                   -- human precision rating: 'valid' | 'invalid' | NULL (unrated)
+    rating_note     TEXT,
+    created_at      TEXT,
+    PRIMARY KEY (run_id, review, work_id)
 );
 
 -- Structured data extraction over verified-include records from a prior
