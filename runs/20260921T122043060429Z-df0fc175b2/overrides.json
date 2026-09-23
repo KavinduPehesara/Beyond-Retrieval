@@ -1,0 +1,135 @@
+{
+  "run_id": "20260921T122043060429Z-df0fc175b2",
+  "review": "Nelson_2002",
+  "generated_at": "2026-09-23T07:59:01.946425+00:00",
+  "summary": {
+    "n_overrides": 13,
+    "n_changed": 9,
+    "n_confirmed": 4,
+    "override_rate": 0.6923076923076923,
+    "by_model_decision": {
+      "unverified": 8,
+      "include": 3,
+      "exclude": 2
+    }
+  },
+  "records": [
+    {
+      "work_id": "https://openalex.org/W101173079",
+      "model_decision": "unverified",
+      "model_verified": false,
+      "human_decision": "exclude",
+      "rationale": "safety/side-effect data only; no HRT-nonuser comparison group reported",
+      "label_included": 0,
+      "matches_truth": true
+    },
+    {
+      "work_id": "https://openalex.org/W105897893",
+      "model_decision": "unverified",
+      "model_verified": false,
+      "human_decision": "exclude",
+      "rationale": "compares 4 active estrogen/estrogen-androgen regimens against each other; no nonuser arm",
+      "label_included": 0,
+      "matches_truth": true
+    },
+    {
+      "work_id": "https://openalex.org/W1361700",
+      "model_decision": "unverified",
+      "model_verified": false,
+      "human_decision": "exclude",
+      "rationale": "all arms receive active estrogen or estrogen-androgen; no nonuser comparator",
+      "label_included": 0,
+      "matches_truth": true
+    },
+    {
+      "work_id": "https://openalex.org/W1513817599",
+      "model_decision": "unverified",
+      "model_verified": false,
+      "human_decision": "exclude",
+      "rationale": "narrative review of HRT products, not a primary study with a comparison group",
+      "label_included": 0,
+      "matches_truth": true
+    },
+    {
+      "work_id": "https://openalex.org/W1661237936",
+      "model_decision": "unverified",
+      "model_verified": false,
+      "human_decision": "exclude",
+      "rationale": "testosterone/DHT in hypogonadal men -- population selected by pre-existing condition, excluded per criteria",
+      "label_included": 0,
+      "matches_truth": true
+    },
+    {
+      "work_id": "https://openalex.org/W182933409",
+      "model_decision": "unverified",
+      "model_verified": false,
+      "human_decision": "exclude",
+      "rationale": "garlic and lipid profile -- unrelated to HRT",
+      "label_included": 0,
+      "matches_truth": true
+    },
+    {
+      "work_id": "https://openalex.org/W1871020240",
+      "model_decision": "unverified",
+      "model_verified": false,
+      "human_decision": "exclude",
+      "rationale": "chemo vs hormonal ablation in node-positive breast cancer -- population selected by a risk-associated condition, excluded per criteria",
+      "label_included": 0,
+      "matches_truth": true
+    },
+    {
+      "work_id": "https://openalex.org/W188251050",
+      "model_decision": "unverified",
+      "model_verified": false,
+      "human_decision": "exclude",
+      "rationale": "literature synthesis of osteoporosis trials, not a primary study with its own comparison group",
+      "label_included": 0,
+      "matches_truth": true
+    },
+    {
+      "work_id": "https://openalex.org/W2031570803",
+      "model_decision": "include",
+      "model_verified": true,
+      "human_decision": "include",
+      "rationale": "placebo-controlled arm present (randomised to placebo or 1 of 8 active regimens) -- genuine nonuser comparator",
+      "label_included": 1,
+      "matches_truth": true
+    },
+    {
+      "work_id": "https://openalex.org/W2061891899",
+      "model_decision": "include",
+      "model_verified": true,
+      "human_decision": "exclude",
+      "rationale": "compares two active HRT regimens head-to-head; no placebo/nonuser arm described",
+      "label_included": 0,
+      "matches_truth": true
+    },
+    {
+      "work_id": "https://openalex.org/W2135256516",
+      "model_decision": "exclude",
+      "model_verified": true,
+      "human_decision": "exclude",
+      "rationale": "narrative assessment of menopause symptoms, not a primary comparative study",
+      "label_included": 0,
+      "matches_truth": true
+    },
+    {
+      "work_id": "https://openalex.org/W2162181740",
+      "model_decision": "include",
+      "model_verified": true,
+      "human_decision": "include",
+      "rationale": "true HRT-naive control arm (Co) among the 4 randomised groups; matches criteria exactly",
+      "label_included": 1,
+      "matches_truth": true
+    },
+    {
+      "work_id": "https://openalex.org/W2269713810",
+      "model_decision": "exclude",
+      "model_verified": true,
+      "human_decision": "exclude",
+      "rationale": "oral contraceptive for reproductive-age women, not menopausal HRT; no comparison group",
+      "label_included": 0,
+      "matches_truth": true
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+# Week 10 — full subset run: all four currently-ingested reviews
+# (Radjenovic_2013, Smid_2020, van_der_Valk_2021, Nelson_2002; the other two
+# of the planned six, van_der_Waal_2022 and Menon_2022, are not yet
+# ingested) screened together under one run_id, one commit, one metrics.json
+# -- rather than stitched together after the fact from four separate runs
+# made across three different sessions.
+#
+# Same model/prompt/temperature/seed as every prior real run of these four
+# reviews (qwen2.5:7b-instruct, screen_v1, temp 0, seed 42), so this is
+# expected to be served almost entirely from cache: a cheap, fast
+# consolidation, not a new $0-but-slow screening pass. A run that is NOT
+# ~100% cached here would itself be a finding -- it would mean one of the
+# four reviews' earlier run used different settings than recorded.
+
+name: week10_full_subset
+
+dataset:
+  reviews:
+    - Radjenovic_2013
+    - Smid_2020
+    - van_der_Valk_2021
+    - Nelson_2002
+  max_records: null
+  seed: 42
+
+ranking:
+  strategy: random
+  recall_target: 0.95
+
+screening:
+  enabled: true
+  provider: ollama
+  model: qwen2.5:7b-instruct
+  prompt_version: screen_v1
+  temperature: 0.0
+  max_output_tokens: 512
+  max_retries: 3
+  seed: 42
+
+budget:
+  ceiling_usd: 0.00
+  usd_per_1m_input: 0.0
+  usd_per_1m_output: 0.0
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts
+cache_enabled: true

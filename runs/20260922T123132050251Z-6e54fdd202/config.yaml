@@ -1,0 +1,37 @@
+# Week 10 — prompt variant v3: terse, minimal hand-holding, tests whether
+# the detailed rules in v1 are pulling their weight or just adding tokens.
+#
+# Otherwise identical to week10_prompt_v1_nelson.yaml. New prompt_version ->
+# not cached, real local-GPU calls, $0.
+
+name: week10_prompt_v3_nelson
+
+dataset:
+  reviews:
+    - Nelson_2002
+  max_records: null
+  seed: 42
+
+ranking:
+  strategy: random
+  recall_target: 0.95
+
+screening:
+  enabled: true
+  provider: ollama
+  model: qwen2.5:7b-instruct
+  prompt_version: screen_v3
+  temperature: 0.0
+  max_output_tokens: 512
+  max_retries: 3
+  seed: 42
+
+budget:
+  ceiling_usd: 0.00
+  usd_per_1m_input: 0.0
+  usd_per_1m_output: 0.0
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts
+cache_enabled: true

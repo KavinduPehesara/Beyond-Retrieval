@@ -1,0 +1,44 @@
+# Week 10 — repeated-run variance measurement. Run this same config 5 times
+# to compute genuine inter-run Gwet AC1 (RQ1, reproducible) -- not the
+# already-proven "identical config, cache hit, byte-identical metrics.json"
+# property, but actual re-sampling variance in what qwen2.5:7b-instruct
+# outputs at temperature 0, seed 42, run to run.
+#
+# cache_enabled: false is what makes this genuine: every one of the 5 runs
+# calls the model live and neither reads nor writes cached_response. This is
+# the ONE experiment CLAUDE.md permits to bypass the cache (budget section)
+# -- everywhere else, a repeat run should be free and byte-identical.
+#
+# Nelson_2002 only, to keep 5x366 = 1,830 live local-GPU calls tractable.
+
+name: week10_repeat_nelson
+
+dataset:
+  reviews:
+    - Nelson_2002
+  max_records: null
+  seed: 42
+
+ranking:
+  strategy: random
+  recall_target: 0.95
+
+screening:
+  enabled: true
+  provider: ollama
+  model: qwen2.5:7b-instruct
+  prompt_version: screen_v1
+  temperature: 0.0
+  max_output_tokens: 512
+  max_retries: 3
+  seed: 42
+
+budget:
+  ceiling_usd: 0.00
+  usd_per_1m_input: 0.0
+  usd_per_1m_output: 0.0
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts
+cache_enabled: false

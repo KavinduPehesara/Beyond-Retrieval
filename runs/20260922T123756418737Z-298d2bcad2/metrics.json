@@ -1,0 +1,80 @@
+{
+  "metrics_schema": 2,
+  "config_name": "week10_model_qwen3_nelson",
+  "config_hash": "298d2bcad2",
+  "mode": "screen",
+  "ranking": {
+    "strategy": "random",
+    "query": null,
+    "recall_target": 0.95,
+    "seed": 42
+  },
+  "screening": {
+    "provider": "ollama",
+    "model": "qwen3:8b",
+    "prompt_version": "screen_v1",
+    "prompt_sha256": "f35b27e9049a5b0ca869c7800ebf693ba6beec27cc27b8717ea2a23ac9312052",
+    "temperature": 0.0,
+    "max_output_tokens": 512,
+    "seed": 42,
+    "max_records": null,
+    "cache_enabled": true
+  },
+  "criteria": {
+    "Nelson_2002": {
+      "status": "published",
+      "source": "asreview/synergy-dataset@ca8cb9e2ea97:datasets.toml",
+      "sha256": "364122e1fe5c084a9fea20621be03b26befff323a18c505244847155cedb6308"
+    }
+  },
+  "aborted": false,
+  "reviews_completed": [
+    "Nelson_2002"
+  ],
+  "verification_failures": {
+    "not_found": 205,
+    "partial_match_only": 4,
+    "span_longer_than_source": 2,
+    "span_too_short(<20chars)": 1
+  },
+  "per_review": [
+    {
+      "review": "Nelson_2002",
+      "corpus_sha256": "d52d88941889cffb9edf2cc613dbf80553e768293c584d136172c6f62ca750fa",
+      "n_records": 366,
+      "n_included_truth": 80,
+      "prevalence": 0.2185792349726776,
+      "n_screened": 366,
+      "n_included_screened": 80,
+      "screened_prevalence": 0.2185792349726776,
+      "n_verified": 154,
+      "n_unverified": 212,
+      "n_errors": 0,
+      "verification_rate": 0.4207650273224044,
+      "true_positives": 10,
+      "false_positives": 13,
+      "false_negatives": 16,
+      "true_negatives": 115,
+      "recall_verified": 0.38461538461538464,
+      "precision_verified": 0.43478260869565216,
+      "n_to_human": 235,
+      "recall_with_referrals": 0.8,
+      "work_saved": 0.35792349726775957,
+      "agreement_ac1": 0.7428974410638719,
+      "agreement_pabak": 0.6233766233766234,
+      "ranking": {
+        "recall_target": 0.95,
+        "n_ranked": 366,
+        "n_included": 80,
+        "complete": true,
+        "cutoff": 319,
+        "recall_at_cutoff": 0.95,
+        "tnr_at_recall": 0.15034965034965034,
+        "wss_at_recall": 0.07841530054644805
+      },
+      "tokens_in": 294197,
+      "tokens_out": 17735,
+      "cost_usd_at_config_prices": 0.0
+    }
+  ]
+}
