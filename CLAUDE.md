@@ -68,15 +68,18 @@ it surface the research gaps authors state in their own papers?
 
 ---
 
-## Current state — week 10 of 15
+## Current state — week 11 of 15
 
 Done: literature review, proposal (submitted), architecture, scope lock, the
 walking skeleton, the week 8 evaluation harness, the first baseline runs on
 real SYNERGY data, the first model recall figures (local Ollama), week 9's
-dense retrieval (SPECTER2 + FAISS, RRF fusion, cross-encoder rerank), and
-week 10's prompt variants, model tier comparison, the overridable mechanism,
-and genuine inter-run reproducibility. Weeks 8, 9 and 10 exit tests all
-passed. Also done, outside the original schedule: a structured
+dense retrieval (SPECTER2 + FAISS, RRF fusion, cross-encoder rerank), week
+10's prompt variants, model tier comparison, the overridable mechanism, and
+genuine inter-run reproducibility, and week 11's gap-discovery mechanism
+with 21 rated statements (90.5% precision) — go/no-go decision not yet
+minuted with the supervisor (see below). Weeks 8, 9 and 10 exit tests
+passed; week 11's is open pending that decision. Also done, outside the
+original schedule: a structured
 data-extraction feature and report, added at the supervisor's request (see
 21 September note below).
 
@@ -94,7 +97,9 @@ slr/
     screen.py            ask -> validate shape -> verify quote
     extract.py            same pattern, per field: study_design, sample_size,
                          country, key_finding. extraction's sibling to screening.
-    verify.py            THE span verifier. RQ1 lives here. Shared by both.
+    gap.py                 same pattern, one field: does the abstract state a
+                         research gap? extraction's sibling for RQ2.
+    verify.py            THE span verifier. RQ1 lives here. Shared by all three.
     override.py           human_decision reads/writes. Blind to label_included,
                          same boundary screen.py keeps.
   adapters/
@@ -112,14 +117,18 @@ slr/
                          metrics,run,git_sha}
     extract_harness.py   CLI; reads a screening run's verified-includes,
                          writes runs/<ts>-extract-<hash>/{...,extraction.jsonl}
+    gap_harness.py         CLI; same source, writes runs/<ts>-gap-<hash>/{...,
+                         gap_statements.jsonl}. Reuses ExtractConfig as-is.
     override_cli.py       records one human disposition against a run
     override_report.py   writes runs/<ts>-<hash>/overrides.json
+    gap_report.py          writes runs/<ts>-gap-<hash>/gap_ratings.json
     inter_run.py          genuine inter-run Gwet AC1 across repeated runs
     report_tables.py     run directories -> reports/results.{csv,md}
 prompts/screen_v1.txt    prompt template, versioned by filename
 prompts/screen_v2.txt    step-by-step + one-sentence reasoning (week 10, underperformed v1)
 prompts/screen_v3.txt    terse, minimal rules (week 10, underperformed v1)
 prompts/extract_v1.txt   extraction prompt: 4 fields, each with a quote or "not_stated"
+prompts/gap_v1.txt       gap-discovery prompt: 1 field, "gap_stated" or "not_stated"
 configs/smoke.yaml       Nelson_2002, 50 records, mock provider, free
 configs/baseline_*.yaml  random and BM25 over Smid_2020 + Nelson_2002, free
 configs/week08_gemini.yaml  Smid_2020 + Nelson_2002, gemini-2.5-flash-lite (blocked, see below)
@@ -132,8 +141,9 @@ configs/week10_prompt_v*_nelson.yaml  prompt variant comparison, Nelson_2002
 configs/week10_model_qwen3_nelson.yaml  model tier 2, Nelson_2002
 configs/week10_repeat_nelson.yaml  cache_enabled: false, 5x for inter-run AC1
 configs/week10_full_subset.yaml  all 4 ingested reviews under one run_id
+configs/gap_demo_*.yaml  gap discovery per review, verified-includes, local Ollama, $0
 data/embeddings/         SPECTER2 vectors cached per review (gitignored)
-tests/                   152 tests
+tests/                   166 tests
 reports/results.{csv,md} generated from runs/
 ```
 
@@ -570,12 +580,92 @@ underperformed the existing one, and the second model tier underperformed
 the first — worth carrying into week 11 as "screen_v1 and qwen2.5:7b-instruct
 stay the default," not re-litigated every week without new evidence.
 
-## Next: week 11 — gap discovery + go/no-go checkpoint
+## Week 11 — gap discovery, built; go/no-go decision pending with supervisor
 
-Exit test: 30 gap statements rated, precision recorded, decision minuted
-with supervisor. Real, not decorative (see the schedule table): if precision
-on the 30 sampled statements is unacceptable, redirect remaining effort to
-the prior-art-retrieval variant, which has ground truth for free.
+**Built as extraction's sibling, not a new pattern.** `slr/services/gap.py`
+mirrors `extract.py`'s ask → validate shape → verify quote exactly, for one
+implicit field: does this abstract state a research gap, limitation, or
+future-work direction, in the authors' own words? `prompts/gap_v1.txt`
+explicitly excludes a sentence describing what the paper itself did or
+found — only a stated absence, uncertainty, or future direction counts.
+Reused `ExtractConfig`/`extract_harness.py`'s shape directly
+(`slr/eval/gap_harness.py`) rather than a new config class. The
+`gap_statement` table existed since week 7 as an unused placeholder
+(`sentence`/`category`/`cluster_id`, 0 rows); redesigned to the same
+`run_id`/`source_run_id`/`value`/`evidence_span`/`span_verified`/
+`verify_note` shape as extraction, plus `rating`/`rating_note` for the
+precision check. Dropped and recreated locally rather than bumping
+`SCHEMA_VERSION` — it was empty, so no re-ingest was needed (the cost of
+that path was this week's own earlier lesson). 166 tests passing (was 159).
+
+**Ran over every verified-include record from all four ingested reviews —
+267 records, $0, local Ollama.** `gap_stated` rate: Nelson_2002 12/114
+(10.5%), Smid_2020 1/10 (10.0%), van_der_Valk_2021 3/11 (27.3%),
+Radjenovic_2013 5/132 (3.8%). 21 candidates total, not the 30 the schedule
+anticipated — see the honest shortfall note below.
+
+**Rated all 21, in full, against the actual abstracts (not just the model's
+quoted span) — same method as week 10's override demonstration.** Pooled
+precision (does the quote genuinely state a gap, per the task definition):
+**19/21 = 90.5%**. Two false positives, both informative about how the
+model fails: `W1970169800` quoted a "We conclude that..." risk-finding
+sentence as if it were a gap (the verifier confirmed the quote was real; it
+was still the wrong kind of sentence — verification checks the quote
+exists, not that it answers the question asked, the same failure mode week
+10's override catch demonstrated); `W2164782637` quoted "we give some
+directions and ideas for future work" — announcing that a future-work
+section exists, without stating any actual gap content, so it passes the
+letter of the prompt's instructions while giving a researcher nothing to
+act on.
+
+**A second, more important distinction surfaced during rating, worth
+tracking as its own number going forward: not every valid gap statement is
+still open.** Of the 19 valid ones, 4 name a real gap in prior literature
+that motivated the paper being read — and that the very same paper then
+goes on to fill (e.g. Radjenović_2013's `W2120738100`: "This research did
+not, however, distinguish among faults according to severity" — about
+*prior* studies, immediately followed by "In this paper, we use logistic
+regression... taking fault severity into account"). That is a genuine gap
+statement in the authors' own words, but not an open one — a researcher
+reading it as "here is unexplored territory" would be wrong, because the
+paper in hand already explored it. Excluding those 4, the actionable
+precision (a gap a future researcher could still pursue) is **15/21 =
+71.4%**. Per-review split of the 21: valid/rated 12/12 Nelson_2002 (11
+valid, 1 invalid), 1/1 Smid_2020, 3/3 van_der_Valk_2021, 5/5 Radjenovic_2013
+(4 valid, 1 invalid) — full quotes and ratings in each run's
+`gap_ratings.json`.
+
+**The honest shortfall (rule 7): 21 rated, not 30.** The full pool of
+currently-screened verified-includes across all four ingested reviews is
+267 records; only 21 of them (7.9%) state an explicit gap at all — the
+low base rate, not a discovery failure, is why the sample fell short of
+the plan's 30. Two ways to close the gap, not yet decided: (a) ingest and
+screen the two remaining SYNERGY reviews (`van_der_Waal_2022`,
+`Menon_2022`) to grow the candidate pool, or (b) run gap discovery over
+verified-excludes too, since a gap statement's presence in an abstract
+doesn't depend on whether that abstract happened to meet one review's
+inclusion criteria. Neither is done yet.
+
+**Go/no-go: data points to go, decision not yet minuted.** Both precision
+figures (90.5% literal, 71.4% actionable) are comfortably above any
+threshold that would trigger the prior-art-retrieval fallback the schedule
+names — but the checkpoint's own text calls for a decision minuted with
+the supervisor, on 30 statements, and this is 21. Recorded here as the
+evidence to bring to that conversation, not as a decision made
+unilaterally on its behalf.
+
+Run directories: `runs/20260923T102642236622Z-gap-3496ae576f` (Nelson_2002),
+`.../20260923T102816243601Z-gap-80a180d02a` (Smid_2020),
+`.../20260923T102825404365Z-gap-8002013514` (van_der_Valk_2021),
+`.../20260923T102838078110Z-gap-c8a03baad8` (Radjenovic_2013), each with
+its own `gap_ratings.json`.
+
+## Next: close out week 11, then week 12 — FastAPI + Streamlit panels
+
+Immediate: decide (a) vs (b) above to reach 30 rated statements, and
+minute the go/no-go decision with the supervisor using the numbers above.
+Week 12 exit test, once week 11 is closed: someone other than the author
+completes a query unassisted.
 
 ---
 
