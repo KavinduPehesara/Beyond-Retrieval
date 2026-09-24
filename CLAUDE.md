@@ -765,6 +765,34 @@ candidate, but week 10's prompt variants both made things worse, so it
 needs the same discipline: a new prompt version, a full rerun, and a
 re-rating, not an edit.
 
+**25 September 2026 — extraction now covers all six reviews, and one
+report shows everything.** Menon_2022 and van_der_Waal_2022 had been screened
+and gap-analysed but not extracted; ran them (`qwen2.5:7b-instruct`, $0):
+
+| Review | Prev | Verified includes | study_design | sample_size | country | key_finding |
+|---|---|---|---|---|---|---|
+| van_der_Waal_2022 | 1.7% | 82 | 46 | 69 | 25 | 76 |
+| Menon_2022 | 7.6% | 69 | 69 | 35 | 6 | 66 |
+
+(Verified counts; `runs/20260924T122137987321Z-extract-1d1c17652a` and
+`runs/20260924T121711794197Z-extract-69af3c168d`.) `study_design` verifies in
+100% of Menon_2022's records because they are all systematic reviews and say
+so; the same field is 36% for Radjenovic_2013, so the field's coverage tracks
+how a domain writes abstracts, not the model. A review of reviews also reports
+`sample_size` differently (35 of 69), usually as a count of included studies.
+
+Published an Artifact, "Extraction Atlas", showing all 418 verified-include
+papers with the screening quote, the four fields, and the gap statement with
+its rating, each with its source sentence and verification status; six
+reviews side by side with prevalence beside them (never pooled), per-review
+field coverage, gap breakdown, and a country map. The map is inline SVG
+baked into the page, because the Artifact CSP blocks the runtime fetch that
+a map library needs. 50 country mentions are plotted; 8 name only a region
+and stay in the table. The report is built from the run directories listed in
+its "Where every number comes from" section; it is a display and computes no
+new figure. It quotes short source sentences but no abstracts (SYNERGY
+abstracts stay out of git and out of published pages).
+
 ## Next: close out week 11, then week 12 — FastAPI + Streamlit panels
 
 Immediate: minute the go/no-go decision with the supervisor using the
