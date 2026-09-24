@@ -86,3 +86,15 @@ def test_score_counts_misses_and_control_agreement(conn):
     # controls sampled from W0-W3; W3 is flagged but unrated (not valid), so a
     # blind True on it is a disagreement -- agreement <= n either way
     assert 0 <= ctl["agree"] <= 2
+
+
+def test_open_gap_recall_ignores_motivating_misses_and_true_positives(conn):
+    conn.execute("UPDATE gap_statement SET rating_note = 'valid -- motivation for this paper' WHERE work_id = 'W2'")
+    conn.commit()
+    sheet, key = draw(conn, {"R": "G"}, n_not_stated=4, n_flagged=0, seed=1)
+    labels = {str(k["index"]): True for k in key}  # every sampled not_stated is a miss
+    miss_types = {str(k["index"]): ("open" if i == 0 else "motivating") for i, k in enumerate(key)}
+    m = score(conn, {"R": "G"}, key, labels, miss_types)["per_review"]["R"]
+    assert m["misses_in_sample"] == 4
+    assert m["open_gap"]["misses_in_sample"] == 1
+    assert m["open_gap"]["true_positives"] == 2  # W0, W1 valid and open; W2 is motivating

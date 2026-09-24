@@ -9,7 +9,10 @@ labelling can be blind:
            together. Writes ``sample.json`` (title + abstract only, what the
            labeller sees) and ``sample_key.json`` (which is which).
     score  reads ``labels.json`` -- {index: true/false, does the abstract
-           state a gap} -- and estimates recall per review.
+           state a gap} -- and estimates recall per review. An optional
+           ``miss_types.json`` ({index: "open" | "motivating"}) also gives
+           recall for open gaps only, the ones a future researcher could
+           still pursue.
 
 Estimator, per review: the miss rate f among sampled ``not_stated`` records
 scales to that review's whole ``not_stated`` pool (FN = f * pool);
@@ -99,7 +102,7 @@ def draw(conn, runs: dict[str, str], *, n_not_stated: int, n_flagged: int, seed:
     return sheet, key
 
 
-def score(conn, runs: dict[str, str], key: list, labels: dict[str, bool]) -> dict:
+def score(conn, runs: dict[str, str], key: list, labels: dict[str, bool], miss_types: dict[str, str] | None = None) -> dict:
     per_review = {}
     control_pairs = []
     for review in sorted(runs):
@@ -113,7 +116,12 @@ def score(conn, runs: dict[str, str], key: list, labels: dict[str, bool]) -> dic
             "AND value = 'gap_stated' AND rating = 'valid'",
             (run_id, review),
         ).fetchone()["c"]
-        sampled = misses = 0
+        tp_open = conn.execute(
+            "SELECT COUNT(*) c FROM gap_statement WHERE run_id = ? AND review = ? "
+            "AND value = 'gap_stated' AND rating = 'valid' AND (rating_note IS NULL OR rating_note NOT LIKE '%motivation%')",
+            (run_id, review),
+        ).fetchone()["c"]
+        sampled = misses = open_misses = 0
         for k in key:
             if k["review"] != review:
                 continue
@@ -121,6 +129,8 @@ def score(conn, runs: dict[str, str], key: list, labels: dict[str, bool]) -> dic
             if k["stratum"] == "not_stated":
                 sampled += 1
                 misses += int(label)
+                if label and miss_types and miss_types.get(str(k["index"])) == "open":
+                    open_misses += 1
             else:
                 rating = conn.execute(
                     "SELECT rating FROM gap_statement WHERE run_id = ? AND review = ? AND work_id = ?",
@@ -128,6 +138,10 @@ def score(conn, runs: dict[str, str], key: list, labels: dict[str, bool]) -> dic
                 ).fetchone()["rating"]
                 control_pairs.append((review, label, rating == "valid"))
         per_review[review] = estimate_recall(tp, pool, sampled, misses)
+        if miss_types is not None:
+            # A miss is "open" if it states a gap still open to a future
+            # researcher, not one that only motivates the paper itself.
+            per_review[review]["open_gap"] = estimate_recall(tp_open, pool, sampled, open_misses)
     agree = sum(1 for _, blind, earlier in control_pairs if blind == earlier)
     return {
         "per_review": per_review,
@@ -182,12 +196,18 @@ def main(argv: list[str] | None = None) -> int:
         if missing:
             print(f"error: unlabelled items: {missing}", file=sys.stderr)
             return 2
-        result = score(conn, keyfile["runs"], keyfile["key"], labels)
+        types_path = out / "miss_types.json"
+        miss_types = json.loads(types_path.read_text(encoding="utf-8")) if types_path.exists() else None
+        result = score(conn, keyfile["runs"], keyfile["key"], labels, miss_types)
         result["config"] = keyfile["config"]
         (out / "metrics.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8", newline="\n")
         for review, m in result["per_review"].items():
             print(f"{review:20} pool {m['not_stated_pool']:3} sampled {m['sampled_not_stated']:2} misses {m['misses_in_sample']} "
                   f"recall~{m['recall_estimate']:.2f} (worst {m['recall_at_worst_miss_rate']:.2f})")
+        for review, m in result["per_review"].items():
+            if "open_gap" in m:
+                o = m["open_gap"]
+                print(f"  open-gap only: {review:20} misses {o['misses_in_sample']} recall~{o['recall_estimate']:.2f} (worst {o['recall_at_worst_miss_rate']:.2f})")
         c = result["blind_control_agreement"]
         print(f"blind controls agree with earlier ratings: {c['agree']}/{c['n']}")
         return 0
