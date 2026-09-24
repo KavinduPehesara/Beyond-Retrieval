@@ -1,0 +1,124 @@
+{
+  "metrics_schema": 2,
+  "config_name": "remaining_reviews_ollama_qwen25_7b",
+  "config_hash": "88b91f8dc3",
+  "mode": "screen",
+  "ranking": {
+    "strategy": "random",
+    "query": null,
+    "recall_target": 0.95,
+    "seed": 42
+  },
+  "screening": {
+    "provider": "ollama",
+    "model": "qwen2.5:7b-instruct",
+    "prompt_version": "screen_v1",
+    "prompt_sha256": "f35b27e9049a5b0ca869c7800ebf693ba6beec27cc27b8717ea2a23ac9312052",
+    "temperature": 0.0,
+    "max_output_tokens": 512,
+    "seed": 42,
+    "max_records": null,
+    "cache_enabled": true
+  },
+  "criteria": {
+    "Menon_2022": {
+      "status": "published",
+      "source": "asreview/synergy-dataset@ca8cb9e2ea97:datasets.toml",
+      "sha256": "d7e246ee7d6049648f4d103f880ca4737f4ec01a0cfa6b3cca69c903eb4db13b"
+    },
+    "van_der_Waal_2022": {
+      "status": "published",
+      "source": "asreview/synergy-dataset@ca8cb9e2ea97:datasets.toml",
+      "sha256": "10f90f7bd054aa58314fd72bb353ef6c2632abd56485fa265b742a533836baeb"
+    }
+  },
+  "aborted": false,
+  "reviews_completed": [
+    "Menon_2022",
+    "van_der_Waal_2022"
+  ],
+  "verification_failures": {
+    "not_found": 1219,
+    "span_longer_than_source": 15,
+    "partial_match_only": 11,
+    "span_too_short(<20chars)": 2
+  },
+  "per_review": [
+    {
+      "review": "Menon_2022",
+      "corpus_sha256": "10e22e26c15c5ef3dd02c005677c8d4d1fbe454f66a623d24be65331a1a897f9",
+      "n_records": 975,
+      "n_included_truth": 74,
+      "prevalence": 0.0758974358974359,
+      "n_screened": 975,
+      "n_included_screened": 74,
+      "screened_prevalence": 0.0758974358974359,
+      "n_verified": 924,
+      "n_unverified": 51,
+      "n_errors": 0,
+      "verification_rate": 0.9476923076923077,
+      "true_positives": 52,
+      "false_positives": 17,
+      "false_negatives": 20,
+      "true_negatives": 835,
+      "recall_verified": 0.7222222222222222,
+      "precision_verified": 0.7536231884057971,
+      "n_to_human": 120,
+      "recall_with_referrals": 0.7297297297297297,
+      "work_saved": 0.8769230769230769,
+      "agreement_ac1": 0.9533863034430577,
+      "agreement_pabak": 0.91991341991342,
+      "ranking": {
+        "recall_target": 0.95,
+        "n_ranked": 975,
+        "n_included": 74,
+        "complete": true,
+        "cutoff": 688,
+        "recall_at_cutoff": 0.9594594594594594,
+        "tnr_at_recall": 0.31520532741398444,
+        "wss_at_recall": 0.2443589743589743
+      },
+      "tokens_in": 932607,
+      "tokens_out": 57504,
+      "cost_usd_at_config_prices": 0.0
+    },
+    {
+      "review": "van_der_Waal_2022",
+      "corpus_sha256": "1f0a8325c0b87224b34c0fc2c38f4e3ba548fa9b8c7c9894a66b4d74d7fb7e3f",
+      "n_records": 1970,
+      "n_included_truth": 33,
+      "prevalence": 0.016751269035532996,
+      "n_screened": 1970,
+      "n_included_screened": 33,
+      "screened_prevalence": 0.016751269035532996,
+      "n_verified": 774,
+      "n_unverified": 1196,
+      "n_errors": 0,
+      "verification_rate": 0.3928934010152284,
+      "true_positives": 13,
+      "false_positives": 69,
+      "false_negatives": 7,
+      "true_negatives": 685,
+      "recall_verified": 0.65,
+      "precision_verified": 0.15853658536585366,
+      "n_to_human": 1278,
+      "recall_with_referrals": 0.7878787878787878,
+      "work_saved": 0.35126903553299493,
+      "agreement_ac1": 0.8880246702072994,
+      "agreement_pabak": 0.8036175710594315,
+      "ranking": {
+        "recall_target": 0.95,
+        "n_ranked": 1970,
+        "n_included": 33,
+        "complete": true,
+        "cutoff": 1663,
+        "recall_at_cutoff": 0.9696969696969697,
+        "tnr_at_recall": 0.15797625193598347,
+        "wss_at_recall": 0.10583756345177661
+      },
+      "tokens_in": 1664622,
+      "tokens_out": 126602,
+      "cost_usd_at_config_prices": 0.0
+    }
+  ]
+}
