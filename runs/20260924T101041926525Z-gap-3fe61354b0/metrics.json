@@ -1,0 +1,13 @@
+{
+  "config_name": "gap_demo_vanderwaal2022",
+  "config_hash": "3fe61354b0",
+  "source_run_id": "20260924T090935787946Z-88b91f8dc3",
+  "review": "van_der_Waal_2022",
+  "records": 82,
+  "aborted": false,
+  "counts": {
+    "gap_stated": 17,
+    "not_stated": 65,
+    "failed": 0
+  }
+}

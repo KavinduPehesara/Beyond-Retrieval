@@ -1,0 +1,116 @@
+{
+  "run_id": "20260924T101041926525Z-gap-3fe61354b0",
+  "review": "van_der_Waal_2022",
+  "generated_at": "2026-09-24T10:12:45.502133+00:00",
+  "summary": {
+    "n_gap_stated": 17,
+    "n_rated": 17,
+    "n_valid": 13,
+    "n_invalid": 4,
+    "precision": 0.7647058823529411
+  },
+  "records": [
+    {
+      "work_id": "https://openalex.org/W1996210830",
+      "evidence_span": "Similarly, few studies investigated the impact of this dissonance on patient anxiety or satisfaction with the treatment decision.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W2018075218",
+      "evidence_span": "Prospective, longitudinal studies are needed to confirm the present findings and to explicate the antecedents, composition, and consequences of the 'passive' decisional role during the treatment phase of the cancer trajectory.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W2061201283",
+      "evidence_span": "Findings support conducting additional research to evaluate effects of this intervention on quality of decision making and rates of participation among patients asked to enroll onto therapeutic clinical trials.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W2100703861",
+      "evidence_span": "whether patients' roles in decisions differ by characteristics of the decision itself is unknown.",
+      "rating": "valid",
+      "rating_note": "valid -- names a real literature gap, but as motivation for this very paper, which then addresses it -- not an open gap for a future researcher"
+    },
+    {
+      "work_id": "https://openalex.org/W2467721324",
+      "evidence_span": "However, to date, no research has examined the relationship between perceived provider communication style and patient-assessed decision quality in breast cancer.",
+      "rating": "valid",
+      "rating_note": "valid -- names a real literature gap, but as motivation for this very paper, which then addresses it -- not an open gap for a future researcher"
+    },
+    {
+      "work_id": "https://openalex.org/W2522143824",
+      "evidence_span": "Further study is needed to determine if role or coping style may be influenced by interventions designed to teach adaptive coping skills.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W2548502420",
+      "evidence_span": "To our knowledge, the impact of this visit on patient understanding and decisions has not been studied.",
+      "rating": "valid",
+      "rating_note": "valid -- names a real literature gap, but as motivation for this very paper, which then addresses it -- not an open gap for a future researcher"
+    },
+    {
+      "work_id": "https://openalex.org/W2605264262",
+      "evidence_span": "Future work should focus on defining patient-centered approaches to surveillance decision making.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W2767155478",
+      "evidence_span": "Strategies that make patient preferences known to healthcare providers and support persons while they still have the capacity to do so is a critical next step in improving quality cancer care.",
+      "rating": "invalid",
+      "rating_note": "invalid -- clinical-practice recommendation, not a research gap (borderline: 'next step')"
+    },
+    {
+      "work_id": "https://openalex.org/W2774500138",
+      "evidence_span": "Nevertheless, there are some indications that structural changes are needed for long-term implementation.",
+      "rating": "invalid",
+      "rating_note": "invalid -- implementation/practice implication, not a research gap"
+    },
+    {
+      "work_id": "https://openalex.org/W2783606501",
+      "evidence_span": "Better patient information and/or involvement in treatment-decision-making is needed in order to improve patient knowledge and hopefully reduce decisional conflict.",
+      "rating": "invalid",
+      "rating_note": "invalid -- clinical-practice recommendation, not a research gap"
+    },
+    {
+      "work_id": "https://openalex.org/W2897501412",
+      "evidence_span": "Further research needs to assess the clinical effectiveness of SDM using well-defined SDM interventions and outcomes. It should address the absence of evidence, particularly on health outcomes.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W2990142493",
+      "evidence_span": "Whether and how SDM affects patients’ trust in their oncologist is currently unknown.",
+      "rating": "valid",
+      "rating_note": "valid -- names a real literature gap, but as motivation for this very paper, which then addresses it -- not an open gap for a future researcher"
+    },
+    {
+      "work_id": "https://openalex.org/W3031924157",
+      "evidence_span": "Further study is warranted to better understand how disease factors and provider interactions affect decision role preferences and perceptions and surgical choice.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3119834449",
+      "evidence_span": "A major gap was the information on alternative therapies.",
+      "rating": "invalid",
+      "rating_note": "invalid -- 'gap' here means missing patient information in consent, a finding about practice, not a research gap"
+    },
+    {
+      "work_id": "https://openalex.org/W3128928994",
+      "evidence_span": "For professionals to support patients in making informed, value-based decisions about NSCLC treatments, better quality evidence is needed of the clinical and quality of life trade-offs for both surgery and SABR.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3167709577",
+      "evidence_span": "However, larger-scale controlled studies are needed to confirm these findings.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    }
+  ]
+}

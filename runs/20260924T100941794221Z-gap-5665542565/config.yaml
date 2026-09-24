@@ -1,0 +1,26 @@
+# Week 11 — gap-statement discovery, Menon_2022. 69 verified-include records
+# from the remaining-reviews screening run. Local Ollama, $0. Added to close
+# the shortfall against the plan's 30 rated statements.
+
+name: gap_demo_menon2022
+
+source_run_id: 20260924T090935787946Z-88b91f8dc3
+review: Menon_2022
+max_records: null
+
+provider: ollama
+model: qwen2.5:7b-instruct
+prompt_version: gap_v1
+temperature: 0.0
+max_output_tokens: 512
+max_retries: 3
+seed: 42
+
+ceiling_usd: 0.00
+usd_per_1m_input: 0.0
+usd_per_1m_output: 0.0
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts
+cache_enabled: true

@@ -1,0 +1,230 @@
+{
+  "run_id": "20260924T100941794221Z-gap-5665542565",
+  "review": "Menon_2022",
+  "generated_at": "2026-09-24T10:12:45.219182+00:00",
+  "summary": {
+    "n_gap_stated": 36,
+    "n_rated": 36,
+    "n_valid": 33,
+    "n_invalid": 3,
+    "precision": 0.9166666666666666
+  },
+  "records": [
+    {
+      "work_id": "https://openalex.org/W2961600930",
+      "evidence_span": "Limitations of past research and future directions are discussed.",
+      "rating": "invalid",
+      "rating_note": "invalid -- announces that limitations/future directions are discussed, without stating any"
+    },
+    {
+      "work_id": "https://openalex.org/W2974051163",
+      "evidence_span": "Future properly designed observational studies are required to confirm this finding.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W2983707329",
+      "evidence_span": "High-quality randomized controlled trials are needed.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W2986024018",
+      "evidence_span": "For generalizability of evidence, that research should be extended to developing countries where air pollution (including indoor) is high may provide more complete insight into risk factors for RA.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W2994822050",
+      "evidence_span": "More studies are needed to broaden our understanding of temperature related epigenetic changes, especially under a changing climate.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W2999442409",
+      "evidence_span": "Prospective studies with independent and validated reporting of exposure and outcome and repeated follow-up with relevant intervals are highly warranted.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3002131152",
+      "evidence_span": "However, given the limited number of studies, especially on effects of Fusarium mycotoxins, more studies are needed for a more comprehensive understanding of the effects of different mycotoxins on maternal and fetal health and to guide public health policies and interventions.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3008712479",
+      "evidence_span": "Direct evidence from third generation plants is scarce.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3008896481",
+      "evidence_span": "Future studies utilizing objective sleep measures and controlling for all air pollution exposures and individual encounters may help ameliorate variability in the results reported by current published literature.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3009569323",
+      "evidence_span": "This review has identified the need for further research in this area by highlighting the paucity of good research for evidence-based practice.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3011135586",
+      "evidence_span": "Employing rigorous designs and detailed reporting of intervention characteristics, i.e., the illumination, correlated color temperature, timing, and duration of light utilized, are of utmost importance to establish the optimal treatment approach in this population.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3011703283",
+      "evidence_span": "In addition to measuring exposures during WOS, designing studies that are enriched with women at higher absolute risk are necessary to robustly measure the role of ECE on BC risk.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3013453150",
+      "evidence_span": "Additional studies of the latest pod-like EC devices, which deliver nicotine similarly to a TC, are necessary.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3014608905",
+      "evidence_span": "We identify the key challenges limiting our current understanding of the forest–fish nexus and provide recommendations for future research to address these knowledge gaps.",
+      "rating": "invalid",
+      "rating_note": "invalid -- announces recommendations for future research exist, without stating any"
+    },
+    {
+      "work_id": "https://openalex.org/W3014639602",
+      "evidence_span": "Further large multicenter cohort studies considering different constituents of pollutants, levels of disease severity, sensitive populations, and various exposure windows are warranted in the future research.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3014766384",
+      "evidence_span": "More studies are needed to investigate effect of dietary factors, especially post-diagnosis dietary consumption, on esophageal cancer prognosis.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3015335149",
+      "evidence_span": "The mechanism of which needs to be further explored and demonstrated by additional prospective cohort studies, results of in vitro and in vivo analyses, as well as indices affecting CVD.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3015482342",
+      "evidence_span": "To the best of our knowledge, a dose-response meta-analysis of the relationship between cardiovascular disease (CVD) and arsenic (As) exposure at drinking water As concentrations lower than the WHO provisional guideline value (10 µg/L) has not been published yet.",
+      "rating": "valid",
+      "rating_note": "valid -- names a real literature gap, but as motivation for this very paper, which then addresses it -- not an open gap for a future researcher"
+    },
+    {
+      "work_id": "https://openalex.org/W3015707181",
+      "evidence_span": "Further studies, especially conducted in developing countries, with improvements in exposure assessing, outcome harmonizing, and mechanistic understanding are needed to elaborate the suggestive associations.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3016252286",
+      "evidence_span": "Undoubtedly more experimental and epidemiological studies are required to definitively validate mancozeb as reproductive toxicant.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3017158562",
+      "evidence_span": "More studies must be conducted, especially in low- and middle-income countries, preferably with comparable research protocols adapted to local realities.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3017296821",
+      "evidence_span": "Well-designed and sufficiently powered occupational case-control and cohort studies with adequate adjustment for confounding factors and other risk factors are required to provide more accurate risk estimates for occupationalKC.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3019298116",
+      "evidence_span": "However, given the limited epidemiological evidence found, our results warrant further research in order to elucidate the real contribution of these pollutants on the inflammatory processes and subsequent diseases.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3020012671",
+      "evidence_span": "No study explicitly examined questions of threshold, though some evidence of nonlinearity indicated that moderate amounts of green space may support more favorable pregnancy outcomes.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3021472548",
+      "evidence_span": "However, further studies are needed for determining the effects of prenatal air pollution exposure on attention, IQ, and behavior.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3021545254",
+      "evidence_span": "No study examined the impact of repeated exposure to shift work on the sleep-related dip in BP.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3023233737",
+      "evidence_span": "The long-term impact of lead exposure on executive function outcomes is relatively unknown given lack of studies on adolescent populations.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3023242713",
+      "evidence_span": "Future studies will help to verify the independent association(s) between arsenic metabolites and urothelial cancer.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3024225336",
+      "evidence_span": "There is little work that seeks to involve the smoking partner or other smokers in protecting pregnant women from SHS.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3025527543",
+      "evidence_span": "Etiologic interpretation awaits epidemiologic studies that assess associations between tobacco smoking and nonseminomatous TGCT, investigating not only these exposures but also both co-use of tobacco and marijuana and smoke-free sources of cannabinoids, while adequately evaluating potential confounding among all of these exposures.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3025831035",
+      "evidence_span": "Prospectively designed future studies with objectively measured multi-level LAN exposures and weight outcomes are required.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3026006037",
+      "evidence_span": "Given their neuro- and thyrotoxic properties, additional studies are needed for the 12 other pesticides not yet studied as potential ASD risk factors according to our inclusion criteria.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3026681838",
+      "evidence_span": "Meanwhile, the association between exposure and rarer forms of haematological malignancy remains uncertain, with further research required.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3027152297",
+      "evidence_span": "Further studies with robust methodology to ascertain exposure information are warranted to further elucidate the relationship between SHS exposure and sleep disturbances.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    },
+    {
+      "work_id": "https://openalex.org/W3027315947",
+      "evidence_span": "Next, toxicity tests of new chemicals need a more comprehensive approach before they are introduced on the market.",
+      "rating": "invalid",
+      "rating_note": "invalid -- regulatory toxicity-testing recommendation, not a research gap (borderline)"
+    },
+    {
+      "work_id": "https://openalex.org/W3028771231",
+      "evidence_span": "Studies with rigorous qualitative and quantitative designs are required to validate and develop the proposed frameworks further, especially within East Africa.",
+      "rating": "valid",
+      "rating_note": "valid -- forward-looking future-work / evidence-gap statement, open for a researcher to pursue"
+    }
+  ]
+}

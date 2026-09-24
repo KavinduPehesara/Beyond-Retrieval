@@ -1,0 +1,13 @@
+{
+  "config_name": "gap_demo_menon2022",
+  "config_hash": "5665542565",
+  "source_run_id": "20260924T090935787946Z-88b91f8dc3",
+  "review": "Menon_2022",
+  "records": 69,
+  "aborted": false,
+  "counts": {
+    "gap_stated": 36,
+    "not_stated": 33,
+    "failed": 0
+  }
+}
