@@ -38,6 +38,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from slr.db import connect
+from slr.eval.harness import git_state
 
 
 def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
@@ -185,6 +186,8 @@ def main(argv: list[str] | None = None) -> int:
             h = hashlib.sha256(json.dumps(cfg, sort_keys=True).encode()).hexdigest()[:10]
             out = Path(args.runs_dir) / f"{datetime.now(timezone.utc):%Y%m%dT%H%M%S%fZ}-gaprecall-{h}"
             out.mkdir(parents=True)
+            sha, dirty = git_state(Path(args.runs_dir))
+            (out / "git_sha.txt").write_text(f"{sha}{'-dirty' if dirty else ''}\n", encoding="utf-8", newline="\n")
             (out / "sample.json").write_text(json.dumps(sheet, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
             (out / "sample_key.json").write_text(json.dumps({"config": cfg, "runs": runs, "key": key}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
             print(f"{len(sheet)} items -> {out}")

@@ -44,6 +44,9 @@ runs/**
 !runs/*/git_sha.txt
 !runs/*/overrides.json
 !runs/*/gap_ratings.json
+!runs/*/sample_key.json
+!runs/*/labels.json
+!runs/*/miss_types.json
 
 # ---------------------------------------------------------------
 # Python

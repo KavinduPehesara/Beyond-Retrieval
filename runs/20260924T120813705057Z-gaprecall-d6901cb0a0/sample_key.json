@@ -1,0 +1,333 @@
+{
+  "config": {
+    "runs": {
+      "Menon_2022": "20260924T100941794221Z-gap-5665542565",
+      "Radjenovic_2013": "20260923T102838078110Z-gap-c8a03baad8",
+      "Nelson_2002": "20260923T102642236622Z-gap-3496ae576f",
+      "van_der_Waal_2022": "20260924T101041926525Z-gap-3fe61354b0"
+    },
+    "seed": 42,
+    "n_not_stated": 10,
+    "n_flagged": 3
+  },
+  "runs": {
+    "Menon_2022": "20260924T100941794221Z-gap-5665542565",
+    "Radjenovic_2013": "20260923T102838078110Z-gap-c8a03baad8",
+    "Nelson_2002": "20260923T102642236622Z-gap-3496ae576f",
+    "van_der_Waal_2022": "20260924T101041926525Z-gap-3fe61354b0"
+  },
+  "key": [
+    {
+      "index": 0,
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2163590173",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 1,
+      "review": "Nelson_2002",
+      "work_id": "https://openalex.org/W2183788149",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 2,
+      "review": "Nelson_2002",
+      "work_id": "https://openalex.org/W1972303849",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 3,
+      "review": "Menon_2022",
+      "work_id": "https://openalex.org/W3011430269",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 4,
+      "review": "Nelson_2002",
+      "work_id": "https://openalex.org/W2134182256",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 5,
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2144177913",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 6,
+      "review": "Menon_2022",
+      "work_id": "https://openalex.org/W2944161315",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 7,
+      "review": "Menon_2022",
+      "work_id": "https://openalex.org/W2999709636",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 8,
+      "review": "Nelson_2002",
+      "work_id": "https://openalex.org/W1993825662",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 9,
+      "review": "Menon_2022",
+      "work_id": "https://openalex.org/W3003014008",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 10,
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2129857650",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 11,
+      "review": "Menon_2022",
+      "work_id": "https://openalex.org/W3027315947",
+      "stratum": "gap_stated"
+    },
+    {
+      "index": 12,
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2119016061",
+      "stratum": "gap_stated"
+    },
+    {
+      "index": 13,
+      "review": "Nelson_2002",
+      "work_id": "https://openalex.org/W2033556811",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 14,
+      "review": "Nelson_2002",
+      "work_id": "https://openalex.org/W2036608642",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 15,
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W2102863313",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 16,
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W3081933341",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 17,
+      "review": "Nelson_2002",
+      "work_id": "https://openalex.org/W2037688346",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 18,
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W2767155478",
+      "stratum": "gap_stated"
+    },
+    {
+      "index": 19,
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W3153720025",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 20,
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W2897501412",
+      "stratum": "gap_stated"
+    },
+    {
+      "index": 21,
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2170207476",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 22,
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W2884638793",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 23,
+      "review": "Nelson_2002",
+      "work_id": "https://openalex.org/W2015090484",
+      "stratum": "gap_stated"
+    },
+    {
+      "index": 24,
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2158744032",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 25,
+      "review": "Menon_2022",
+      "work_id": "https://openalex.org/W2999442409",
+      "stratum": "gap_stated"
+    },
+    {
+      "index": 26,
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2100270576",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 27,
+      "review": "Nelson_2002",
+      "work_id": "https://openalex.org/W2116459270",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 28,
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W1490131010",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 29,
+      "review": "Menon_2022",
+      "work_id": "https://openalex.org/W2968397684",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 30,
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2112873091",
+      "stratum": "gap_stated"
+    },
+    {
+      "index": 31,
+      "review": "Menon_2022",
+      "work_id": "https://openalex.org/W2991407476",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 32,
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W1810429352",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 33,
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W1711909538",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 34,
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W2079997221",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 35,
+      "review": "Nelson_2002",
+      "work_id": "https://openalex.org/W1972276919",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 36,
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W2990142493",
+      "stratum": "gap_stated"
+    },
+    {
+      "index": 37,
+      "review": "Menon_2022",
+      "work_id": "https://openalex.org/W3032254257",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 38,
+      "review": "Menon_2022",
+      "work_id": "https://openalex.org/W3023242713",
+      "stratum": "gap_stated"
+    },
+    {
+      "index": 39,
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2120738100",
+      "stratum": "gap_stated"
+    },
+    {
+      "index": 40,
+      "review": "Nelson_2002",
+      "work_id": "https://openalex.org/W4251833922",
+      "stratum": "gap_stated"
+    },
+    {
+      "index": 41,
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W2065280657",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 42,
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W2119219883",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 43,
+      "review": "Nelson_2002",
+      "work_id": "https://openalex.org/W2106286936",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 44,
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2154176376",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 45,
+      "review": "Menon_2022",
+      "work_id": "https://openalex.org/W3021612513",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 46,
+      "review": "Nelson_2002",
+      "work_id": "https://openalex.org/W2122073186",
+      "stratum": "gap_stated"
+    },
+    {
+      "index": 47,
+      "review": "Menon_2022",
+      "work_id": "https://openalex.org/W3022597286",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 48,
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2051978688",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 49,
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2111502854",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 50,
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W2109705734",
+      "stratum": "not_stated"
+    },
+    {
+      "index": 51,
+      "review": "Menon_2022",
+      "work_id": "https://openalex.org/W3012482498",
+      "stratum": "not_stated"
+    }
+  ]
+}

@@ -1,0 +1,201 @@
+{
+  "per_review": {
+    "Menon_2022": {
+      "true_positives": 33,
+      "not_stated_pool": 33,
+      "sampled_not_stated": 10,
+      "misses_in_sample": 5,
+      "miss_rate": 0.5,
+      "miss_rate_ci95": [
+        0.23658959361548731,
+        0.7634104063845126
+      ],
+      "estimated_false_negatives": 16.5,
+      "recall_estimate": 0.6666666666666666,
+      "recall_at_worst_miss_rate": 0.5670829639994477,
+      "recall_at_best_miss_rate": 0.8086757362046394,
+      "open_gap": {
+        "true_positives": 32,
+        "not_stated_pool": 33,
+        "sampled_not_stated": 10,
+        "misses_in_sample": 1,
+        "miss_rate": 0.1,
+        "miss_rate_ci95": [
+          0.01787574951572113,
+          0.4041563854975721
+        ],
+        "estimated_false_negatives": 3.3000000000000003,
+        "recall_estimate": 0.906515580736544,
+        "recall_at_worst_miss_rate": 0.7058227619640364,
+        "recall_at_best_miss_rate": 0.9818993081036381
+      }
+    },
+    "Nelson_2002": {
+      "true_positives": 11,
+      "not_stated_pool": 102,
+      "sampled_not_stated": 10,
+      "misses_in_sample": 1,
+      "miss_rate": 0.1,
+      "miss_rate_ci95": [
+        0.01787574951572113,
+        0.4041563854975721
+      ],
+      "estimated_false_negatives": 10.200000000000001,
+      "recall_estimate": 0.5188679245283018,
+      "recall_at_worst_miss_rate": 0.21063132378550806,
+      "recall_at_best_miss_rate": 0.8578117419355149,
+      "open_gap": {
+        "true_positives": 10,
+        "not_stated_pool": 102,
+        "sampled_not_stated": 10,
+        "misses_in_sample": 1,
+        "miss_rate": 0.1,
+        "miss_rate_ci95": [
+          0.01787574951572113,
+          0.4041563854975721
+        ],
+        "estimated_false_negatives": 10.200000000000001,
+        "recall_estimate": 0.495049504950495,
+        "recall_at_worst_miss_rate": 0.19522117568366307,
+        "recall_at_best_miss_rate": 0.8457856629247956
+      }
+    },
+    "Radjenovic_2013": {
+      "true_positives": 4,
+      "not_stated_pool": 127,
+      "sampled_not_stated": 10,
+      "misses_in_sample": 0,
+      "miss_rate": 0.0,
+      "miss_rate_ci95": [
+        0.0,
+        0.2775401687666166
+      ],
+      "estimated_false_negatives": 0.0,
+      "recall_estimate": 1.0,
+      "recall_at_worst_miss_rate": 0.10191705617454665,
+      "recall_at_best_miss_rate": 1.0,
+      "open_gap": {
+        "true_positives": 2,
+        "not_stated_pool": 127,
+        "sampled_not_stated": 10,
+        "misses_in_sample": 0,
+        "miss_rate": 0.0,
+        "miss_rate_ci95": [
+          0.0,
+          0.2775401687666166
+        ],
+        "estimated_false_negatives": 0.0,
+        "recall_estimate": 1.0,
+        "recall_at_worst_miss_rate": 0.05369473262803782,
+        "recall_at_best_miss_rate": 1.0
+      }
+    },
+    "van_der_Waal_2022": {
+      "true_positives": 13,
+      "not_stated_pool": 65,
+      "sampled_not_stated": 10,
+      "misses_in_sample": 3,
+      "miss_rate": 0.3,
+      "miss_rate_ci95": [
+        0.10778928748621183,
+        0.6032267800204347
+      ],
+      "estimated_false_negatives": 19.5,
+      "recall_estimate": 0.4,
+      "recall_at_worst_miss_rate": 0.24899568213464177,
+      "recall_at_best_miss_rate": 0.6497951947367873,
+      "open_gap": {
+        "true_positives": 9,
+        "not_stated_pool": 65,
+        "sampled_not_stated": 10,
+        "misses_in_sample": 0,
+        "miss_rate": 0.0,
+        "miss_rate_ci95": [
+          0.0,
+          0.2775401687666166
+        ],
+        "estimated_false_negatives": 0.0,
+        "recall_estimate": 1.0,
+        "recall_at_worst_miss_rate": 0.3328388707443443,
+        "recall_at_best_miss_rate": 1.0
+      }
+    }
+  },
+  "blind_control_agreement": {
+    "n": 12,
+    "agree": 11,
+    "detail": [
+      {
+        "review": "Menon_2022",
+        "blind_label": true,
+        "earlier_rating_valid": false
+      },
+      {
+        "review": "Menon_2022",
+        "blind_label": true,
+        "earlier_rating_valid": true
+      },
+      {
+        "review": "Menon_2022",
+        "blind_label": true,
+        "earlier_rating_valid": true
+      },
+      {
+        "review": "Nelson_2002",
+        "blind_label": true,
+        "earlier_rating_valid": true
+      },
+      {
+        "review": "Nelson_2002",
+        "blind_label": true,
+        "earlier_rating_valid": true
+      },
+      {
+        "review": "Nelson_2002",
+        "blind_label": true,
+        "earlier_rating_valid": true
+      },
+      {
+        "review": "Radjenovic_2013",
+        "blind_label": true,
+        "earlier_rating_valid": true
+      },
+      {
+        "review": "Radjenovic_2013",
+        "blind_label": true,
+        "earlier_rating_valid": true
+      },
+      {
+        "review": "Radjenovic_2013",
+        "blind_label": true,
+        "earlier_rating_valid": true
+      },
+      {
+        "review": "van_der_Waal_2022",
+        "blind_label": false,
+        "earlier_rating_valid": false
+      },
+      {
+        "review": "van_der_Waal_2022",
+        "blind_label": true,
+        "earlier_rating_valid": true
+      },
+      {
+        "review": "van_der_Waal_2022",
+        "blind_label": true,
+        "earlier_rating_valid": true
+      }
+    ]
+  },
+  "config": {
+    "runs": {
+      "Menon_2022": "20260924T100941794221Z-gap-5665542565",
+      "Radjenovic_2013": "20260923T102838078110Z-gap-c8a03baad8",
+      "Nelson_2002": "20260923T102642236622Z-gap-3496ae576f",
+      "van_der_Waal_2022": "20260924T101041926525Z-gap-3fe61354b0"
+    },
+    "seed": 42,
+    "n_not_stated": 10,
+    "n_flagged": 3
+  }
+}
