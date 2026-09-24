@@ -76,8 +76,8 @@ real SYNERGY data, the first model recall figures (local Ollama), week 9's
 dense retrieval (SPECTER2 + FAISS, RRF fusion, cross-encoder rerank), week
 10's prompt variants, model tier comparison, the overridable mechanism, and
 genuine inter-run reproducibility, and week 11's gap-discovery mechanism
-with 21 rated statements (90.5% precision) — go/no-go decision not yet
-minuted with the supervisor (see below). Weeks 8, 9 and 10 exit tests
+with 74 rated statements across all six reviews (87.8% precision) —
+go/no-go decision not yet minuted with the supervisor (see below). Weeks 8, 9 and 10 exit tests
 passed; week 11's is open pending that decision. Also done, outside the
 original schedule: a structured
 data-extraction feature and report, added at the supervisor's request (see
@@ -142,6 +142,7 @@ configs/week10_model_qwen3_nelson.yaml  model tier 2, Nelson_2002
 configs/week10_repeat_nelson.yaml  cache_enabled: false, 5x for inter-run AC1
 configs/week10_full_subset.yaml  all 4 ingested reviews under one run_id
 configs/gap_demo_*.yaml  gap discovery per review, verified-includes, local Ollama, $0
+configs/remaining_reviews_ollama.yaml  Menon_2022 + van_der_Waal_2022 screening, local Ollama, $0
 data/embeddings/         SPECTER2 vectors cached per review (gitignored)
 tests/                   166 tests
 reports/results.{csv,md} generated from runs/
@@ -441,9 +442,8 @@ research tools should be checkable should not quietly rewrite its own numbers.
 - Never run against the real Gemini API for a reported figure — the 404
   above blocked it; `configs/week08_gemini.yaml` needs a price/ceiling update
   (currently priced for the now-blocked model) before it is run for real.
-- Smid_2020, Nelson_2002, van_der_Valk_2021 and Radjenovic_2013 are ingested
-  and fully screened. The other two (van_der_Waal_2022, Menon_2022) load
-  with the same ingest command once added to a config.
+- All six reviews are ingested and screened (Menon_2022 and van_der_Waal_2022
+  added 24 September, see week 11). Extraction has not been run on those two.
 - Ethics application for the usability study — not submitted. This is the only
   item whose timing is outside the author's control. It gates week 13. (The
   proposal, section 8.2, says approval is obtained in week 7.)
@@ -635,37 +635,74 @@ valid, 1 invalid), 1/1 Smid_2020, 3/3 van_der_Valk_2021, 5/5 Radjenovic_2013
 (4 valid, 1 invalid) — full quotes and ratings in each run's
 `gap_ratings.json`.
 
-**The honest shortfall (rule 7): 21 rated, not 30.** The full pool of
-currently-screened verified-includes across all four ingested reviews is
-267 records; only 21 of them (7.9%) state an explicit gap at all — the
-low base rate, not a discovery failure, is why the sample fell short of
-the plan's 30. Two ways to close the gap, not yet decided: (a) ingest and
-screen the two remaining SYNERGY reviews (`van_der_Waal_2022`,
-`Menon_2022`) to grow the candidate pool, or (b) run gap discovery over
-verified-excludes too, since a gap statement's presence in an abstract
-doesn't depend on whether that abstract happened to meet one review's
-inclusion criteria. Neither is done yet.
+**24 September 2026 — the shortfall closed by ingesting the last two
+reviews (path (a)); 74 statements now rated, not 21.** The first pass
+found 21 because only 7.9% of the first four reviews' 267 verified-includes
+state a gap. Ingested `Menon_2022` (975/74/7.6%) and `van_der_Waal_2022`
+(1,970/33/1.7%) — both matched the proposal exactly — and screened them
+with the same model/prompt (`runs/20260924T090935787946Z-88b91f8dc3`:
+Menon 94.8% verified, van_der_Waal 39.3%). All six reviews are now
+ingested and screened. Gap discovery over their 151 verified-includes
+added 53 candidates, all rated in full:
 
-**Go/no-go: data points to go, decision not yet minuted.** Both precision
-figures (90.5% literal, 71.4% actionable) are comfortably above any
-threshold that would trigger the prior-art-retrieval fallback the schedule
-names — but the checkpoint's own text calls for a decision minuted with
-the supervisor, on 30 statements, and this is 21. Recorded here as the
-evidence to bring to that conversation, not as a decision made
-unilaterally on its behalf.
+| Review | Prev | Records | gap_stated | Valid | Invalid | Precision | Open-gap precision |
+|---|---|---|---|---|---|---|---|
+| Radjenovic_2013 | 0.8% | 132 | 5 (3.8%) | 4 | 1 | 80.0% | 40.0% |
+| Smid_2020 | 1.0% | 10 | 1 (10.0%) | 1 | 0 | 100% | 0% |
+| van_der_Waal_2022 | 1.7% | 82 | 17 (20.7%) | 13 | 4 | 76.5% | 52.9% |
+| Menon_2022 | 7.6% | 69 | 36 (52.2%) | 33 | 3 | 91.7% | 88.9% |
+| van_der_Valk_2021 | 12.3% | 11 | 3 (27.3%) | 3 | 0 | 100% | 100% |
+| Nelson_2002 | 21.9% | 114 | 12 (10.5%) | 11 | 1 | 91.7% | 83.3% |
+
+"Open-gap" excludes valid statements that name a gap the same paper then
+fills. Per-review counts under about 15 (Smid_2020, van_der_Valk_2021) are
+too small to read; do not lean on their 100%. Pooled for the checkpoint
+only: **65/74 = 87.8% precision, 56/74 = 75.7% open-gap precision.**
+
+**Menon_2022's 52% rate is domain, not over-triggering.** Its records are
+themselves systematic reviews of environmental exposures, whose structured
+Conclusions nearly always end "further studies are needed". The gap rate
+varies from 3.8% to 52% by review and does not track prevalence
+(prevalence 12.3% gives 27.3%, 21.9% gives 10.5%); it tracks the abstract's
+genre. Software-engineering abstracts (Radjenović_2013, 3.8%) rarely state
+gaps in the abstract at all, consistent with the extraction finding that
+the field reports differently from medicine.
+
+**New failure types found in the 53, beyond the first 21.** Rated strictly:
+(1) a practice or policy recommendation ("better patient information is
+needed", "toxicity tests need a more comprehensive approach") is not a
+research gap — 3 invalid; (2) a lexical trigger — `W3119834449` was flagged
+because the abstract says "a major gap was the information on alternative
+therapies", meaning missing information in consent conversations, not a
+research gap; (3) "limitations and future directions are discussed" — an
+announcement with no content — recurred in Menon (2 more), the same type
+as week 11's first pair. The strict practice-vs-research call is a
+judgement, lowers precision, and is recorded per row in `rating_note`; a
+looser reading would put precision near 90%. Rated by one person, once —
+no second rater, so no inter-rater agreement for this precision figure.
+
+**Go/no-go: data points to go, decision still not minuted.** 74 rated
+statements exceed the plan's 30, and both pooled figures (87.8%, 75.7%) are
+well above anything that would trigger the prior-art-retrieval fallback.
+Recorded as evidence for the supervisor conversation, not as a decision
+made on the author's behalf. The sharpest caveat to raise there: precision
+is per-statement over what the model flagged; recall (abstracts that state
+a gap which the model marked `not_stated`) has not been measured at all.
 
 Run directories: `runs/20260923T102642236622Z-gap-3496ae576f` (Nelson_2002),
 `.../20260923T102816243601Z-gap-80a180d02a` (Smid_2020),
 `.../20260923T102825404365Z-gap-8002013514` (van_der_Valk_2021),
-`.../20260923T102838078110Z-gap-c8a03baad8` (Radjenovic_2013), each with
+`.../20260923T102838078110Z-gap-c8a03baad8` (Radjenovic_2013),
+`.../20260924T100941794221Z-gap-5665542565` (Menon_2022),
+`.../20260924T101041926525Z-gap-3fe61354b0` (van_der_Waal_2022), each with
 its own `gap_ratings.json`.
 
 ## Next: close out week 11, then week 12 — FastAPI + Streamlit panels
 
-Immediate: decide (a) vs (b) above to reach 30 rated statements, and
-minute the go/no-go decision with the supervisor using the numbers above.
-Week 12 exit test, once week 11 is closed: someone other than the author
-completes a query unassisted.
+Immediate: minute the go/no-go decision with the supervisor using the
+numbers above (the 30-statement sample is met). Optional before that:
+measure gap recall on a hand-labelled sample. Week 12 exit test, once week
+11 is closed: someone other than the author completes a query unassisted.
 
 ---
 
