@@ -1,0 +1,30 @@
+{
+  "config_name": "extract_demo_menon2022",
+  "config_hash": "69af3c168d",
+  "source_run_id": "20260924T090935787946Z-88b91f8dc3",
+  "review": "Menon_2022",
+  "records": 69,
+  "aborted": false,
+  "field_verification": {
+    "study_design": {
+      "verified": 69,
+      "not_stated": 0,
+      "failed": 0
+    },
+    "sample_size": {
+      "verified": 35,
+      "not_stated": 33,
+      "failed": 1
+    },
+    "country": {
+      "verified": 6,
+      "not_stated": 63,
+      "failed": 0
+    },
+    "key_finding": {
+      "verified": 66,
+      "not_stated": 1,
+      "failed": 2
+    }
+  }
+}

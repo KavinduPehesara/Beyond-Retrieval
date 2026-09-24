@@ -1,0 +1,30 @@
+{
+  "config_name": "extract_demo_vanderwaal2022",
+  "config_hash": "1d1c17652a",
+  "source_run_id": "20260924T090935787946Z-88b91f8dc3",
+  "review": "van_der_Waal_2022",
+  "records": 82,
+  "aborted": false,
+  "field_verification": {
+    "study_design": {
+      "verified": 46,
+      "not_stated": 35,
+      "failed": 1
+    },
+    "sample_size": {
+      "verified": 69,
+      "not_stated": 4,
+      "failed": 9
+    },
+    "country": {
+      "verified": 25,
+      "not_stated": 57,
+      "failed": 0
+    },
+    "key_finding": {
+      "verified": 76,
+      "not_stated": 0,
+      "failed": 6
+    }
+  }
+}
