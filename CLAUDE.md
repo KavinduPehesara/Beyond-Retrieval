@@ -122,6 +122,7 @@ slr/
     override_cli.py       records one human disposition against a run
     override_report.py   writes runs/<ts>-<hash>/overrides.json
     gap_report.py          writes runs/<ts>-gap-<hash>/gap_ratings.json
+    gap_recall.py          blind-labelled recall estimate for gap discovery
     inter_run.py          genuine inter-run Gwet AC1 across repeated runs
     report_tables.py     run directories -> reports/results.{csv,md}
 prompts/screen_v1.txt    prompt template, versioned by filename
@@ -144,7 +145,7 @@ configs/week10_full_subset.yaml  all 4 ingested reviews under one run_id
 configs/gap_demo_*.yaml  gap discovery per review, verified-includes, local Ollama, $0
 configs/remaining_reviews_ollama.yaml  Menon_2022 + van_der_Waal_2022 screening, local Ollama, $0
 data/embeddings/         SPECTER2 vectors cached per review (gitignored)
-tests/                   166 tests
+tests/                   173 tests
 reports/results.{csv,md} generated from runs/
 ```
 
@@ -697,12 +698,78 @@ Run directories: `runs/20260923T102642236622Z-gap-3496ae576f` (Nelson_2002),
 `.../20260924T101041926525Z-gap-3fe61354b0` (van_der_Waal_2022), each with
 its own `gap_ratings.json`.
 
+**25 September 2026 — gap recall measured, and it is much lower than
+precision (rule 7).** Precision only looks at what the model flagged, so
+`slr/eval/gap_recall.py` samples what it did *not*. A seeded draw of 10
+`not_stated` records from each of Menon_2022, Radjenović_2013, Nelson_2002
+and van_der_Waal_2022 (Smid_2020 and van_der_Valk_2021 have too few to
+sample), plus 3 already-flagged records per review as controls, shuffled
+into one sheet of 52 (title and abstract only). Labelled before any model
+output was consulted, under a rule fixed in advance: the abstract states,
+in the authors' own words, that something is unknown, unstudied, a
+limitation, or needs further research; bare announcements and
+practice/policy recommendations do not count (same rule as the precision
+ratings). The sampled miss rate scales to each review's whole `not_stated`
+pool; TP is the flagged records rated valid.
+
+| Review | Prev | not_stated pool | Sampled | Misses | Recall (est.) | Recall, worst case | Open-gap recall (est.) |
+|---|---|---|---|---|---|---|---|
+| Radjenovic_2013 | 0.8% | 127 | 10 | 0 | 1.00 | 0.10 | 1.00 (worst 0.05) |
+| van_der_Waal_2022 | 1.7% | 65 | 10 | 3 | 0.40 | 0.25 | 1.00 (worst 0.33) |
+| Menon_2022 | 7.6% | 33 | 10 | 5 | 0.67 | 0.57 | 0.91 (worst 0.71) |
+| Nelson_2002 | 21.9% | 102 | 10 | 1 | 0.52 | 0.21 | 0.50 (worst 0.20) |
+
+"Worst case" uses the upper end of the 95% Wilson interval on the miss
+rate. With 10 per review every interval is wide (Radjenović_2013: zero
+misses in 10 still allows recall as low as 0.10), so read the point
+estimates as direction, not as figures to quote alone.
+`runs/20260924T120813705057Z-gaprecall-d6901cb0a0`.
+
+**What the model misses, and why that matters more than the number.** 9 of
+the 40 sampled `not_stated` abstracts (22.5%) did state a gap. 7 of the 9
+are *motivating* gaps ("little is known about...", "remains inconclusive",
+"limited research has investigated..."), 1 is "evidence is insufficient",
+and 1 is a plain miss: Menon's renal-cell-carcinoma review says "Further
+investigation is warranted, especially for folate and vitamin B6" and was
+marked `not_stated`. The pattern fits `gap_v1`'s own wording — it tells the
+model that a sentence describing what the paper itself set out to do is not
+a gap, and to answer `not_stated` in doubt, so a motivating gap that reads
+like the paper's aim gets suppressed. That is a hypothesis about the prompt,
+not something tested. Read the two recall columns together: the model is
+a high-precision, low-recall detector of literal gap statements, and a
+better one for future-work statements specifically (open-gap recall 0.5–1.0,
+but on 1 miss at most per review).
+
+**The controls.** 11 of 12 flagged controls I labelled blind agreed with my
+earlier ratings; the one disagreement compared an abstract-level label
+(yes, human studies are needed) with an earlier quote-level rating
+(invalid: the quoted sentence was a regulatory recommendation). The
+controls are only partly blind — I recognised several from the earlier
+rating pass — so this is a weak check on my own consistency, not a
+measure of it. The 40 `not_stated` items, which carry the recall
+estimate, were not recognisable.
+
+**Limits.** One labeller, no second rater. Several labels are borderline
+calls (`controversial`, `inconclusive`, `work is underway`) and I marked
+those positive; a stricter rule would lower the miss rate. Smid_2020 and
+van_der_Valk_2021 are unsampled. Not pooled, per rule 5.
+
+**Consequence for the go/no-go.** The 87.8% precision figure alone would
+overstate what was built. The honest description for the supervisor is: gap
+discovery surfaces statements that are almost always real gaps, but finds
+perhaps half of the literal gap statements, and fewer of the motivating
+ones. Whether that is enough depends on the use — as a "here are stated
+gaps" surfacer it is fine; as a claim of coverage it is not. A `gap_v2`
+that accepts motivating gaps as a separate category is the obvious
+candidate, but week 10's prompt variants both made things worse, so it
+needs the same discipline: a new prompt version, a full rerun, and a
+re-rating, not an edit.
+
 ## Next: close out week 11, then week 12 — FastAPI + Streamlit panels
 
 Immediate: minute the go/no-go decision with the supervisor using the
-numbers above (the 30-statement sample is met). Optional before that:
-measure gap recall on a hand-labelled sample. Week 12 exit test, once week
-11 is closed: someone other than the author completes a query unassisted.
+precision and recall figures above. Week 12 exit test, once week 11 is
+closed: someone other than the author completes a query unassisted.
 
 ---
 
