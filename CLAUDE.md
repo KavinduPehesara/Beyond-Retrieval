@@ -68,18 +68,21 @@ it surface the research gaps authors state in their own papers?
 
 ---
 
-## Current state — week 11 of 15
+## Current state — week 12 of 15
 
 Done: literature review, proposal (submitted), architecture, scope lock, the
 walking skeleton, the week 8 evaluation harness, the first baseline runs on
 real SYNERGY data, the first model recall figures (local Ollama), week 9's
 dense retrieval (SPECTER2 + FAISS, RRF fusion, cross-encoder rerank), week
 10's prompt variants, model tier comparison, the overridable mechanism, and
-genuine inter-run reproducibility, and week 11's gap-discovery mechanism
-with 74 rated statements across all six reviews (87.8% precision) —
-go/no-go decision not yet minuted with the supervisor (see below). Weeks 8, 9 and 10 exit tests
-passed; week 11's is open pending that decision. Also done, outside the
-original schedule: a structured
+genuine inter-run reproducibility, week 11's gap-discovery mechanism with 74
+rated statements across all six reviews (87.8% precision) — go/no-go
+decision not yet minuted with the supervisor — and week 12's FastAPI
+backend and 5 Streamlit panels, built and verified working end-to-end
+against real data, but not yet run through its actual exit test (a second
+person completing a query unassisted). Weeks 8, 9 and 10 exit tests
+passed; weeks 11 and 12 are both open pending those two events. Also done,
+outside the original schedule: a structured
 data-extraction feature and report, added at the supervisor's request (see
 21 September note below).
 
@@ -125,6 +128,22 @@ slr/
     gap_recall.py          blind-labelled recall estimate for gap discovery
     inter_run.py          genuine inter-run Gwet AC1 across repeated runs
     report_tables.py     run directories -> reports/results.{csv,md}
+  api/
+    app.py                 FastAPI routes -- reads a run directory or the
+                         live tables, or calls a service function directly.
+                         POST /query/screen is the one route that writes.
+    runs_index.py           "current" run per review per harness kind
+    deps.py                 DB_PATH/RUNS_DIR/PROMPTS_DIR, get_conn
+    schemas.py              pydantic request/response models
+app/
+  Home.py                 review table, links to the 5 panels
+  api_client.py            thin httpx wrapper, one function per route
+  pages/1_Search_and_Screen.py    rank + live-screen up to 15 -- the query
+                                 exit test runs here
+  pages/2_Results_and_Override.py
+  pages/3_Extraction.py
+  pages/4_Gap_Discovery.py
+  pages/5_Trust_Dashboard.py
 prompts/screen_v1.txt    prompt template, versioned by filename
 prompts/screen_v2.txt    step-by-step + one-sentence reasoning (week 10, underperformed v1)
 prompts/screen_v3.txt    terse, minimal rules (week 10, underperformed v1)
@@ -145,7 +164,7 @@ configs/week10_full_subset.yaml  all 4 ingested reviews under one run_id
 configs/gap_demo_*.yaml  gap discovery per review, verified-includes, local Ollama, $0
 configs/remaining_reviews_ollama.yaml  Menon_2022 + van_der_Waal_2022 screening, local Ollama, $0
 data/embeddings/         SPECTER2 vectors cached per review (gitignored)
-tests/                   173 tests
+tests/                   202 tests
 reports/results.{csv,md} generated from runs/
 ```
 
@@ -793,11 +812,84 @@ its "Where every number comes from" section; it is a display and computes no
 new figure. It quotes short source sentences but no abstracts (SYNERGY
 abstracts stay out of git and out of published pages).
 
-## Next: close out week 11, then week 12 — FastAPI + Streamlit panels
+## Week 12 — FastAPI + 5 Streamlit panels, built; exit test not yet run
 
-Immediate: minute the go/no-go decision with the supervisor using the
-precision and recall figures above. Week 12 exit test, once week 11 is
-closed: someone other than the author completes a query unassisted.
+**Thin layer over what already existed, same discipline as every service
+since `extract.py`.** `slr/api/app.py`: every route reads a harness's run
+directory or the tables it wrote (`screening_decision`, `extraction`,
+`gap_statement`), or calls a service function directly (`retrieve.rank`,
+`override.record_override`, `screen.screen_record`). No route computes a
+figure a CLI run wouldn't also produce. `slr/api/runs_index.py` picks the
+"current" run per review per harness kind by scanning `runs/*/metrics.json`
+— directory names sort chronologically, so the latest match wins. One
+route writes new data: `POST /query/screen`, a live screen of up to 15
+specific records for the panel below, into an `api-*` run_id the run-index
+and `report_tables.py` both ignore — an interactive demo, not a reported
+figure, so it doesn't need `--require-clean`.
+
+**A real threading bug, found by the API's own tests, not a test
+artifact.** FastAPI dispatches a sync dependency and the sync route body
+to separate threadpool workers; a connection opened in `get_conn` could be
+handed to a different OS thread than it was created in. sqlite3 connections
+are thread-affine by default, so this would have failed intermittently
+under real traffic, not just in tests. Fixed at the source: `slr.db.
+connect()` gained `check_same_thread` (default `True`, every CLI harness
+unchanged); the API's dependency is the only caller that passes `False`,
+since its connection is used sequentially within one request, never
+concurrently.
+
+**Five panels, each calling the API and computing nothing itself:** Search
+& Screen (rank candidates with any of the five strategies, default query =
+the review's own published criteria, then screen up to 15 live and watch
+verified quotes arrive — this is the page the exit test runs on), Results
+& Override (browse a run's decisions, dispose of any of them), Extraction
+(per-field coverage, then any paper's four fields with their source
+sentences), Gap Discovery (every statement found, with its rating and
+open/motivating split), Trust Dashboard (the RQ1 table, live per review —
+reproducibility and gap recall are shown as the one-off measurements they
+are, not fabricated as per-review live numbers, since both took a
+dedicated multi-run or blind-labelling pass to produce, not a single
+query).
+
+**Tested two ways.** Streamlit's `AppTest` drives each page's real widgets
+(form submit, multiselect, button click) against `api_client` monkeypatched
+to canned data shaped like the real responses — no server needed, and it
+caught a real bug: the Trust Dashboard scaled "Verified" and "Overridden"
+to a percentage *after* the dataframe had already been built and passed to
+`st.dataframe`, so the raw fraction displayed instead. Separately, verified
+live end-to-end against the real six-review database and a real Ollama
+call: `uvicorn` + `streamlit` both running, screenshotted with a small
+custom CDP client (`websockets` + `httpx`) rather than headless Edge's own
+`--screenshot` flag, which fires at the `load` event — before a Streamlit
+page's actual content arrives over its websocket connection, so every
+first attempt captured only the loading skeleton. All five panels render
+correctly against real data; Trust Dashboard's live numbers
+(verification_rate, AC1, prevalence per review) match `CLAUDE.md`'s
+recorded figures exactly, and a real BM25 query against Menon_2022 through
+Search & Screen returned real ranked candidates.
+
+**The exit test itself has not been run.** "Someone other than the author
+completes a query unassisted" needs an actual second person at the
+keyboard — the mechanism is built and verified working, but that is not
+the same claim, and it isn't mine to certify on the author's behalf. Marked
+open until it happens.
+
+Running it:
+
+```bash
+uvicorn slr.api.app:app
+streamlit run app/Home.py
+```
+
+fastapi/uvicorn/streamlit were pinned in `requirements.txt` since project
+setup but never installed; installed now at the pinned versions
+(0.115.5/0.32.1/1.40.2). 202 tests passing (was 192).
+
+## Next: close out week 11, then run the week 12 usability check
+
+Immediate: minute the week 11 go/no-go decision with the supervisor using
+the precision and recall figures above, and find someone other than the
+author to sit down with Search & Screen and complete a query unassisted.
 
 ---
 
@@ -996,7 +1088,14 @@ python -m slr.eval.harness --config configs/week09_dense.yaml --require-clean
 python -m slr.eval.harness --config configs/week09_hybrid.yaml --require-clean
 python -m slr.eval.harness --config configs/week09_rerank.yaml --require-clean
 python -m slr.eval.report_tables --runs runs --out reports
+uvicorn slr.api.app:app              # dashboard backend, localhost:8000
+streamlit run app/Home.py            # dashboard, localhost:8501 -- needs the API running
 ```
+
+The dashboard reads whatever is already in `data/slr.db` and `runs/` — it
+needs at least one review ingested and screened to show anything, and the
+Search & Screen panel's live-screen button needs Ollama running the same
+way `week08_ollama.yaml` does.
 
 The first ingest downloads SYNERGY v1.0 (≈ 450 MB) to
 `~/.synergy_dataset_source` and the criteria file to `data/synergy/`.
