@@ -191,11 +191,19 @@ END;
 """
 
 
-def connect(db_path: str | Path) -> sqlite3.Connection:
-    """Open the database, creating it and the schema if absent."""
+def connect(db_path: str | Path, *, check_same_thread: bool = True) -> sqlite3.Connection:
+    """Open the database, creating it and the schema if absent.
+
+    ``check_same_thread=False`` is for the API only: a request's connection
+    is opened by one FastAPI dependency call and used by the route body,
+    which run as two separate threadpool dispatches and can land on
+    different worker threads -- sequential use, never concurrent, but
+    sqlite3's default same-thread check doesn't know that. Every CLI
+    harness stays on the safer default.
+    """
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, check_same_thread=check_same_thread)
     conn.row_factory = sqlite3.Row
     _check_schema_version(conn, db_path)
     conn.executescript(SCHEMA)
