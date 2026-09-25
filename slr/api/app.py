@@ -13,6 +13,7 @@ skips ``--require-clean`` and writes to an ``api-*`` run_id that
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from datetime import datetime, timezone
 
@@ -99,8 +100,6 @@ def list_reviews(conn: sqlite3.Connection = Depends(get_conn)):
 @app.get("/reviews/{review}/metrics")
 def review_metrics(review: str, run_id: str | None = None, conn: sqlite3.Connection = Depends(get_conn)):
     """The latest (or a named) screening run's own per-review metrics -- the RQ1 numbers."""
-    import json
-
     rid = run_id or latest_screen_run(RUNS_DIR, review)
     if rid is None:
         raise HTTPException(404, f"no screening run found for {review!r}")
@@ -112,6 +111,40 @@ def review_metrics(review: str, run_id: str | None = None, conn: sqlite3.Connect
         if m["review"] == review:
             return {"run_id": rid, **m}
     raise HTTPException(404, f"run {rid!r} does not cover {review!r}")
+
+
+@app.get("/reviews/{review}/criteria")
+def review_criteria(review: str, conn: sqlite3.Connection = Depends(get_conn)):
+    c = criteria_service.for_review(conn, review)
+    return {"review": review, "text": c.text, "status": c.status, "source": c.source}
+
+
+@app.get("/reviews/{review}/extraction-summary")
+def extraction_summary(review: str, run_id: str | None = None, conn: sqlite3.Connection = Depends(get_conn)):
+    """Per-field verified/not_stated/unverified counts -- the Extraction panel's coverage bars.
+
+    One aggregate query per field rather than N calls to the per-paper
+    detail route; still nothing report_tables.py-style: a straight count
+    over the extraction table's own rows.
+    """
+    rid = run_id or latest_extract_run(RUNS_DIR, review)
+    if rid is None:
+        raise HTTPException(404, f"no extraction run found for {review!r}")
+    fields = {}
+    for row in conn.execute(
+        "SELECT field_name, "
+        " SUM(CASE WHEN verify_note = 'not_stated' THEN 1 ELSE 0 END) AS not_stated,"
+        " SUM(CASE WHEN verify_note != 'not_stated' AND span_verified = 1 THEN 1 ELSE 0 END) AS verified,"
+        " SUM(CASE WHEN verify_note != 'not_stated' AND span_verified = 0 THEN 1 ELSE 0 END) AS unverified "
+        "FROM extraction WHERE run_id = ? AND review = ? GROUP BY field_name",
+        (rid, review),
+    ):
+        fields[row["field_name"]] = {
+            "verified": row["verified"],
+            "not_stated": row["not_stated"],
+            "unverified": row["unverified"],
+        }
+    return {"run_id": rid, "review": review, "fields": fields}
 
 
 # --------------------------------------------------------------------------

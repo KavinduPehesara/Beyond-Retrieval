@@ -207,6 +207,37 @@ def test_query_rejects_an_unknown_strategy(client):
     assert resp.status_code == 400
 
 
+def test_review_criteria(client):
+    resp = client.get("/reviews/R1/criteria")
+    assert resp.status_code == 200
+    assert resp.json() == {"review": "R1", "text": "Include RCTs.", "status": "published", "source": "test"}
+
+
+def test_extraction_summary_without_a_run_is_404(client):
+    assert client.get("/reviews/R1/extraction-summary").status_code == 404
+
+
+def test_extraction_summary_counts_by_field(client, conn, runs_dir):
+    _write_run(runs_dir, "20260101T000000Z-extract-bbb", {"review": "R1"})
+    rows = [
+        ("W1", "study_design", "RCT", "q1", 1, "exact_after_normalisation"),
+        ("W2", "study_design", None, None, 0, "not_stated"),
+        ("W1", "country", None, "q2", 0, "not_found"),
+    ]
+    for wid, field, value, span, verified, note in rows:
+        conn.execute(
+            "INSERT INTO extraction (run_id, source_run_id, review, work_id, field_name, value, evidence_span, span_verified, verify_note) "
+            "VALUES ('20260101T000000Z-extract-bbb', 's', 'R1', ?, ?, ?, ?, ?, ?)",
+            (wid, field, value, span, verified, note),
+        )
+    conn.commit()
+    resp = client.get("/reviews/R1/extraction-summary")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["fields"]["study_design"] == {"verified": 1, "not_stated": 1, "unverified": 0}
+    assert body["fields"]["country"] == {"verified": 0, "not_stated": 0, "unverified": 1}
+
+
 def test_query_screen_rejects_more_than_the_cap(client):
     ids = [f"W{i}" for i in range(20)]
     resp = client.post("/query/screen", json={"review": "R1", "work_ids": ids})
