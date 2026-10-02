@@ -1,0 +1,12 @@
+{
+  "review": "Nelson_2002",
+  "tool": "asreview",
+  "recall_target": 0.95,
+  "n_ranked": 366,
+  "n_included": 80,
+  "complete": true,
+  "cutoff": 220,
+  "recall_at_cutoff": 0.95,
+  "tnr_at_recall": 0.4965034965034965,
+  "wss_at_recall": 0.34890710382513657
+}

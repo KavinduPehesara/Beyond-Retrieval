@@ -1,0 +1,9 @@
+{
+  "run_id": "asreview-nelson_2002-20261002T122739000594Z",
+  "review": "Nelson_2002",
+  "tool": "asreview (external, simulate -m nb -q max -e tfidf, seed 42)",
+  "export_csv": "data\\asreview\\Nelson_2002.csv",
+  "project_file": "runs\\asreview-nelson2002\\project.asreview",
+  "n_never_queried": 87,
+  "started_at": "2026-10-02T12:27:39.005220+00:00"
+}

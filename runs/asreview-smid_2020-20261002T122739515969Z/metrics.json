@@ -1,0 +1,12 @@
+{
+  "review": "Smid_2020",
+  "tool": "asreview",
+  "recall_target": 0.95,
+  "n_ranked": 2627,
+  "n_included": 27,
+  "complete": true,
+  "cutoff": 490,
+  "recall_at_cutoff": 0.9629629629629629,
+  "tnr_at_recall": 0.8215384615384616,
+  "wss_at_recall": 0.7634754472782641
+}

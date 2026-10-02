@@ -1,0 +1,9 @@
+{
+  "run_id": "asreview-smid_2020-20261002T122739515969Z",
+  "review": "Smid_2020",
+  "tool": "asreview (external, simulate -m nb -q max -e tfidf, seed 42)",
+  "export_csv": "data\\asreview\\Smid_2020.csv",
+  "project_file": "runs\\asreview-smid2020\\project.asreview",
+  "n_never_queried": 1905,
+  "started_at": "2026-10-02T12:27:39.521662+00:00"
+}
