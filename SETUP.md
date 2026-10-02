@@ -26,7 +26,8 @@ profile — which matters when the repository is the evidence of the work.
 
 ## 2. Environment
 
-Python 3.11.
+Python 3.13 (the venv this project actually runs on; the pins in
+`requirements.txt` target it — see that file's header for why this isn't 3.11).
 
 ```bash
 python -m venv .venv
@@ -87,35 +88,55 @@ API key — exactly the mistake worth blocking.
 
 ## 5. Get the data
 
+One command loads only the six reviews in the evaluation subset —
+Radjenović_2013, Smid_2020, van_der_Waal_2022, Menon_2022, van_der_Valk_2021,
+Nelson_2002, 12,598 records in total. It downloads the SYNERGY v1.0 release
+(~450MB) and the pinned published eligibility criteria on first run:
+
 ```bash
-python -m synergy_dataset get
+python -m slr.services.ingest --config configs/ingest_all.yaml
 ```
 
-Then load only the six reviews in the evaluation subset: Radjenović_2013,
-Smid_2020, van_der_Waal_2022, Menon_2022, van_der_Valk_2021, Nelson_2002 —
-12,598 records in total. Do not load all twenty-six; they will get screened by
-accident and the budget will go with them.
+Do not load all twenty-six of SYNERGY's reviews; the other twenty will get
+screened by accident and the budget will go with them. `ingest_all.yaml`
+lists exactly the six in scope and nothing else.
+
+Verify it matches the recorded figures (`CLAUDE.md`, "Verified on real
+data"): 12,598 records across the six reviews, each review's own
+record/inclusion counts printed by the command above.
 
 ---
 
-## Optional: local GPU inference
+## 6. Run the system
 
-The Gemini path above is what a fresh clone needs. Local inference via Ollama
-is a separate, optional experiment arm — not required for the core pipeline
-to run on a second machine.
+```bash
+pytest -q                                           # should be all green
+python -m slr.eval.harness --config configs/smoke.yaml --require-clean   # mock provider, $0
+```
+
+Screen for real at $0 with a local model (install
+[Ollama](https://ollama.com) first):
 
 ```bash
 winget install Ollama.Ollama
 ollama pull qwen2.5:7b-instruct     # ~4.7GB, needs ~8GB VRAM
+python -m slr.eval.harness --config configs/week08_ollama.yaml --require-clean
 ```
 
-Then set `provider: ollama` and `model: qwen2.5:7b-instruct` in a config —
-see `configs/week08_ollama.yaml`. $0 per call; not counted against the $50
-API budget.
+Then bring up the dashboard:
+
+```bash
+uvicorn slr.api.app:app              # backend, localhost:8000
+streamlit run app/Home.py            # dashboard, localhost:8501 (needs the API running)
+```
+
+Gemini is a second provider (`provider: gemini` in a config) but spends real
+money against the $50 ceiling and needs a key — see section 3 above before
+adding one to a clone of a public repository.
 
 ---
 
-## 6. Working rhythm
+## 7. Working rhythm
 
 Commit small and often. Run artefacts carry a git SHA, which only works if you
 commit before running.
@@ -143,7 +164,7 @@ time and buys nothing when there is no one to merge with.
 
 ---
 
-## 7. Tag each week
+## 8. Tag each week
 
 At the end of each week, tag it. This makes "the state of the system at the
 week 10 exit test" something to check out rather than something to remember.

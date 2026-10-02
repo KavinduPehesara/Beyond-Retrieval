@@ -6,12 +6,21 @@
 #      a warning and every metrics file records it if they are still drafts.
 #   3. Commit, then run with --require-clean.
 #
-# Size: 2,993 records (2,627 + 366), one call each. At roughly 1,000 input and
-# 100 output tokens per call that is about $0.40 at the prices below; the
-# ceiling aborts at $2.00. Run it twice: the second run is served from cache
+# Size: 2,993 records (2,627 + 366), one call each. At roughly 1,000 input
+# and 100 output tokens per call that is about $1.65 at the prices below; the
+# ceiling aborts at $2.50. Run it twice: the second run is served from cache
 # at $0 and must produce an identical metrics.json.
 #
 # gemini-2.0-flash (the week 7 default) was shut down on 1 June 2026.
+# gemini-2.5-flash-lite returned 404 "no longer available to new users" on
+# this account (18 September 2026) even though Google's pricing page still
+# listed it -- most likely an account gate, not a global withdrawal.
+# gemini-3.5-flash-lite is the confirmed-working replacement, verified with
+# google-genai==0.3.0, at roughly 4x 2.5-flash-lite's price. Not yet run for
+# real: week 8's headline figures used the $0 local Ollama arm instead (see
+# CLAUDE.md, 18 September). Running this spends real money against the $50
+# ceiling -- needs an explicit go-ahead and a working GEMINI_API_KEY, not
+# just this config fix.
 
 name: week08_gemini_flash_lite
 
@@ -29,7 +38,7 @@ ranking:
 screening:
   enabled: true
   provider: gemini
-  model: gemini-2.5-flash-lite
+  model: gemini-3.5-flash-lite
   prompt_version: screen_v1
   temperature: 0.0
   max_output_tokens: 512
@@ -37,9 +46,9 @@ screening:
   seed: 42
 
 budget:
-  ceiling_usd: 2.00
-  usd_per_1m_input: 0.10   # Gemini 2.5 Flash-Lite, paid tier, September 2026
-  usd_per_1m_output: 0.40
+  ceiling_usd: 2.50
+  usd_per_1m_input: 0.30    # Gemini 3.5 Flash-Lite, paid tier, September 2026
+  usd_per_1m_output: 2.50
 
 db_path: data/slr.db
 runs_dir: runs

@@ -60,37 +60,36 @@ surface the research gaps authors state in their own papers?
 
 ## Status
 
-Week 8 of 15. The evaluation harness runs on real SYNERGY data and reproduces
-its metrics files exactly; the first screening run with a real model is next.
+Week 12 of 15 (hardening into week 13). All six reviews are ingested and
+screened; dense/hybrid/rerank retrieval, prompt and model-tier comparisons,
+the overridable mechanism, gap discovery, data extraction, a FastAPI backend
+and a 5-panel Streamlit dashboard are all built and verified against real
+data. Full detail, every run directory, and every negative result: `CLAUDE.md`.
 
 | Weeks | Deliverable | State |
 |---|---|---|
 | 1–6 | Literature review, proposal, architecture, scope lock | Done |
-| 7–8 | Walking skeleton, then the evaluation harness | Harness reproducible on real data; first model recall figures pending |
-| 9–10 | Retrieval and screening quality | |
-| 11 | Gap discovery; go / no-go checkpoint | |
-| 12–13 | Dashboard panels; usability evaluation | |
-| 14–15 | Final runs, analysis, submission | |
+| 7–8 | Walking skeleton, then the evaluation harness | Passed |
+| 9 | Dense retrieval (SPECTER2, FAISS, RRF fusion, reranking) | Passed |
+| 10 | Prompt variants, model tiers, overridable mechanism, agreement | Passed |
+| 11 | Gap discovery | Built, numbers ready (87.8% precision); go/no-go not yet minuted with the supervisor |
+| 12 | FastAPI backend, 5 Streamlit panels | Built and verified end-to-end; usability exit test (a second person, unassisted) not yet run |
+| 13 | Usability evaluation, hardening, reproduction script | In progress — ethics application for the human study not yet submitted |
+| 14–15 | Final baselines, ASReview comparison, report, submission | Not started |
 
-### First numbers — baselines
-
-Every record of each review ranked; true negative rate and work saved over
-sampling at 95% recall. BM25 queries are each review's published eligibility
-criteria. Full tables: [`reports/results.md`](reports/results.md).
-
-| Review | Records | Prevalence | Random TNR@95 | BM25 TNR@95 | BM25 WSS@95 |
-|---|---|---|---|---|---|
-| Smid_2020 | 2,627 | 1.0% | 0.029 | 0.568 | 0.513 |
-| Nelson_2002 | 366 | 21.9% | 0.066 | 0.080 | 0.024 |
-
-Random is a single seed (42). Both configurations reproduced byte-identical
-metrics files on a second run.
+Current numbers for every review (prevalence, verification rate, recall,
+reproducibility, gap precision/recall) live in `CLAUDE.md` and
+[`reports/results.md`](reports/results.md), generated from `runs/` rather
+than retyped here — a number copied into this file would go stale the next
+time a run updates it.
 
 ---
 
 ## Quick start
 
-Requires Python 3.11 (the pinned versions in `requirements.txt` target it).
+Requires Python 3.13 (the pinned versions in `requirements.txt` target it —
+see `SETUP.md` for the full, step-by-step first-time setup, including the
+public-repository secrets checklist).
 
 ```bash
 git clone https://github.com/KavinduPehesara/Beyond-Retrieval.git
@@ -104,12 +103,13 @@ pip install -r requirements.txt
 pytest -q
 ```
 
-Load the corpus. The first ingest downloads the SYNERGY v1.0 release (about
-450 MB, to `~/.synergy_dataset_source`, outside the repository) and the
-published eligibility criteria from a pinned commit:
+Load the corpus — all six evaluation-subset reviews in one command. The
+first run downloads the SYNERGY v1.0 release (about 450 MB, to
+`~/.synergy_dataset_source`, outside the repository) and the published
+eligibility criteria from a pinned commit:
 
 ```bash
-python -m slr.services.ingest --config configs/baseline_random.yaml
+python -m slr.services.ingest --config configs/ingest_all.yaml
 ```
 
 Run the baselines (no model calls, no cost) and the smoke test (mock provider,
@@ -121,19 +121,29 @@ python -m slr.eval.harness --config configs/baseline_bm25.yaml --require-clean
 python -m slr.eval.harness --config configs/smoke.yaml --require-clean
 ```
 
-Screen with Gemini — add `GEMINI_API_KEY` to `.env` first, after checking
-`git check-ignore -v .env`:
+Screen for real, at $0, with a local model — install
+[Ollama](https://ollama.com), pull `qwen2.5:7b-instruct`, then:
 
 ```bash
-copy .env.example .env          # Windows
-# cp .env.example .env          # macOS / Linux
-python -m slr.eval.harness --config configs/week08_gemini.yaml --require-clean
+python -m slr.eval.harness --config configs/week08_ollama.yaml --require-clean
 ```
+
+Screening with Gemini instead is supported (`provider: gemini` in a config)
+but costs real money against this project's $50 ceiling and needs
+`GEMINI_API_KEY` in `.env` — see `SETUP.md` section 3 before adding one to a
+clone of a public repository.
 
 Build the report tables from every run directory:
 
 ```bash
 python -m slr.eval.report_tables --runs runs --out reports
+```
+
+Bring up the dashboard (needs at least one review ingested and screened):
+
+```bash
+uvicorn slr.api.app:app              # backend, localhost:8000
+streamlit run app/Home.py            # dashboard, localhost:8501 -- needs the API running
 ```
 
 Each run writes `runs/<timestamp>-<config-hash>/`:

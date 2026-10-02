@@ -68,7 +68,7 @@ it surface the research gaps authors state in their own papers?
 
 ---
 
-## Current state — week 12 of 15
+## Current state — week 13 of 15
 
 Done: literature review, proposal (submitted), architecture, scope lock, the
 walking skeleton, the week 8 evaluation harness, the first baseline runs on
@@ -77,14 +77,18 @@ dense retrieval (SPECTER2 + FAISS, RRF fusion, cross-encoder rerank), week
 10's prompt variants, model tier comparison, the overridable mechanism, and
 genuine inter-run reproducibility, week 11's gap-discovery mechanism with 74
 rated statements across all six reviews (87.8% precision) — go/no-go
-decision not yet minuted with the supervisor — and week 12's FastAPI
+decision not yet minuted with the supervisor — week 12's FastAPI
 backend and 5 Streamlit panels, built and verified working end-to-end
 against real data, but not yet run through its actual exit test (a second
-person completing a query unassisted). Weeks 8, 9 and 10 exit tests
-passed; weeks 11 and 12 are both open pending those two events. Also done,
-outside the original schedule: a structured
-data-extraction feature and report, added at the supervisor's request (see
-21 September note below).
+person completing a query unassisted) — and week 13's hardening: the
+fresh-clone exit test actually run (not assumed), a reproduction script,
+the Gemini config fix, and week 14's ASReview baseline pulled forward on
+two reviews. Weeks 8, 9 and 10 exit tests passed; weeks 11 and 12 are both
+open pending two events outside code (a supervisor decision, a second
+person at the keyboard); week 13 is open pending the ethics-gated half of
+its own usability evaluation. Also done, outside the original schedule: a
+structured data-extraction feature and report, added at the supervisor's
+request (see 21 September note below).
 
 ```
 slr/
@@ -128,6 +132,10 @@ slr/
     gap_recall.py          blind-labelled recall estimate for gap discovery
     inter_run.py          genuine inter-run Gwet AC1 across repeated runs
     report_tables.py     run directories -> reports/results.{csv,md}
+    asreview_baseline.py   exports one review to ASReview's own CSV shape
+    asreview_report.py     turns a finished `asreview simulate` into the
+                         same ranking_metrics() figure every other
+                         strategy uses -- week 14, pulled forward
   api/
     app.py                 FastAPI routes -- reads a run directory or the
                          live tables, or calls a service function directly.
@@ -151,7 +159,7 @@ prompts/extract_v1.txt   extraction prompt: 4 fields, each with a quote or "not_
 prompts/gap_v1.txt       gap-discovery prompt: 1 field, "gap_stated" or "not_stated"
 configs/smoke.yaml       Nelson_2002, 50 records, mock provider, free
 configs/baseline_*.yaml  random and BM25 over Smid_2020 + Nelson_2002, free
-configs/week08_gemini.yaml  Smid_2020 + Nelson_2002, gemini-2.5-flash-lite (blocked, see below)
+configs/week08_gemini.yaml  Smid_2020 + Nelson_2002, gemini-3.5-flash-lite (priced 2 Oct, not run)
 configs/week08_ollama.yaml  same two reviews, local GPU via Ollama, qwen2.5:7b-instruct
 configs/extract_demo*.yaml  verified-includes per review, local Ollama, $0
 configs/valk2021_ollama.yaml  van_der_Valk_2021 screening, local Ollama, $0
@@ -163,8 +171,11 @@ configs/week10_repeat_nelson.yaml  cache_enabled: false, 5x for inter-run AC1
 configs/week10_full_subset.yaml  all 4 ingested reviews under one run_id
 configs/gap_demo_*.yaml  gap discovery per review, verified-includes, local Ollama, $0
 configs/remaining_reviews_ollama.yaml  Menon_2022 + van_der_Waal_2022 screening, local Ollama, $0
+configs/ingest_all.yaml  all six reviews, screening disabled -- the fresh-clone/reproduction path
 data/embeddings/         SPECTER2 vectors cached per review (gitignored)
-tests/                   202 tests
+data/asreview/           per-review CSV exports for the ASReview baseline (gitignored, SYNERGY text)
+scripts/reproduce.sh     venv -> pinned install -> pytest -> ingest -> smoke harness, one command
+tests/                   219 tests
 reports/results.{csv,md} generated from runs/
 ```
 
@@ -459,14 +470,15 @@ research tools should be checkable should not quietly rewrite its own numbers.
 
 **Not yet done:**
 
-- Never run against the real Gemini API for a reported figure — the 404
-  above blocked it; `configs/week08_gemini.yaml` needs a price/ceiling update
-  (currently priced for the now-blocked model) before it is run for real.
-- All six reviews are ingested and screened (Menon_2022 and van_der_Waal_2022
-  added 24 September, see week 11). Extraction has not been run on those two.
+- Never run against the real Gemini API for a reported figure. `configs/
+  week08_gemini.yaml` is fixed to the working `gemini-3.5-flash-lite` model
+  and its real price (2 October, see week 13) but running it still spends
+  real money against the $50 ceiling — needs an explicit go-ahead, not just
+  the config fix.
 - Ethics application for the usability study — not submitted. This is the only
-  item whose timing is outside the author's control. It gates week 13. (The
-  proposal, section 8.2, says approval is obtained in week 7.)
+  item whose timing is outside the author's control. It gates week 13's
+  human-subjects half. (The proposal, section 8.2, says approval is obtained
+  in week 7.)
 
 ---
 
@@ -885,11 +897,87 @@ fastapi/uvicorn/streamlit were pinned in `requirements.txt` since project
 setup but never installed; installed now at the pinned versions
 (0.115.5/0.32.1/1.40.2). 202 tests passing (was 192).
 
-## Next: close out week 11, then run the week 12 usability check
+## Week 13 — hardening, reproduction script, ASReview baseline
+
+**2 October 2026 — the fresh-clone exit test, actually run, not assumed.**
+"A fresh clone runs on a second machine" had never been tried: `SETUP.md`
+still said Python 3.11 (the venv has been 3.13 since week 9, see the
+decisions log) and its data step was `python -m synergy_dataset get` with
+no concrete ingest command. Fixed both docs, added `configs/
+ingest_all.yaml` (all six reviews, screening disabled, one command) and
+`scripts/reproduce.sh` (venv → pinned install → `pytest` → ingest → smoke
+harness, the exit test as a runnable script, not a paragraph of
+instructions to follow by hand). Then actually tried it: cloned the
+repository into an isolated directory with nothing carried over, built a
+new venv from zero, and ran the whole chain. Everything passed on the
+first real attempt: 215/215 tests, then the exact six-review record counts
+this file already reports (12,598 total), then a clean harness run writing
+its own run directory. Deleted the isolated clone afterward; nothing about
+it is kept.
+
+**Also fixed: `configs/week08_gemini.yaml` priced the now-blocked model.**
+It still assumed `gemini-2.5-flash-lite` at $0.10/$0.40 per 1M tokens — the
+18 September note already recorded that model as 404'd for this account
+and `gemini-3.5-flash-lite` as the verified-working replacement at roughly
+4x the price. The config now points at the real model with its real price
+($0.30/$2.50) and a ceiling raised to $2.50 to match (est. cost ~$1.65 for
+both reviews, up from the stale ~$0.40 estimate). Not run — that spends
+real money against the $50 ceiling and needs an explicit go-ahead, which
+this is not.
+
+**Week 14's ASReview baseline, pulled forward and run — the sharpest
+negative result for this project's own retrieval work so far.** ASReview
+is run as an external tool, per the standing decision: `slr/eval/
+asreview_baseline.py` exports one review to the plain CSV ASReview's own
+reader recognises natively (`title`/`abstract`/`label_included` are column
+names it already knows, because that's SYNERGY's own convention — no
+reimplementation, no reshaping), then `asreview simulate` (its own CLI,
+`-m nb -q max -e tfidf`, seed 42) runs its active-learning loop locally, $0.
+`slr/eval/asreview_report.py` turns the result into the *same*
+`ranking_metrics()` figure every BM25/dense/hybrid/rerank number in this
+file already uses — not a second formula that happens to share a name.
+
+One wrinkle, handled explicitly rather than glossed over: `--stop_if min`
+means ASReview stops the moment every relevant record is found, so records
+after that point were never ranked at all. The report script appends them
+afterward in their original dataset order. This is provably harmless to
+the figure: the 95%-recall cutoff `ranking_metrics` looks for always falls
+*before* the 100%-recall point where ASReview stopped, so nothing appended
+after that point can change which records are counted as found before the
+cutoff. Verified by construction, not assumed — `tests/test_asreview_report.py`
+checks the reassembly directly.
+
+| Review | Prev | Our best (TNR@95) | ASReview TNR@95 | ASReview WSS@95 |
+|---|---|---|---|---|
+| Nelson_2002 | 21.9% | 0.178 (dense) | **0.497** | 0.349 |
+| Smid_2020 | 1.0% | 0.757 (hybrid/rerank) | **0.822** | 0.763 |
+
+ASReview's active learner beats every ranking this project has built, on
+both reviews tried — unsurprising in hindsight (it sees true labels as it
+goes and retrains; every strategy here ranks once, from nothing, and never
+updates), but the *margin* is the actual finding: enormous on Nelson_2002
+(+0.319 over the best static ranking) and much smaller on Smid_2020
+(+0.065). The gap tracks how much labelled signal active learning has
+accumulated by the 95%-recall cutoff, which arrives far later, in absolute
+record count, on the higher-prevalence review — more positive examples
+seen, more room for the classifier to have actually learned something by
+then. Worth returning to in week 15's limitations section: this project's
+RQ1 is about trust in LLM-made decisions, not about beating a dedicated
+active-learning tool at ranking, but the comparison is honest to report
+either way (rule 7), and it's a legitimate reason a future version might
+add adaptive reranking rather than a single static pass.
+Only two of six reviews run so far — ASReview's simulation is cheap enough
+to run on the rest; not done only because of session time, not cost or
+difficulty.
+
+219 tests passing (was 215).
+
+## Next: close out week 11, run the week 12 usability check, submit ethics
 
 Immediate: minute the week 11 go/no-go decision with the supervisor using
 the precision and recall figures above, and find someone other than the
 author to sit down with Search & Screen and complete a query unassisted.
+Both need a real person, not more code, and neither can be done from here.
 
 ---
 
