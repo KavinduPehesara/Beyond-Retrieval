@@ -141,3 +141,21 @@ def test_ground_truth_never_reaches_the_extraction_prompt(conn):
     template = open("prompts/extract_v1.txt", encoding="utf-8").read()
     prompt = build_extract_prompt(template, title=row["title"], abstract=row["abstract"])
     assert "label_included" not in prompt
+
+
+def test_on_completion_sees_the_prompt_and_raw_completion_before_parsing(conn):
+    row = conn.execute("SELECT * FROM work WHERE work_id = 'W1'").fetchone()
+    provider = _FakeProvider(VALID_PAYLOAD)
+    meter = Meter(ceiling_usd=1.0, usd_per_1m_input=0.0, usd_per_1m_output=0.0)
+    seen = []
+
+    extract_record(
+        row, provider=provider, template=open("prompts/extract_v1.txt", encoding="utf-8").read(),
+        meter=meter, conn=conn, prompt_version="extract_v1",
+        temperature=0.0, max_tokens=512, seed=42, use_cache=False,
+        on_completion=lambda prompt, completion: seen.append((prompt, completion)),
+    )
+    assert len(seen) == 1
+    prompt, completion = seen[0]
+    assert "Hormone therapy in postmenopausal women" in prompt
+    assert json.loads(completion.text) == VALID_PAYLOAD  # the raw, unparsed response

@@ -130,3 +130,30 @@ def test_reconfigure_prevents_the_unicode_crash_a_real_title_caused(tmp_path):
         f.write("Efficacy of 17\u03b2-estradiol in postmenopausal women")  # must not raise
 
     assert "17" in path.read_text(encoding="utf-8")
+
+
+def test_raw_prompt_and_response_are_printed_by_default(conn, monkeypatch, capsys):
+    _patch_provider(monkeypatch, [
+        {"decision": "include", "confidence": 0.9, "evidence_span": "a randomised controlled trial of 100 patients"},
+        {
+            "study_design": {"value": "RCT", "evidence_span": "a randomised controlled trial of 100 patients"},
+            "sample_size": {"value": "100", "evidence_span": "a randomised controlled trial of 100 patients"},
+            "country": {"value": "Canada", "evidence_span": "of 100 patients in Canada"},
+            "key_finding": {"value": "Treatment X reduced symptom Y by 10 percent.", "evidence_span": "Treatment X reduced symptom Y by 10 percent."},
+        },
+        {"value": "not_stated", "evidence_span": ""},
+    ])
+    one_paper.run(conn, review="Nelson_2002", work_id="W1", use_cache=False, db_path=":memory:", prompts_dir=__import__("pathlib").Path("prompts"))
+    out = capsys.readouterr().out
+    assert "RAW -- prompt sent to the model" in out
+    assert "RAW -- model's response, unparsed" in out
+    assert "Include RCTs." in out  # the real criteria text, inside the printed prompt
+
+
+def test_hide_raw_suppresses_the_raw_exchange(conn, monkeypatch, capsys):
+    _patch_provider(monkeypatch, [
+        {"decision": "exclude", "confidence": 0.8, "evidence_span": "a randomised controlled trial of 100 patients"},
+    ])
+    one_paper.run(conn, review="Nelson_2002", work_id="W1", use_cache=False, db_path=":memory:", prompts_dir=__import__("pathlib").Path("prompts"), show_raw=False)
+    out = capsys.readouterr().out
+    assert "RAW --" not in out

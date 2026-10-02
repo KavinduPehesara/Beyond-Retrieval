@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -108,11 +109,15 @@ def extract_gap(
     max_tokens: int,
     seed: int | None = None,
     use_cache: bool = True,
+    on_completion: Callable[[str, Completion], None] | None = None,
 ) -> GapExtraction:
     """Look for a stated research gap in one record. Never raises for model failure.
 
     Does raise ``CacheMismatch`` when a cached response was produced by a
     different request -- same contract as ``screen_record``/``extract_record``.
+
+    ``on_completion``, if given, is called with the exact prompt and the raw
+    completion before any parsing -- see ``screen_record``.
     """
     prompt = build_gap_prompt(template, title=row["title"], abstract=row["abstract"])
     fingerprint = request_fingerprint(
@@ -172,6 +177,9 @@ def extract_gap(
                     datetime.now(timezone.utc).isoformat(),
                 ),
             )
+
+    if on_completion:
+        on_completion(prompt, completion)
 
     cost = meter.record(completion)
 

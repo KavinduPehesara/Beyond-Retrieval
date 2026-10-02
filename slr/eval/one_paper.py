@@ -6,10 +6,16 @@ reported figure, so it doesn't need --require-clean. It still writes real
 rows under a real run_id, so the result is inspectable afterward the same
 way any other run is.
 
+By default this prints the raw, unprocessed model exchange at every stage
+-- the exact prompt sent and the exact text the model returned, before any
+parsing or verification -- followed by what the system made of it. Pass
+--hide-raw for just the parsed result.
+
 Usage:
     python -m slr.eval.one_paper --review Nelson_2002 --work-id <id>
     python -m slr.eval.one_paper --review Nelson_2002 --random
     python -m slr.eval.one_paper --review Nelson_2002 --random --no-cache
+    python -m slr.eval.one_paper --review Nelson_2002 --random --no-cache --hide-raw
 """
 
 from __future__ import annotations
@@ -47,6 +53,22 @@ def _rule(char: str = "-", width: int = 72) -> str:
     return char * width
 
 
+def _print_raw(prompt: str, completion) -> None:
+    """The unprocessed model exchange: exactly what was sent, exactly what
+    came back, before any parsing or verification touches it."""
+    print(_rule("."))
+    print("RAW -- prompt sent to the model")
+    print(_rule("."))
+    print(prompt.strip())
+    print()
+    print(_rule("."))
+    print("RAW -- model's response, unparsed")
+    print(_rule("."))
+    print(completion.text.strip())
+    print(_rule("."))
+    print()
+
+
 def _pick_work_id(conn, review: str, work_id: str | None, pick_random: bool) -> str:
     if work_id:
         return work_id
@@ -58,7 +80,7 @@ def _pick_work_id(conn, review: str, work_id: str | None, pick_random: bool) -> 
     return rows[0]["work_id"]
 
 
-def run(conn, *, review: str, work_id: str, use_cache: bool, db_path: str, prompts_dir: Path) -> str:
+def run(conn, *, review: str, work_id: str, use_cache: bool, db_path: str, prompts_dir: Path, show_raw: bool = True) -> str:
     row = conn.execute("SELECT * FROM work WHERE review = ? AND work_id = ?", (review, work_id)).fetchone()
     if row is None:
         raise SystemExit(f"{review}/{work_id} not found")
@@ -92,6 +114,7 @@ def run(conn, *, review: str, work_id: str, use_cache: bool, db_path: str, promp
         decision = screen_record(
             row, provider=provider, template=template, criteria=criteria, meter=meter, conn=conn,
             prompt_version="screen_v1", temperature=0.0, max_tokens=512, seed=42, use_cache=use_cache,
+            on_completion=_print_raw if show_raw else None,
         )
     except CacheMismatch as exc:
         raise SystemExit(f"error: {exc}") from exc
@@ -119,6 +142,7 @@ def run(conn, *, review: str, work_id: str, use_cache: bool, db_path: str, promp
     fields = extract_record(
         row, provider=provider, template=ext_template, meter=meter, conn=conn,
         prompt_version="extract_v1", temperature=0.0, max_tokens=512, seed=42, use_cache=use_cache,
+        on_completion=_print_raw if show_raw else None,
     )
     for f in fields:
         persist_extraction(conn, run_id, run_id, f)
@@ -138,6 +162,7 @@ def run(conn, *, review: str, work_id: str, use_cache: bool, db_path: str, promp
     gap = extract_gap(
         row, provider=provider, template=gap_template, meter=meter, conn=conn,
         prompt_version="gap_v1", temperature=0.0, max_tokens=512, seed=42, use_cache=use_cache,
+        on_completion=_print_raw if show_raw else None,
     )
     persist_gap(conn, run_id, run_id, gap)
     conn.commit()
@@ -161,6 +186,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--work-id", default=None, help="A specific record. Default: the first record in the review.")
     parser.add_argument("--random", action="store_true", help="Pick a random record instead of the first.")
     parser.add_argument("--no-cache", action="store_true", help="Bypass the cache -- every call is a genuine live request.")
+    parser.add_argument("--hide-raw", action="store_true", help="Don't print the raw prompt/response -- just the parsed result.")
     parser.add_argument("--db", default="data/slr.db")
     parser.add_argument("--prompts-dir", default="prompts")
     args = parser.parse_args(argv)
@@ -170,7 +196,7 @@ def main(argv: list[str] | None = None) -> int:
         work_id = _pick_work_id(conn, args.review, args.work_id, args.random)
         run(
             conn, review=args.review, work_id=work_id, use_cache=not args.no_cache,
-            db_path=args.db, prompts_dir=Path(args.prompts_dir),
+            db_path=args.db, prompts_dir=Path(args.prompts_dir), show_raw=not args.hide_raw,
         )
     finally:
         conn.close()

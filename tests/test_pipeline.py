@@ -270,3 +270,37 @@ def test_build_provider_dispatches_ollama():
 def test_build_provider_rejects_unknown_name():
     with pytest.raises(ValueError):
         build_provider("not-a-provider", "some-model")
+
+
+# --------------------------------------------------------------------------
+# on_completion -- the raw prompt/response hook, for showing the unprocessed
+# model exchange rather than the parsed decision
+# --------------------------------------------------------------------------
+
+
+def test_on_completion_sees_the_prompt_and_raw_completion_before_parsing(conn):
+    row = conn.execute("SELECT * FROM work WHERE work_id = 'W1'").fetchone()
+    seen = []
+    screen_record(row, **_screen_kwargs(conn, on_completion=lambda prompt, completion: seen.append((prompt, completion))))
+    assert len(seen) == 1
+    prompt, completion = seen[0]
+    assert "Bayesian estimation in small samples" in prompt  # the real title, not a placeholder
+    assert isinstance(completion, Completion)
+    assert completion.text  # the raw, unparsed JSON text
+
+
+def test_on_completion_is_not_called_on_a_provider_error(conn, monkeypatch):
+    row = conn.execute("SELECT * FROM work WHERE work_id = 'W1'").fetchone()
+
+    class _BrokenProvider:
+        name = "broken"
+        model = "broken-1"
+
+        def complete(self, *a, **k):
+            raise RuntimeError("the model is unreachable")
+
+    seen = []
+    kwargs = _screen_kwargs(conn, provider=_BrokenProvider(), on_completion=lambda p, c: seen.append((p, c)))
+    decision = screen_record(row, **kwargs)
+    assert decision.decision == "error"
+    assert seen == []

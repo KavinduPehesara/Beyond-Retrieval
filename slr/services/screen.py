@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -89,11 +90,16 @@ def screen_record(
     max_tokens: int,
     seed: int | None = None,
     use_cache: bool = True,
+    on_completion: Callable[[str, Completion], None] | None = None,
 ) -> Decision:
     """Screen one record. Never raises for model failure — records it.
 
     Does raise ``CacheMismatch`` when a cached response was produced by a
     different request: that is a fault in the experiment, not in the model.
+
+    ``on_completion``, if given, is called with the exact prompt and the raw
+    completion (cache or live) before any parsing or verification -- for
+    showing the unprocessed model exchange, not a reporting hook.
     """
 
     prompt = build_prompt(
@@ -166,6 +172,9 @@ def screen_record(
                     datetime.now(timezone.utc).isoformat(),
                 ),
             )
+
+    if on_completion:
+        on_completion(prompt, completion)
 
     cost = meter.record(completion)
 

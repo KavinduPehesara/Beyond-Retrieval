@@ -161,3 +161,20 @@ def test_precision_is_none_when_nothing_rated_yet(conn):
     assert summary.n_gap_stated == 1
     assert summary.n_rated == 0
     assert summary.precision is None
+
+
+def test_on_completion_sees_the_prompt_and_raw_completion_before_parsing(conn):
+    provider = _FakeProvider({"value": "gap_stated", "evidence_span": "remain an important direction for future research"})
+    seen = []
+    row = conn.execute("SELECT * FROM work WHERE work_id = 'W1'").fetchone()
+    meter = Meter(ceiling_usd=1.0, usd_per_1m_input=0.0, usd_per_1m_output=0.0)
+    extract_gap(
+        row, provider=provider, template=Path("prompts/gap_v1.txt").read_text(encoding="utf-8"),
+        meter=meter, conn=conn, prompt_version="gap_v1",
+        temperature=0.0, max_tokens=512, seed=42, use_cache=False,
+        on_completion=lambda prompt, completion: seen.append((prompt, completion)),
+    )
+    assert len(seen) == 1
+    prompt, completion = seen[0]
+    assert "Hormone therapy in postmenopausal women" in prompt
+    assert "remain an important direction" in completion.text
