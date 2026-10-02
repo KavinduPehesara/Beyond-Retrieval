@@ -17,6 +17,7 @@ import json
 import sqlite3
 from datetime import datetime, timezone
 
+import httpx
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -24,6 +25,8 @@ from slr.adapters.llm import BudgetExceeded, CacheMismatch, Meter, build_provide
 from slr.api.deps import DB_PATH, PROMPTS_DIR, RUNS_DIR, get_conn
 from slr.api.runs_index import latest_extract_run, latest_gap_run, latest_screen_run
 from slr.api.schemas import (
+    DiscoverPaperOut,
+    DiscoverRequest,
     FieldValue,
     GapStatementOut,
     GapValue,
@@ -41,6 +44,7 @@ from slr.api.schemas import (
 from slr.eval.metrics import load_labels
 from slr.services import criteria as criteria_service
 from slr.services import retrieve
+from slr.services.discover import run_discover
 from slr.services.override import ModelDecision, model_decision, override_summary, record_override
 from slr.services.screen import load_prompt_template, persist as persist_screening, screen_record
 
@@ -405,3 +409,72 @@ def query_screen(req: ScreenRequest, conn: sqlite3.Connection = Depends(get_conn
         )
     conn.commit()
     return results
+
+
+# --------------------------------------------------------------------------
+# Discover: live OpenAlex search, then the same verified extraction and
+# gap-discovery pipeline the rest of this project runs on its ingested
+# corpus. Not part of the evaluation corpus -- see discover.py's docstring.
+# --------------------------------------------------------------------------
+
+
+def _field_value_from_extraction(f) -> FieldValue:
+    if f.verify_note == "not_stated":
+        return FieldValue(status="not_stated")
+    if f.span_verified:
+        return FieldValue(status="verified", value=f.value, quote=f.evidence_span, note=f.verify_note)
+    return FieldValue(status="unverified", quote=f.evidence_span, note=f.verify_note)
+
+
+def _gap_value_from_extraction(g) -> GapValue:
+    if g.value not in ("gap_stated", "not_stated"):
+        return GapValue(status="failed", note=g.verify_note)
+    if g.value == "not_stated":
+        return GapValue(status="not_stated")
+    return GapValue(status="gap_stated", quote=g.evidence_span)
+
+
+@app.post("/discover", response_model=list[DiscoverPaperOut])
+def discover(req: DiscoverRequest, conn: sqlite3.Connection = Depends(get_conn)):
+    provider = build_provider("ollama", "qwen2.5:7b-instruct")
+    extract_template = load_prompt_template(PROMPTS_DIR / "extract_v1.txt")
+    gap_template = load_prompt_template(PROMPTS_DIR / "gap_v1.txt")
+    meter = Meter(ceiling_usd=0.0, usd_per_1m_input=0.0, usd_per_1m_output=0.0)
+
+    try:
+        results = run_discover(
+            conn,
+            req.query,
+            provider=provider,
+            extract_template=extract_template,
+            gap_template=gap_template,
+            meter=meter,
+            limit=req.limit,
+            use_cache=True,
+        )
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except CacheMismatch as exc:
+        raise HTTPException(409, str(exc)) from exc
+    except BudgetExceeded as exc:
+        raise HTTPException(402, str(exc)) from exc
+    except httpx.HTTPError as exc:
+        raise HTTPException(502, f"OpenAlex request failed: {exc}") from exc
+
+    out = []
+    for paper in results:
+        by_name = {f.field_name: f for f in paper.fields}
+        out.append(
+            DiscoverPaperOut(
+                work_id=paper.work_id,
+                title=paper.title,
+                year=paper.year,
+                source_url=paper.source_url,
+                study_design=_field_value_from_extraction(by_name["study_design"]),
+                sample_size=_field_value_from_extraction(by_name["sample_size"]),
+                country=_field_value_from_extraction(by_name["country"]),
+                key_finding=_field_value_from_extraction(by_name["key_finding"]),
+                gap=_gap_value_from_extraction(paper.gap),
+            )
+        )
+    return out

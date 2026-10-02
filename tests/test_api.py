@@ -242,3 +242,46 @@ def test_query_screen_rejects_more_than_the_cap(client):
     ids = [f"W{i}" for i in range(20)]
     resp = client.post("/query/screen", json={"review": "R1", "work_ids": ids})
     assert resp.status_code == 422  # pydantic max_length on the request body
+
+
+def test_discover_rejects_an_empty_query(client):
+    resp = client.post("/discover", json={"query": ""})
+    assert resp.status_code == 422  # pydantic min_length on the request body
+
+
+def test_discover_rejects_a_limit_over_the_cap(client):
+    resp = client.post("/discover", json={"query": "something", "limit": 50})
+    assert resp.status_code == 422
+
+
+def test_discover_returns_papers_with_extraction_and_gap_results(client, monkeypatch):
+    from slr.services.extract import FieldExtraction
+    from slr.services.gap import GapExtraction
+    from slr.services.discover import DiscoverPaper
+
+    def fake_run_discover(conn, query, **kwargs):
+        assert query == "fault prediction"
+        fields = [
+            FieldExtraction(
+                work_id="W1", review="_discover", field_name=name, value="v", evidence_span="a genuinely long quote here",
+                span_verified=True, verify_note="exact_after_normalisation", from_cache=False,
+                tokens_in=1, tokens_out=1, cost_usd=0.0, latency_ms=1,
+            )
+            for name in ("study_design", "sample_size", "country", "key_finding")
+        ]
+        gap = GapExtraction(
+            work_id="W1", review="_discover", value="not_stated", evidence_span=None,
+            span_verified=False, verify_note="not_stated", from_cache=False,
+            tokens_in=1, tokens_out=1, cost_usd=0.0, latency_ms=1,
+        )
+        return [DiscoverPaper(work_id="W1", title="A paper", year=2020, source_url="https://x", fields=fields, gap=gap)]
+
+    monkeypatch.setattr(app_module, "run_discover", fake_run_discover)
+
+    resp = client.post("/discover", json={"query": "fault prediction", "limit": 3})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body) == 1
+    assert body[0]["work_id"] == "W1"
+    assert body[0]["study_design"]["status"] == "verified"
+    assert body[0]["gap"]["status"] == "not_stated"

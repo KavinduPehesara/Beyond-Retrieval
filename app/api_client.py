@@ -100,3 +100,13 @@ def query_screen(review: str, work_ids: list[str], model: str, prompt_version: s
     )
     r.raise_for_status()
     return r.json()
+
+
+def discover(query: str, limit: int = 5) -> list[dict]:
+    r = _client().post(
+        "/discover",
+        json={"query": query, "limit": limit},
+        timeout=600.0,  # live OpenAlex search + a live model call per result
+    )
+    r.raise_for_status()
+    return r.json()

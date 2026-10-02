@@ -75,6 +75,16 @@ EXTRACTION_SUMMARY = {
     },
 }
 
+_VERIFIED = {"status": "verified", "value": "v", "quote": "a genuinely long quote here", "note": None}
+DISCOVER_RESULTS = [
+    {
+        "work_id": "https://openalex.org/W1", "title": "A paper found on the open web",
+        "year": 2021, "source_url": "https://doi.org/10.1/1",
+        "study_design": _VERIFIED, "sample_size": _VERIFIED, "country": _VERIFIED, "key_finding": _VERIFIED,
+        "gap": {"status": "gap_stated", "quote": "remains an open question", "rating": None, "kind": None, "note": None},
+    },
+]
+
 
 @pytest.fixture(autouse=True)
 def _patched(monkeypatch):
@@ -100,6 +110,7 @@ def _patched(monkeypatch):
         "work_id": work_id, "model_decision": "unverified", "model_verified": False,
         "human_decision": decision, "changed": True,
     })
+    monkeypatch.setattr(api_client, "discover", lambda query, limit=5: DISCOVER_RESULTS)
 
 
 def _run(path):
@@ -159,6 +170,17 @@ def test_gap_discovery_page_shows_precision():
     assert not at.exception
     precision = next(m for m in at.metric if m.label == "Precision")
     assert precision.value == "50%"  # 1 valid of 2 rated in the fixture
+
+
+def test_discover_page_searches_and_shows_results():
+    at = _run("pages/6_Discover.py")
+    text_inputs = [t for t in at.text_input if t.label == "Search text"]
+    text_inputs[0].set_value("fault prediction").run()
+    submit = [b for b in at.button if b.label == "Search"][0]
+    submit.click().run()
+    assert not at.exception
+    assert any("A paper found on the open web" in m.value for m in at.markdown)
+    assert any("remains an open question" in m.value for m in at.markdown)
 
 
 def test_trust_dashboard_scales_percentages_before_display():

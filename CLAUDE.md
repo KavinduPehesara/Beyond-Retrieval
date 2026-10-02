@@ -109,6 +109,9 @@ slr/
     verify.py            THE span verifier. RQ1 lives here. Shared by all three.
     override.py           human_decision reads/writes. Blind to label_included,
                          same boundary screen.py keeps.
+    discover.py             OpenAlex live search -> extract.py/gap.py, unchanged.
+                         review="_discover", never written to `work` --
+                         outside the evaluation corpus by construction.
   adapters/
     llm.py                Mock + Gemini + Ollama behind one Provider protocol,
                          response cache with request fingerprint (now includes
@@ -144,7 +147,7 @@ slr/
     deps.py                 DB_PATH/RUNS_DIR/PROMPTS_DIR, get_conn
     schemas.py              pydantic request/response models
 app/
-  Home.py                 review table, links to the 5 panels
+  Home.py                 review table, links to the 6 panels
   api_client.py            thin httpx wrapper, one function per route
   pages/1_Search_and_Screen.py    rank + live-screen up to 15 -- the query
                                  exit test runs here
@@ -152,6 +155,8 @@ app/
   pages/3_Extraction.py
   pages/4_Gap_Discovery.py
   pages/5_Trust_Dashboard.py
+  pages/6_Discover.py             open-web search (OpenAlex) outside the
+                                 ingested corpus -- added 3 October, see below
 prompts/screen_v1.txt    prompt template, versioned by filename
 prompts/screen_v2.txt    step-by-step + one-sentence reasoning (week 10, underperformed v1)
 prompts/screen_v3.txt    terse, minimal rules (week 10, underperformed v1)
@@ -998,6 +1003,37 @@ active-learning tool at ranking, but the comparison is honest to report
 reranking rather than a single static pass.
 
 219 tests passing (was 215).
+
+**3 October 2026 — Discover, added outside the schedule, at the user's
+request.** The five built panels only ever search the six ingested
+reviews; asked directly, that's a real gap between what a reviewer expects
+a "literature search" tool to do and what's built. Added a sixth panel
+that searches the open web (OpenAlex, free, keyless, CC0 — unlike
+SYNERGY, its abstracts are fine to show live) and runs every result
+through the *same* ask → validate → verify extraction and gap-discovery
+pipeline as the rest of the project, unchanged: `extract_record`/
+`extract_gap` only need a title and an abstract, and don't care where one
+came from.
+
+Deliberately kept outside the evaluation corpus, the same discipline as
+everywhere else in this project: discovered records carry
+`review="_discover"` (never a real review name), are never written to the
+`work` table, and the one route that calls it, `POST /discover`, follows
+`POST /query/screen`'s own precedent of being an interactive feature, not
+a reported figure. Screening/inclusion decisions don't apply here — there's
+no published eligibility criteria for an ad-hoc query — so Discover only
+extracts and gap-checks, it doesn't include/exclude.
+
+One real constraint surfaced building it: OpenAlex only has a
+redistributable abstract for roughly half of what it indexes (publisher
+licensing withholds the rest); `search_openalex` fetches extra results and
+filters to ones with an abstract, rather than silently handing extraction
+nothing to work with. Verified live, not just against mocks: a real query
+("hormone therapy cardiovascular risk") returned two real, previously-
+unseen papers — one fully verified (cohort study, 4,958 participants, its
+key finding quoted verbatim), one `schema_validation_failed` on every
+field, the same honest failure mode already documented for the ingested
+corpus, not a new bug. 230 tests passing (was 219).
 
 ## Next: close out week 11, run the week 12 usability check, submit ethics
 

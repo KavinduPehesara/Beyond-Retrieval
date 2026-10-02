@@ -1,10 +1,12 @@
 """Beyond Retrieval -- dashboard entry point.
 
-Five panels, one job each: run a query, review and override decisions,
-inspect extracted data, inspect discovered gaps, and see the RQ1 trust
-numbers together. Every number on every panel comes from the API, which in
-turn reads a run directory or the live database -- nothing here computes a
-figure of its own.
+Six panels: run a query, review and override decisions, inspect extracted
+data, inspect discovered gaps, see the RQ1 trust numbers together, and
+search the open web for papers outside the six ingested reviews. Every
+number on every panel comes from the API, which in turn reads a run
+directory or the live database -- nothing here computes a figure of its
+own. Discover is the one exception that isn't a reported figure at all --
+see its own page for why.
 """
 
 from __future__ import annotations
@@ -71,7 +73,9 @@ with p2:
     st.markdown(
         "**Gap Discovery** -- the research-gap statements the model found, with the rating on each.\n\n"
         "**Trust Dashboard** -- the RQ1 property table (verifiable, accurate, reproducible, "
-        "overridable) with a live number per review, next to what's a one-off recorded finding."
+        "overridable) with a live number per review, next to what's a one-off recorded finding.\n\n"
+        "**Discover** -- search the open web (OpenAlex) for any topic, not just the six ingested "
+        "reviews, and extract + gap-check whatever comes back. Not part of the evaluation corpus."
     )
 
 st.divider()

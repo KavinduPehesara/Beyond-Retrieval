@@ -123,3 +123,20 @@ class GapStatementOut(BaseModel):
     quote: str | None
     rating: str | None
     kind: str | None
+
+
+class DiscoverRequest(BaseModel):
+    query: str = Field(min_length=1)
+    limit: int = Field(default=5, ge=1, le=10)
+
+
+class DiscoverPaperOut(BaseModel):
+    work_id: str
+    title: str | None
+    year: int | None
+    source_url: str | None
+    study_design: FieldValue
+    sample_size: FieldValue
+    country: FieldValue
+    key_finding: FieldValue
+    gap: GapValue
