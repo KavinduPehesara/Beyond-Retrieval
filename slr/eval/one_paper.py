@@ -18,6 +18,16 @@ import argparse
 import random
 import sys
 from datetime import datetime, timezone
+
+# Windows' console defaults stdout/stderr to the system codepage (cp1252),
+# not UTF-8. Paper titles and abstracts routinely carry characters cp1252
+# can't encode (17β-estradiol, en-dashes, accented author names) -- a
+# bare print() on one of those crashes the whole run. reconfigure() is a
+# no-op on streams that don't support it (e.g. when stdout is piped under
+# some runners), so this is safe everywhere, not just Windows.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
 from pathlib import Path
 
 from slr.adapters.llm import BudgetExceeded, CacheMismatch, Meter, build_provider

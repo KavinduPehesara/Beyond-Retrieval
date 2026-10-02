@@ -110,3 +110,23 @@ def test_pick_work_id_honours_an_explicit_id(conn):
 def test_unknown_review_raises_a_clear_error(conn):
     with pytest.raises(SystemExit, match="ingested"):
         one_paper._pick_work_id(conn, "NoSuchReview", None, pick_random=False)
+
+
+def test_reconfigure_prevents_the_unicode_crash_a_real_title_caused(tmp_path):
+    """17\u03b2-estradiol crashed one_paper.py on Windows (cp1252 console,
+    default errors='strict') the first time it hit a title with a Greek
+    letter. one_paper.py reconfigures stdout/stderr to UTF-8 with
+    errors='replace' at import time; this checks that technique actually
+    prevents the crash, on a stream opened the same restrictive way the
+    real console was.
+    """
+    path = tmp_path / "console.txt"
+    with open(path, "w", encoding="cp1252") as f:
+        with pytest.raises(UnicodeEncodeError):
+            f.write("Efficacy of 17\u03b2-estradiol in postmenopausal women")
+
+    with open(path, "w", encoding="cp1252") as f:
+        f.reconfigure(encoding="utf-8", errors="replace")
+        f.write("Efficacy of 17\u03b2-estradiol in postmenopausal women")  # must not raise
+
+    assert "17" in path.read_text(encoding="utf-8")
