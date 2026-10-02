@@ -1,0 +1,9 @@
+{
+  "run_id": "asreview-van_der_valk_2021-20261002T123310657233Z",
+  "review": "van_der_Valk_2021",
+  "tool": "asreview (external, simulate -m nb -q max -e tfidf, seed 42)",
+  "export_csv": "data\\asreview\\van_der_Valk_2021.csv",
+  "project_file": "runs\\asreview-valk2021\\project.asreview",
+  "n_never_queried": 88,
+  "started_at": "2026-10-02T12:33:10.661627+00:00"
+}

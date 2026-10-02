@@ -1,0 +1,12 @@
+{
+  "review": "Menon_2022",
+  "tool": "asreview",
+  "recall_target": 0.95,
+  "n_ranked": 975,
+  "n_included": 74,
+  "complete": true,
+  "cutoff": 321,
+  "recall_at_cutoff": 0.9594594594594594,
+  "tnr_at_recall": 0.7225305216426193,
+  "wss_at_recall": 0.6207692307692307
+}

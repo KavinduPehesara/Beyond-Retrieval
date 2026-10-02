@@ -947,28 +947,55 @@ after that point can change which records are counted as found before the
 cutoff. Verified by construction, not assumed — `tests/test_asreview_report.py`
 checks the reassembly directly.
 
-| Review | Prev | Our best (TNR@95) | ASReview TNR@95 | ASReview WSS@95 |
+**2 October 2026, completed — all six reviews, not just two.** Hit one more
+real bug extending to the rest: `asreview simulate` crashed outright on
+Menon_2022 with `UnicodeEncodeError` printing its "prior knowledge" preview
+— the exact same Windows cp1252-console bug `one_paper.py` was fixed for in
+week 12, this time inside ASReview's own CLI, not this project's code.
+Worked around with `PYTHONIOENCODING=utf-8` on the subprocess rather than
+patching a third-party package; no code change needed, nothing to upstream
+from here. Same benign tmp-directory `PermissionError` as Nelson_2002/
+Smid_2020 on every run (ASReview trying to delete its own open sqlite
+handle on Windows after finishing) — cosmetic, the project file is already
+written in full by that point, confirmed by reading it back successfully
+every time.
+
+| Review | Prev | Our best ranking (TNR@95) | ASReview TNR@95 | ASReview WSS@95 |
 |---|---|---|---|---|
-| Nelson_2002 | 21.9% | 0.178 (dense) | **0.497** | 0.349 |
+| Radjenovic_2013 | 0.8% | not run (see below) | 0.947 | 0.890 |
 | Smid_2020 | 1.0% | 0.757 (hybrid/rerank) | **0.822** | 0.763 |
+| van_der_Waal_2022 | 1.7% | not run (see below) | 0.813 | 0.750 |
+| Menon_2022 | 7.6% | not run (see below) | 0.723 | 0.621 |
+| van_der_Valk_2021 | 12.3% | 0.181 (dense) | **0.500** | 0.394 |
+| Nelson_2002 | 21.9% | 0.178 (dense) | **0.497** | 0.349 |
+
+"Our best ranking" is only filled in for the three reviews week 9 built
+dense/hybrid/rerank for — Radjenovic_2013, Menon_2022 and van_der_Waal_2022
+never got that treatment (week 9's dense retrieval exit test only needed
+three reviews to clear, and the schedule moved on). Their screening-
+confidence ordering has its own TNR@r in the week 8/11 tables, but that's a
+different ranking mechanism (an LLM's confidence, not a retrieval score)
+and mixing the two in one column would compare things that aren't the same
+kind of number — left blank rather than filled with something misleading.
 
 ASReview's active learner beats every ranking this project has built, on
-both reviews tried — unsurprising in hindsight (it sees true labels as it
-goes and retrains; every strategy here ranks once, from nothing, and never
-updates), but the *margin* is the actual finding: enormous on Nelson_2002
-(+0.319 over the best static ranking) and much smaller on Smid_2020
-(+0.065). The gap tracks how much labelled signal active learning has
-accumulated by the 95%-recall cutoff, which arrives far later, in absolute
-record count, on the higher-prevalence review — more positive examples
-seen, more room for the classifier to have actually learned something by
-then. Worth returning to in week 15's limitations section: this project's
-RQ1 is about trust in LLM-made decisions, not about beating a dedicated
+all three reviews where a comparison is possible — unsurprising in
+hindsight (it sees true labels as it goes and retrains; every strategy
+here ranks once, from nothing, and never updates) — and the pattern in the
+*margin* holds up now with a third data point, not just two: tiny on
+Smid_2020 (+0.065, the lowest-prevalence review of the three), then
+roughly the same large margin on both van_der_Valk_2021 (+0.319) and
+Nelson_2002 (+0.319) despite their prevalence differing by almost 10
+points. Reads as a floor effect more than a straight line with prevalence:
+below some threshold of positive examples the active learner hasn't
+learned enough to pull ahead by much; above it, the margin is large and
+roughly flat. Three points is not enough to claim the shape of that curve,
+only that it isn't simply "margin grows with prevalence." Worth returning
+to in week 15's limitations section either way: this project's RQ1 is
+about trust in LLM-made decisions, not about beating a dedicated
 active-learning tool at ranking, but the comparison is honest to report
-either way (rule 7), and it's a legitimate reason a future version might
-add adaptive reranking rather than a single static pass.
-Only two of six reviews run so far — ASReview's simulation is cheap enough
-to run on the rest; not done only because of session time, not cost or
-difficulty.
+(rule 7), and it's a legitimate reason a future version might add adaptive
+reranking rather than a single static pass.
 
 219 tests passing (was 215).
 

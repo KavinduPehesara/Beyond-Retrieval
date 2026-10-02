@@ -1,0 +1,12 @@
+{
+  "review": "Radjenovic_2013",
+  "tool": "asreview",
+  "recall_target": 0.95,
+  "n_ranked": 5935,
+  "n_included": 48,
+  "complete": true,
+  "cutoff": 356,
+  "recall_at_cutoff": 0.9583333333333334,
+  "tnr_at_recall": 0.9473416001358926,
+  "wss_at_recall": 0.890016849199663
+}

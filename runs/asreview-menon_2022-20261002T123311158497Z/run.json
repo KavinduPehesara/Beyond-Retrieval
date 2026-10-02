@@ -1,0 +1,9 @@
+{
+  "run_id": "asreview-menon_2022-20261002T123311158497Z",
+  "review": "Menon_2022",
+  "tool": "asreview (external, simulate -m nb -q max -e tfidf, seed 42)",
+  "export_csv": "data\\asreview\\Menon_2022.csv",
+  "project_file": "runs\\asreview-menon2022\\project.asreview",
+  "n_never_queried": 59,
+  "started_at": "2026-10-02T12:33:11.163885+00:00"
+}

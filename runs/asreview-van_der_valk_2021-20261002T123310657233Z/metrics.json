@@ -1,0 +1,12 @@
+{
+  "review": "van_der_Valk_2021",
+  "tool": "asreview",
+  "recall_target": 0.95,
+  "n_ranked": 725,
+  "n_included": 89,
+  "complete": true,
+  "cutoff": 403,
+  "recall_at_cutoff": 0.9550561797752809,
+  "tnr_at_recall": 0.5,
+  "wss_at_recall": 0.3941379310344827
+}

@@ -1,0 +1,12 @@
+{
+  "review": "van_der_Waal_2022",
+  "tool": "asreview",
+  "recall_target": 0.95,
+  "n_ranked": 1970,
+  "n_included": 33,
+  "complete": true,
+  "cutoff": 394,
+  "recall_at_cutoff": 0.9696969696969697,
+  "tnr_at_recall": 0.8131130614352091,
+  "wss_at_recall": 0.75
+}
