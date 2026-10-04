@@ -1110,6 +1110,12 @@ over-read.
 end against the real six-review database — all 8 routes, 35 Vega-Lite specs
 validated on real data, and Streamlit's own `AppTest` driving every panel.
 
+**Rendering confirmed by the author, by hand, repeatedly** — `uvicorn` +
+`streamlit` against the live database, all six panels, multiple passes. Worth
+recording separately: a validated Vega-Lite spec proves the chart is
+well-formed, not that it is legible or that the axes say what they should.
+That second claim needs a person looking at it, and now has one.
+
 ## Next: close out week 11, run the week 12 usability check, submit ethics
 
 Immediate: minute the week 11 go/no-go decision with the supervisor using
