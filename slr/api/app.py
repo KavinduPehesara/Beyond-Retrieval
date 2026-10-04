@@ -32,6 +32,7 @@ from slr.api.runs_index import (
 from slr.api.schemas import (
     DiscoverPaperOut,
     DiscoverRequest,
+    DiscoverSessionOut,
     FieldValue,
     GapStatementOut,
     GapValue,
@@ -43,6 +44,7 @@ from slr.api.schemas import (
     QueryRequest,
     RankedPaper,
     ReviewSummary,
+    ScreenDecisionOut,
     ScreenRequest,
     ScreenResult,
 )
@@ -440,11 +442,25 @@ def _gap_value_from_extraction(g) -> GapValue:
     return GapValue(status="gap_stated", quote=g.evidence_span)
 
 
-@app.post("/discover", response_model=list[DiscoverPaperOut])
+@app.post("/discover", response_model=DiscoverSessionOut)
 def discover(req: DiscoverRequest, conn: sqlite3.Connection = Depends(get_conn)):
+    """One ad-hoc review over live literature: search, screen, extract, gaps.
+
+    This is the product path rather than the evaluation path, and the
+    difference is deliberate. There is no ground truth for a topic someone
+    just typed, so nothing here produces a recall or accuracy figure, and
+    nothing here is written to `work` or read by `report_tables`. What it
+    does share with the evaluation path is the whole pipeline: the same
+    prompt, the same shape validation, the same span verifier. A quote shown
+    here was checked against the abstract exactly as one in a reported run
+    was.
+    """
     provider = build_provider("ollama", "qwen2.5:7b-instruct")
     extract_template = load_prompt_template(PROMPTS_DIR / "extract_v1.txt")
     gap_template = load_prompt_template(PROMPTS_DIR / "gap_v1.txt")
+    screen_template = (
+        load_prompt_template(PROMPTS_DIR / "screen_v1.txt") if req.criteria else None
+    )
     meter = Meter(ceiling_usd=0.0, usd_per_1m_input=0.0, usd_per_1m_output=0.0)
 
     try:
@@ -457,6 +473,8 @@ def discover(req: DiscoverRequest, conn: sqlite3.Connection = Depends(get_conn))
             meter=meter,
             limit=req.limit,
             use_cache=True,
+            criteria=req.criteria,
+            screen_template=screen_template,
         )
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
@@ -469,21 +487,54 @@ def discover(req: DiscoverRequest, conn: sqlite3.Connection = Depends(get_conn))
 
     out = []
     for paper in results:
-        by_name = {f.field_name: f for f in paper.fields}
-        out.append(
-            DiscoverPaperOut(
-                work_id=paper.work_id,
-                title=paper.title,
-                year=paper.year,
-                source_url=paper.source_url,
-                study_design=_field_value_from_extraction(by_name["study_design"]),
-                sample_size=_field_value_from_extraction(by_name["sample_size"]),
-                country=_field_value_from_extraction(by_name["country"]),
-                key_finding=_field_value_from_extraction(by_name["key_finding"]),
-                gap=_gap_value_from_extraction(paper.gap),
+        decision = None
+        if paper.decision:
+            d = paper.decision
+            decision = ScreenDecisionOut(
+                status=d.decision,
+                confidence=d.confidence,
+                quote=d.evidence_span,
+                span_verified=bool(d.span_verified),
+                verify_note=d.verify_note,
+                from_cache=bool(d.from_cache),
             )
+        entry = DiscoverPaperOut(
+            work_id=paper.work_id,
+            title=paper.title,
+            year=paper.year,
+            source_url=paper.source_url,
+            decision=decision,
         )
-    return out
+        if paper.fields is not None:
+            by_name = {f.field_name: f for f in paper.fields}
+            entry.study_design = _field_value_from_extraction(by_name["study_design"])
+            entry.sample_size = _field_value_from_extraction(by_name["sample_size"])
+            entry.country = _field_value_from_extraction(by_name["country"])
+            entry.key_finding = _field_value_from_extraction(by_name["key_finding"])
+        if paper.gap is not None:
+            entry.gap = _gap_value_from_extraction(paper.gap)
+        out.append(entry)
+
+    screened = [p for p in out if p.decision]
+    return DiscoverSessionOut(
+        query=req.query,
+        criteria=req.criteria,
+        n_found=len(out),
+        n_screened=len(screened),
+        # A verified include only. An include whose quote wasn't found is
+        # counted as a referral, never as a yes -- the same rule every
+        # reported figure in this project uses.
+        n_included=sum(
+            1 for p in screened if p.decision.status == "include" and p.decision.span_verified
+        ),
+        n_excluded=sum(
+            1 for p in screened if p.decision.status == "exclude" and p.decision.span_verified
+        ),
+        n_referred=sum(1 for p in screened if not p.decision.span_verified),
+        n_verified_quotes=sum(1 for p in screened if p.decision.span_verified),
+        n_gaps=sum(1 for p in out if p.gap and p.gap.status == "gap_stated"),
+        papers=out,
+    )
 
 
 # --------------------------------------------------------------------------

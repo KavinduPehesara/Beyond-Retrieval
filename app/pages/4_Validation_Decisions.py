@@ -8,8 +8,15 @@ from __future__ import annotations
 import streamlit as st
 from api_client import create_override, health, list_papers, list_reviews, override_summary, paper_detail
 
-st.set_page_config(page_title="Results & Override", page_icon="⚖️", layout="wide")
-st.title("Results & Override")
+st.set_page_config(page_title="Validation \u00b7 Decisions", page_icon="\u2696\ufe0f", layout="wide")
+st.title("Validation \u2014 overriding a decision")
+st.info(
+    "**This is validation evidence, not the tool.** These six systematic reviews were completed "
+    "years ago by other research teams, and their correct answers were published. Running the "
+    "pipeline over them is how every figure in this project is checked \u2014 including where it "
+    "does badly. To use the tool on your own topic, go to **Run a review**.",
+    icon="\U0001f9ea",
+)
 
 if not health():
     st.error("Can't reach the API. Start it with `uvicorn slr.api.app:app`.")

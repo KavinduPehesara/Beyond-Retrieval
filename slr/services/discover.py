@@ -19,6 +19,7 @@ rather than handed to extraction with nothing to extract from.
 
 from __future__ import annotations
 
+import hashlib
 import os
 from dataclasses import dataclass
 
@@ -27,10 +28,32 @@ import httpx
 from slr.adapters.llm import Meter, Provider
 from slr.services.extract import FieldExtraction, extract_record
 from slr.services.gap import GapExtraction, extract_gap
+from slr.services.screen import Decision, screen_record
 
 DISCOVER_REVIEW = "_discover"
 OPENALEX_WORKS_URL = "https://api.openalex.org/works"
 MIN_ABSTRACT_CHARS = 200
+
+
+def criteria_prompt_version(base: str, criteria: str) -> str:
+    """``screen_v1`` plus a short hash of the criteria text.
+
+    The response cache is keyed on (model, prompt_version, review, work_id).
+    On the ingested corpus a review's criteria are pinned, so that key is
+    stable. Here the criteria come from whoever is sitting at the dashboard
+    and change between sessions, which would make two different requests for
+    the same paper collide on one cache key -- and the request fingerprint
+    would then correctly raise ``CacheMismatch`` and abort a query the user
+    did nothing wrong in.
+
+    Folding the criteria into the version string gives each distinct set its
+    own cache namespace. Note what this is *not*: the cache is still checked
+    before every call, exactly as the budget rules require. Re-running the
+    same topic with the same criteria is still served from cache for free.
+    Only a genuinely different question is treated as a different request.
+    """
+    digest = hashlib.sha256(criteria.strip().encode("utf-8")).hexdigest()[:12]
+    return f"{base}+adhoc-{digest}"
 
 
 def reconstruct_abstract(inverted_index: dict[str, list[int]] | None) -> str | None:
@@ -108,14 +131,32 @@ def search_openalex(
 
 @dataclass
 class DiscoverPaper:
-    """One discovered paper, with its extracted fields and gap check."""
+    """One discovered paper: the screening decision, if criteria were given,
+    then the extracted fields and the gap check.
+
+    ``decision`` is ``None`` when no criteria were supplied — there is nothing
+    to screen against, so the paper is reported without an include/exclude
+    call rather than with a guessed one. ``fields`` and ``gap`` are ``None``
+    when the paper was screened out, mirroring the ingested pipeline, where
+    extraction only ever reads a screening run's verified includes.
+    """
 
     work_id: str
     title: str | None
     year: int | None
     source_url: str | None
-    fields: list[FieldExtraction]
-    gap: GapExtraction
+    fields: list[FieldExtraction] | None
+    gap: GapExtraction | None
+    decision: Decision | None = None
+
+    @property
+    def included(self) -> bool:
+        """Verified include. An unverified decision is a referral, not a yes."""
+        return bool(
+            self.decision
+            and self.decision.decision == "include"
+            and self.decision.span_verified
+        )
 
 
 def run_discover(
@@ -131,17 +172,75 @@ def run_discover(
     gap_prompt_version: str = "gap_v1",
     use_cache: bool = True,
     candidates: list[dict] | None = None,
+    criteria: str | None = None,
+    screen_template: str | None = None,
+    screen_prompt_version: str = "screen_v1",
 ) -> list[DiscoverPaper]:
     """Search the open web for ``query``, then run every result through the
-    same verified extraction and gap-discovery pipeline the rest of this
-    project uses on its ingested corpus.
+    same verified pipeline the rest of this project uses on its ingested
+    corpus.
+
+    Give ``criteria`` and ``screen_template`` together and every result is
+    screened first, against whatever eligibility criteria the user wrote,
+    using ``screen.screen_record`` unchanged — it already takes criteria as
+    a plain string, so an ad-hoc question needs no separate code path. Only
+    papers whose include decision verified go on to extraction and gap
+    discovery, exactly as ``extract_harness`` only ever reads a screening
+    run's verified includes.
+
+    Without criteria there is nothing to screen against, so every result is
+    extracted and gap-checked and ``decision`` stays ``None``. Guessing an
+    include/exclude with no stated criteria would be the one thing this
+    project refuses to do.
 
     ``candidates`` lets a caller (tests, or a future non-OpenAlex source)
     supply records directly instead of calling OpenAlex.
     """
+    if (criteria is None) != (screen_template is None):
+        raise ValueError("criteria and screen_template must be given together")
+    if criteria is not None and not criteria.strip():
+        raise ValueError("criteria must not be empty")
+
     rows = candidates if candidates is not None else search_openalex(query, limit=limit)
+    screening = criteria is not None
+    version = (
+        criteria_prompt_version(screen_prompt_version, criteria) if screening else None
+    )
+
     results = []
     for row in rows:
+        decision = None
+        if screening:
+            decision = screen_record(
+                row,
+                provider=provider,
+                template=screen_template,
+                criteria=criteria,
+                meter=meter,
+                conn=conn,
+                prompt_version=version,
+                temperature=0.0,
+                max_tokens=512,
+                seed=42,
+                use_cache=use_cache,
+            )
+            # Screened out, or referred to a human. Either way there is no
+            # verified include to extract from, so stop here for this paper
+            # rather than extracting data from a paper the criteria reject.
+            if not (decision.decision == "include" and decision.span_verified):
+                results.append(
+                    DiscoverPaper(
+                        work_id=row["work_id"],
+                        title=row["title"],
+                        year=row.get("year"),
+                        source_url=row.get("source_url"),
+                        fields=None,
+                        gap=None,
+                        decision=decision,
+                    )
+                )
+                continue
+
         fields = extract_record(
             row,
             provider=provider,
@@ -174,6 +273,7 @@ def run_discover(
                 source_url=row.get("source_url"),
                 fields=fields,
                 gap=gap,
+                decision=decision,
             )
         )
     return results

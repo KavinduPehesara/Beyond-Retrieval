@@ -12,6 +12,7 @@ import plots
 import streamlit as st
 from api_client import (
     charts_confidence,
+    charts_corpus,
     charts_performance,
     charts_trust,
     health,
@@ -20,8 +21,15 @@ from api_client import (
     review_metrics,
 )
 
-st.set_page_config(page_title="Trust Dashboard", page_icon="\U0001f6e1️", layout="wide")
-st.title("Trust Dashboard")
+st.set_page_config(page_title="Validation \u00b7 Trust", page_icon="\U0001f6e1\ufe0f", layout="wide")
+st.title("Validation \u2014 can you trust the decisions?")
+st.info(
+    "**This is validation evidence, not the tool.** These six systematic reviews were completed "
+    "years ago by other research teams, and their correct answers were published. Running the "
+    "pipeline over them is how every figure in this project is checked \u2014 including where it "
+    "does badly. To use the tool on your own topic, go to **Run a review**.",
+    icon="\U0001f9ea",
+)
 st.caption("RQ1: can this system produce screening decisions a researcher can independently verify and rely on?")
 
 if not health():
@@ -61,6 +69,49 @@ for row in rows:
     if row["Overridden"] is not None:
         row["Overridden"] *= 100
 
+# ---------------------------------------------------------------------------
+# The corpus first: what the system was tested on, before any result from it.
+# A verification rate means nothing without knowing how hard the review was.
+# ---------------------------------------------------------------------------
+
+st.subheader("What it was tested on")
+try:
+    corpus = charts_corpus()
+except Exception as exc:
+    st.warning(f"Corpus charts unavailable: {exc}")
+else:
+    k1, k2 = st.columns([1, 1])
+    with k1:
+        st.markdown("**How hard each review is**")
+        st.caption(
+            "The share of papers actually worth keeping. A twenty-seven-fold spread, chosen on "
+            "purpose: screening accuracy inflates on balanced data, so six reviews spanning 0.8% "
+            "to 21.9% is a harder exam than a larger corpus at uniform difficulty. This is also "
+            "why nothing on this page is averaged across the six."
+        )
+        st.altair_chart(plots.prevalence_bars(corpus["prevalence"]), use_container_width=True)
+    with k2:
+        st.markdown("**When the papers were published**")
+        years = plots.year_bars(corpus["years"])
+        if years is None:
+            st.info("No publication years recorded.")
+        else:
+            span = corpus["years"]["span"]
+            st.caption(
+                f"All six reviews together, {span[0]}–{span[1]}. Grey is every paper screened; "
+                "blue is the ones the original human reviewers kept."
+            )
+            st.altair_chart(years, use_container_width=True)
+
+    missing = [m["column"] for m in corpus["metadata_coverage"] if not m["chartable"]]
+    if missing:
+        st.caption(
+            "Not chartable: " + ", ".join(f"`{m}`" for m in missing) + ". These columns exist in "
+            "the schema but ingest never populated them, so there is no country map, venue "
+            "breakdown or language split — recorded as a gap rather than drawn as an empty axis."
+        )
+
+st.divider()
 st.subheader("Verifiable and accurate")
 st.caption("Verified = share of decisions whose quote was found in the source. Recall and AC1 are computed over verified decisions only.")
 st.dataframe(

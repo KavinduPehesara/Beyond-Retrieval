@@ -1,28 +1,25 @@
-"""Beyond Retrieval -- dashboard entry point.
+"""Beyond Retrieval -- the front door.
 
-Six panels: run a query, review and override decisions, inspect extracted
-data, inspect discovered gaps, see the RQ1 trust numbers together, and
-search the open web for papers outside the six ingested reviews. Every
-number on every panel comes from the API, which in turn reads a run
-directory or the live database -- nothing here computes a figure of its
-own. Discover is the one exception that isn't a reported figure at all --
-see its own page for why.
+Deliberately a search box rather than a table of the six test reviews. The
+six reviews are how this project proves its figures; they are not what the
+tool is for, and leading with them made the tool look like a report about
+six old medical reviews. So the first thing on screen asks the question a
+researcher actually arrives with, and the validation evidence sits one
+click away under its own clearly-labelled pages.
+
+Nothing here computes a figure. Every number comes from the API, which
+reads a run directory or the live database.
 """
 
 from __future__ import annotations
 
-import plots
 import streamlit as st
 from api_client import API_URL, charts_corpus, health, list_reviews
 
 st.set_page_config(page_title="Beyond Retrieval", page_icon="\U0001f4da", layout="wide")
 
 st.title("Beyond Retrieval")
-st.caption(
-    "An LLM-supported dashboard for literature review and research gap detection. "
-    "Every screening decision, extracted field and gap statement here carries a "
-    "quote checked against the source paper -- an unverifiable claim is not shown as a fact."
-)
+st.markdown("#### Find the papers that matter, and check every decision for yourself.")
 
 if not health():
     st.error(
@@ -31,93 +28,124 @@ if not health():
     )
     st.stop()
 
-reviews = list_reviews()
+# ---------------------------------------------------------------------------
+# The front door. Typing a topic here hands it to Run a review, which asks
+# for the eligibility criteria -- two short steps rather than one long form,
+# because the topic is the thing people arrive already knowing.
+# ---------------------------------------------------------------------------
 
-st.subheader("Six reviews")
-st.caption("Prevalence sits beside every count -- results are never pooled across reviews of different prevalence.")
+with st.form("start"):
+    topic = st.text_input(
+        "What are you researching?",
+        placeholder="e.g. machine learning for crop disease detection",
+        label_visibility="visible",
+    )
+    started = st.form_submit_button("Start a review", type="primary")
 
-cols = ["review", "domain", "n_records", "n_included", "prevalence", "criteria_status"]
-rows = [{c: r[c] for c in cols} for r in sorted(reviews, key=lambda r: r["prevalence"])]
-for row in rows:
-    row["prevalence"] = row["prevalence"] * 100  # column format below appends "%"
-st.dataframe(
-    rows,
-    hide_index=True,
-    use_container_width=True,
-    column_config={
-        "review": "Review",
-        "domain": "Domain",
-        "n_records": st.column_config.NumberColumn("Records", format="%d"),
-        "n_included": st.column_config.NumberColumn("Included", format="%d"),
-        "prevalence": st.column_config.NumberColumn("Prevalence", format="%.1f%%"),
-        "criteria_status": "Criteria",
-    },
+if started:
+    if not topic.strip():
+        st.warning("Type a topic to get started.")
+    else:
+        st.session_state["pending_topic"] = topic.strip()
+        st.switch_page("pages/1_Run_a_Review.py")
+
+st.caption(
+    "Searches live academic literature, screens it against criteria you write, pulls out the "
+    "study details, and flags the research gaps authors state themselves — showing you the "
+    "exact sentence behind every answer."
 )
 
-not_screened = [r["review"] for r in reviews if not r["screen_run"]]
-if not_screened:
-    st.warning("Not yet screened: " + ", ".join(not_screened))
+st.divider()
+
+st.subheader("What it does")
+c1, c2, c3 = st.columns(3)
+with c1:
+    st.markdown(
+        "**1 · Searches and sorts**\n\n"
+        "Finds candidate papers on your topic and puts the ones most likely to matter first, "
+        "so the reading you skip is the reading least likely to be relevant."
+    )
+with c2:
+    st.markdown(
+        "**2 · Screens against your criteria**\n\n"
+        "You write what counts as relevant, in plain sentences. Every keep-or-drop decision is "
+        "judged against that and nothing else."
+    )
+with c3:
+    st.markdown(
+        "**3 · Shows its working**\n\n"
+        "Each decision comes with the sentence it rests on, checked word-for-word against the "
+        "paper's abstract. If that check fails, the decision is withheld rather than shown."
+    )
+
+st.divider()
 
 # ---------------------------------------------------------------------------
-# The corpus, as two pictures. Prevalence first because the spread is a
-# deliberate design choice rather than whatever the data happened to be.
+# The evidence, summarised honestly and in one place. This is the section
+# that used to be the whole landing page.
 # ---------------------------------------------------------------------------
+
+st.subheader("Why you should believe any of it")
+st.markdown(
+    "Any tool can produce confident-looking answers. The only reason to trust this one is that "
+    "it has been run over literature where the right answers were already known and published — "
+    "**six completed systematic reviews, 12,598 papers, 351 of which the original human "
+    "reviewers kept.** Every figure in this project comes from that exercise, and the pages "
+    "under *Validation* show it, including the parts that went badly."
+)
 
 try:
+    reviews = list_reviews()
     corpus = charts_corpus()
 except Exception as exc:
-    st.warning(f"Charts unavailable: {exc}")
+    st.warning(f"Couldn't load the validation summary: {exc}")
 else:
-    c1, c2 = st.columns([1, 1])
-    with c1:
-        st.markdown("**Inclusion rate across the corpus**")
-        st.caption(
-            "A twenty-seven-fold spread, chosen on purpose: screening accuracy is known to "
-            "inflate on balanced data, so six reviews spanning 0.8% to 21.9% test more than a "
-            "larger corpus at uniform prevalence would."
-        )
-        st.altair_chart(plots.prevalence_bars(corpus["prevalence"]), use_container_width=True)
-    with c2:
-        st.markdown("**When these papers were published**")
-        years = plots.year_bars(corpus["years"])
-        if years is None:
-            st.info("No publication years recorded.")
-        else:
-            span = corpus["years"]["span"]
-            st.caption(
-                f"All six reviews together, {span[0]}–{span[1]}. Grey is every record screened; "
-                "blue is the ones that made it into a review."
-            )
-            st.altair_chart(years, use_container_width=True)
-
-    missing = [m["column"] for m in corpus["metadata_coverage"] if not m["chartable"]]
-    if missing:
-        st.caption(
-            "Not chartable yet: " + ", ".join(f"`{m}`" for m in missing) + ". These columns exist "
-            "in the schema but ingest never populated them, so there is no country map, venue "
-            "breakdown or language split — shown as a gap rather than an empty axis."
+    totals = corpus["prevalence"]
+    e1, e2, e3, e4 = st.columns(4)
+    e1.metric("Test reviews", len(totals))
+    e2.metric("Papers screened", f"{sum(r['n'] for r in totals):,}")
+    e3.metric("Correct answers known", f"{sum(r['included'] for r in totals):,}")
+    if totals:
+        lo = min(r["prevalence"] for r in totals)
+        hi = max(r["prevalence"] for r in totals)
+        e4.metric(
+            "Difficulty range",
+            f"{lo * 100:.1f}%–{hi * 100:.1f}%",
+            help=(
+                "The share of papers actually worth keeping, per review. Chosen to span easy to "
+                "very hard on purpose: a screening tool looks far better on a review where one "
+                "paper in five is a keeper than on one where it's one in 125."
+            ),
         )
 
-st.divider()
-st.subheader("Panels")
-p1, p2 = st.columns(2)
-with p1:
-    st.markdown(
-        "**Search & Screen** -- pick a review, rank candidates with any of the five "
-        "retrieval strategies, screen a handful live and watch the verified quotes come back.\n\n"
-        "**Results & Override** -- browse a run's decisions, filter to what needs a human, "
-        "and record a disposition against any of them.\n\n"
-        "**Extraction** -- the four structured fields for every included paper, with coverage "
-        "by field and by review."
+    not_screened = [r["review"] for r in reviews if not r["screen_run"]]
+    if not_screened:
+        st.warning("Not yet screened: " + ", ".join(not_screened))
+
+    st.caption(
+        "**The honest headline:** the system reliably refuses to assert what it can't back with a "
+        "real quote, and that is the property this project set out to build. It does *not* hit the "
+        "99% verification target the proposal set, it finds roughly half the research gaps that "
+        "are actually stated, and a dedicated active-learning tool out-ranks it on every review "
+        "where the two can be compared. All three are on the validation pages with numbers."
     )
-with p2:
+
+with st.expander("What a “test review” is, if you're not a researcher"):
     st.markdown(
-        "**Gap Discovery** -- the research-gap statements the model found, with the rating on each.\n\n"
-        "**Trust Dashboard** -- the RQ1 property table (verifiable, accurate, reproducible, "
-        "overridable) with a live number per review, next to what's a one-off recorded finding.\n\n"
-        "**Discover** -- search the open web (OpenAlex) for any topic, not just the six ingested "
-        "reviews, and extract + gap-check whatever comes back. Not part of the evaluation corpus."
+        "A systematic review is what researchers do when they want to answer a question properly: "
+        "search the databases, get back a few thousand papers that *might* be relevant, then have "
+        "two people read every title and abstract and decide one by one what stays. It takes "
+        "weeks, and it is the part this tool is trying to help with.\n\n"
+        "The six reviews here were all completed years ago by other research teams, who published "
+        "their answer sheets — the exact list of which papers they kept. So the same papers can "
+        "be handed to this system, and its answers compared with theirs. **The right answer is "
+        "already known, which is what makes the result a measurement rather than a claim.**\n\n"
+        "A researcher using the finished tool would never see these six. They'd type their own "
+        "topic on this page. The six are the crash-test dummies, not the car."
     )
 
 st.divider()
-st.caption(f"API: `{API_URL}` · Local inference only -- every figure on this dashboard is $0.")
+st.caption(
+    f"API: `{API_URL}` · Runs on a local model, so every figure on this dashboard cost $0. "
+    "MSE907 capstone — Pehesara Gunawardena."
+)

@@ -17,8 +17,15 @@ from api_client import (
     paper_detail,
 )
 
-st.set_page_config(page_title="Extraction", page_icon="\U0001f4c4", layout="wide")
-st.title("Extraction")
+st.set_page_config(page_title="Validation \u00b7 Extraction", page_icon="\U0001f4c4", layout="wide")
+st.title("Validation \u2014 extracted data")
+st.info(
+    "**This is validation evidence, not the tool.** These six systematic reviews were completed "
+    "years ago by other research teams, and their correct answers were published. Running the "
+    "pipeline over them is how every figure in this project is checked \u2014 including where it "
+    "does badly. To use the tool on your own topic, go to **Run a review**.",
+    icon="\U0001f9ea",
+)
 
 if not health():
     st.error("Can't reach the API. Start it with `uvicorn slr.api.app:app`.")

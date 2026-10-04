@@ -152,18 +152,24 @@ slr/
     deps.py                 DB_PATH/RUNS_DIR/PROMPTS_DIR, get_conn
     schemas.py              pydantic request/response models
 app/
-  Home.py                 review table, links to the 6 panels
+  Home.py                 the front door: "What are you researching?" --
+                         deliberately not the six-review table, which made
+                         the tool demo as a report about six old reviews
   api_client.py            thin httpx wrapper, one function per route
   plots.py                 Altair builders, one per chart. Draws only --
                          every number comes from /charts/* via charts.py
-  pages/1_Search_and_Screen.py    rank + live-screen up to 15 -- the query
-                                 exit test runs here
-  pages/2_Results_and_Override.py
-  pages/3_Extraction.py
-  pages/4_Gap_Discovery.py
-  pages/5_Trust_Dashboard.py
-  pages/6_Discover.py             open-web search (OpenAlex) outside the
-                                 ingested corpus -- added 3 October, see below
+  pages/1_Run_a_Review.py         THE PRODUCT. Live literature, the user's
+                                 own criteria, screened + extracted +
+                                 gap-checked. No reported figure: no ground
+                                 truth exists for an ad-hoc topic.
+  pages/2_Validation_Trust.py     the RQ1 table + corpus + trust charts
+  pages/3_Validation_Screening.py rank + live-screen up to 15 -- the week 12
+                                 query exit test runs here
+  pages/4_Validation_Decisions.py
+  pages/5_Validation_Extraction.py
+  pages/6_Validation_Gaps.py
+                         Every validation page carries a banner saying it is
+                         evidence, not the tool. A test asserts all five do.
 prompts/screen_v1.txt    prompt template, versioned by filename
 prompts/screen_v2.txt    step-by-step + one-sentence reasoning (week 10, underperformed v1)
 prompts/screen_v3.txt    terse, minimal rules (week 10, underperformed v1)
@@ -187,7 +193,7 @@ configs/ingest_all.yaml  all six reviews, screening disabled -- the fresh-clone/
 data/embeddings/         SPECTER2 vectors cached per review (gitignored)
 data/asreview/           per-review CSV exports for the ASReview baseline (gitignored, SYNERGY text)
 scripts/reproduce.sh     venv -> pinned install -> pytest -> ingest -> smoke harness, one command
-tests/                   219 tests
+tests/                   307 tests
 reports/results.{csv,md} generated from runs/
 ```
 
@@ -1115,6 +1121,84 @@ validated on real data, and Streamlit's own `AppTest` driving every panel.
 recording separately: a validated Vega-Lite spec proves the chart is
 well-formed, not that it is legible or that the axes say what they should.
 That second claim needs a person looking at it, and now has one.
+
+**4 October 2026, second entry — the dashboard was demoing the evaluation,
+not the product. Restructured.** Asked what the six reviews were useful for
+in the product, the honest answer was: nothing. They are the test harness.
+But five of six panels showed only them, so the tool demoed as a report
+about six old medical reviews rather than as something a researcher would
+use. That is a presentation defect with two weeks to submission, and it was
+worth fixing before the report describes a thing the examiner then opens and
+misreads.
+
+**The missing capability, not just the missing framing.** Discover could
+search live literature and extract from it, but could not *screen* it —
+there is no published eligibility criteria for an ad-hoc query, so there was
+nothing to judge include/exclude against. Fixed by having the user supply
+their own criteria in plain sentences. `screen_record` already took
+`criteria` as a plain string, so this needed no new screening code path at
+all: the same `screen_v1` prompt, the same shape validation, the same span
+verifier, pointed at a question someone typed a minute ago. The
+architecture's one real test and it passed.
+
+**A genuine cache problem this surfaced, fixed without bypassing the cache.**
+The response cache is keyed on (model, prompt_version, review, work_id). On
+the ingested corpus a review's criteria are pinned, so that key is stable.
+Ad-hoc criteria are not: two different criteria for the same OpenAlex paper
+collide on one key, the request fingerprint correctly spots the mismatch,
+and `CacheMismatch` aborts a query the user did nothing wrong in.
+`criteria_prompt_version` folds a 12-hex digest of the criteria text into
+the version string, giving each distinct set its own namespace. Note what
+this is *not*: the cache is still checked before every call, so re-running
+an identical session is still free. Only a genuinely different question is
+treated as a different request — the budget rule that the week 10
+repeated-run is the only permitted cache bypass is untouched.
+
+**Extraction still only reads verified includes, on this path too.** A paper
+the criteria reject, or whose decision was referred, is reported with its
+decision and quote and is *not* extracted — the same boundary
+`extract_harness` keeps. Pulling study data out of a paper the user's
+criteria exclude would be inventing a result. With no criteria at all,
+nothing is screened and `decision` stays `None`: the system does not guess
+an include/exclude when it has nothing to judge against.
+
+**The restructure.** `Home.py` is now a search box — "What are you
+researching?" — that hands the topic to the review page. Six panels renamed
+so the sidebar reads product-first: `1_Run_a_Review` (the product), then
+`2_Validation_Trust` through `6_Validation_Gaps`. Every validation page
+carries a banner saying it is evidence rather than the tool, and points at
+Run a review; a test asserts all five do, because a restructure that only
+moves the confusion somewhere less visible is worse than none.
+`6_Discover.py` is deleted — the new page is Discover plus screening, and
+keeping two would be two half-answers. The corpus charts (prevalence,
+publication years) moved from Home to `2_Validation_Trust`: how hard a
+review is *is* validation evidence, and a verification rate is unreadable
+without it.
+
+**Home states the three recorded shortfalls on the front page** — the 99%
+verification target missed, roughly half the stated gaps found, ASReview
+out-ranking this project's retrieval on every review where a comparison
+exists — with a test asserting they are there. A landing page that only
+claims success is a sales page, and rule 7 does not stop applying because
+the reader is non-technical.
+
+**The product path produces no reported figure, by construction.** There is
+no ground truth for a topic typed a minute ago, so nothing on Run a Review
+is scored; the page says so and points at the validation pages for "how
+often is it right?". Discovered records still carry `review="_discover"`,
+are never written to `work`, and `run_discover` persists nothing at all.
+`test_screening_ad_hoc_records_never_reaches_the_evaluation_corpus` asserts
+all four tables stay empty after a session and that `_discover` is not in
+`config.SUBSET`, so no config could point a reported run at it even by
+mistake.
+
+307 tests passing (was 283). Verified end to end through the real API route
+with the real prompts and the real verifier: searched, screened against
+supplied criteria, quote verified, extracted, gap found. The one rendering
+rule worth naming — an `include` whose quote was not found in the abstract
+renders as "Needs your eye", never as "Keep" — has its own test, because
+that is the span verifier's entire argument surfacing in the UI rather than
+only in the data.
 
 ## Next: close out week 11, run the week 12 usability check, submit ethics
 

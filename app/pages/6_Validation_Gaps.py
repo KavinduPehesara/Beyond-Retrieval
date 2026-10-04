@@ -10,8 +10,15 @@ import plots
 import streamlit as st
 from api_client import charts_gaps, health, list_gaps, list_reviews
 
-st.set_page_config(page_title="Gap Discovery", page_icon="\U0001f9e9", layout="wide")
-st.title("Gap Discovery")
+st.set_page_config(page_title="Validation \u00b7 Gaps", page_icon="\U0001f9e9", layout="wide")
+st.title("Validation \u2014 research gaps")
+st.info(
+    "**This is validation evidence, not the tool.** These six systematic reviews were completed "
+    "years ago by other research teams, and their correct answers were published. Running the "
+    "pipeline over them is how every figure in this project is checked \u2014 including where it "
+    "does badly. To use the tool on your own topic, go to **Run a review**.",
+    icon="\U0001f9ea",
+)
 st.caption(
     "Precision here is one person's rating of what the model flagged, checked against the full "
     "abstract. Recall was separately estimated on a small blind sample and is well below precision -- "

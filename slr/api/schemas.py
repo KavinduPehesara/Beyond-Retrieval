@@ -128,6 +128,26 @@ class GapStatementOut(BaseModel):
 class DiscoverRequest(BaseModel):
     query: str = Field(min_length=1)
     limit: int = Field(default=5, ge=1, le=10)
+    # Optional. Given, every result is screened against it and only verified
+    # includes are extracted. Omitted, nothing is screened -- the system does
+    # not invent an include/exclude with no criteria to judge against.
+    criteria: str | None = Field(default=None, max_length=4000)
+
+
+class ScreenDecisionOut(BaseModel):
+    """A screening decision on an ad-hoc paper.
+
+    ``status`` is one of include / exclude / unverified / error, and
+    ``span_verified`` is what separates a decision from a referral: an
+    include whose quote wasn't found in the abstract is not an include.
+    """
+
+    status: str
+    confidence: float | None
+    quote: str | None
+    span_verified: bool
+    verify_note: str
+    from_cache: bool
 
 
 class DiscoverPaperOut(BaseModel):
@@ -135,8 +155,32 @@ class DiscoverPaperOut(BaseModel):
     title: str | None
     year: int | None
     source_url: str | None
-    study_design: FieldValue
-    sample_size: FieldValue
-    country: FieldValue
-    key_finding: FieldValue
-    gap: GapValue
+    # None when the paper was screened out or referred: there is no verified
+    # include to extract from, same boundary the ingested pipeline keeps.
+    study_design: FieldValue | None = None
+    sample_size: FieldValue | None = None
+    country: FieldValue | None = None
+    key_finding: FieldValue | None = None
+    gap: GapValue | None = None
+    # None when no criteria were supplied.
+    decision: ScreenDecisionOut | None = None
+
+
+class DiscoverSessionOut(BaseModel):
+    """One ad-hoc review session: the papers, plus the session's own counts.
+
+    These counts are a summary of what the user just ran, not a reported
+    figure -- there is no ground truth for an ad-hoc query, so there is no
+    recall or accuracy here, only what was found and what verified.
+    """
+
+    query: str
+    criteria: str | None
+    n_found: int
+    n_screened: int
+    n_included: int
+    n_excluded: int
+    n_referred: int
+    n_verified_quotes: int
+    n_gaps: int
+    papers: list[DiscoverPaperOut]

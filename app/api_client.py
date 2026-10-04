@@ -102,11 +102,21 @@ def query_screen(review: str, work_ids: list[str], model: str, prompt_version: s
     return r.json()
 
 
-def discover(query: str, limit: int = 5) -> list[dict]:
+def discover(query: str, limit: int = 5, criteria: str | None = None) -> dict:
+    """One ad-hoc review session. Returns the session summary, not a bare list.
+
+    ``criteria`` given, every result is screened against it and only verified
+    includes are extracted; omitted, nothing is screened.
+    """
+    payload: dict = {"query": query, "limit": limit}
+    if criteria:
+        payload["criteria"] = criteria
     r = _client().post(
         "/discover",
-        json={"query": query, "limit": limit},
-        timeout=600.0,  # live OpenAlex search + a live model call per result
+        json=payload,
+        # Live OpenAlex search, then up to three model calls per result
+        # (screen, extract, gap) on local hardware.
+        timeout=900.0,
     )
     r.raise_for_status()
     return r.json()

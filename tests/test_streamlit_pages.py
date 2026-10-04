@@ -76,14 +76,57 @@ EXTRACTION_SUMMARY = {
 }
 
 _VERIFIED = {"status": "verified", "value": "v", "quote": "a genuinely long quote here", "note": None}
-DISCOVER_RESULTS = [
-    {
-        "work_id": "https://openalex.org/W1", "title": "A paper found on the open web",
-        "year": 2021, "source_url": "https://doi.org/10.1/1",
-        "study_design": _VERIFIED, "sample_size": _VERIFIED, "country": _VERIFIED, "key_finding": _VERIFIED,
-        "gap": {"status": "gap_stated", "quote": "remains an open question", "rating": None, "kind": None, "note": None},
-    },
-]
+
+# One ad-hoc review session, shaped like DiscoverSessionOut. Three papers on
+# purpose, one of each outcome: a verified keep that went on to extraction, a
+# verified drop that did not, and a referral whose quote wasn't found. The
+# page has to render all three differently, and the referral is the one most
+# likely to be got wrong -- an include whose quote failed is not a keep.
+DISCOVER_SESSION = {
+    "query": "hormone therapy cardiovascular outcomes",
+    "criteria": "Include randomised controlled trials with a non-user comparison group.",
+    "n_found": 3,
+    "n_screened": 3,
+    "n_included": 1,
+    "n_excluded": 1,
+    "n_referred": 1,
+    "n_verified_quotes": 2,
+    "n_gaps": 1,
+    "papers": [
+        {
+            "work_id": "https://openalex.org/W1", "title": "A paper found on the open web",
+            "year": 2021, "source_url": "https://doi.org/10.1/1",
+            "study_design": _VERIFIED, "sample_size": _VERIFIED,
+            "country": _VERIFIED, "key_finding": _VERIFIED,
+            "gap": {"status": "gap_stated", "quote": "remains an open question",
+                    "rating": None, "kind": None, "note": None},
+            "decision": {"status": "include", "confidence": 0.91,
+                         "quote": "a randomised controlled trial of 400 women",
+                         "span_verified": True, "verify_note": "exact_after_normalisation",
+                         "from_cache": False},
+        },
+        {
+            "work_id": "https://openalex.org/W2", "title": "An animal study",
+            "year": 2019, "source_url": None,
+            "study_design": None, "sample_size": None, "country": None, "key_finding": None,
+            "gap": None,
+            "decision": {"status": "exclude", "confidence": 0.88,
+                         "quote": "we used a murine model",
+                         "span_verified": True, "verify_note": "exact_after_normalisation",
+                         "from_cache": False},
+        },
+        {
+            "work_id": "https://openalex.org/W3", "title": "A paper whose quote was invented",
+            "year": 2020, "source_url": None,
+            "study_design": None, "sample_size": None, "country": None, "key_finding": None,
+            "gap": None,
+            "decision": {"status": "include", "confidence": 0.84,
+                         "quote": "a sentence that is not in the abstract",
+                         "span_verified": False, "verify_note": "not_found",
+                         "from_cache": False},
+        },
+    ],
+}
 
 
 # Chart fixtures, shaped exactly like slr.eval.charts returns. The numbers
@@ -247,7 +290,9 @@ def _patched(monkeypatch):
         "work_id": work_id, "model_decision": "unverified", "model_verified": False,
         "human_decision": decision, "changed": True,
     })
-    monkeypatch.setattr(api_client, "discover", lambda query, limit=5: DISCOVER_RESULTS)
+    monkeypatch.setattr(
+        api_client, "discover", lambda query, limit=5, criteria=None: DISCOVER_SESSION
+    )
 
 
 def _run(path):
@@ -257,12 +302,37 @@ def _run(path):
     return at
 
 
-def test_home_renders_the_review_table():
+def test_home_leads_with_a_search_box_not_the_test_reviews():
+    """The front door asks the question a researcher arrives with.
+
+    This is the whole point of the restructure: leading with the six test
+    reviews made the tool look like a report about six old medical reviews.
+    """
     at = _run("Home.py")
     assert "Beyond Retrieval" in at.title[0].value
-    # prevalence is pre-scaled to a percent value before the dataframe is built
-    row = next(r for r in at.dataframe[0].value.to_dict("records") if r["review"] == "Nelson_2002")
-    assert row["prevalence"] == pytest.approx(21.9)
+    assert at.text_input, "there must be a topic box"
+    assert at.text_input[0].label == "What are you researching?"
+    assert [b for b in at.button if b.label == "Start a review"]
+
+
+def test_home_summarises_the_evidence_without_making_it_the_point():
+    at = _run("Home.py")
+    labels = {m.label: m.value for m in at.metric}
+    assert labels["Test reviews"] == "2"  # the fixture has two
+    assert labels["Papers screened"] == "2,993"
+    assert labels["Correct answers known"] == "107"
+    # Difficulty range, not an average -- rule 5 in the UI.
+    assert labels["Difficulty range"] == "1.0%–21.9%"
+
+
+def test_home_states_the_negative_results_on_the_front_page():
+    """A landing page that only claims success is a sales page. The three
+    recorded shortfalls belong where someone will actually read them."""
+    at = _run("Home.py")
+    text = " ".join(c.value for c in at.caption)
+    assert "99% verification target" in text
+    assert "half the research gaps" in text
+    assert "out-ranks it" in text
 
 
 def test_home_warns_about_unscreened_reviews():
@@ -270,8 +340,14 @@ def test_home_warns_about_unscreened_reviews():
     assert any("Smid_2020" in w.value for w in at.warning)
 
 
+def test_home_explains_a_test_review_for_a_non_researcher():
+    at = _run("Home.py")
+    text = " ".join(m.value for m in at.markdown)
+    assert "crash-test dummies" in text
+
+
 def test_search_and_screen_ranks_and_screens():
-    at = _run("pages/1_Search_and_Screen.py")
+    at = _run("pages/3_Validation_Screening.py")
     submit = [b for b in at.button if b.label == "Rank"][0]
     submit.click().run()
     assert not at.exception
@@ -286,7 +362,7 @@ def test_search_and_screen_ranks_and_screens():
 
 
 def test_results_and_override_shows_the_selected_record_and_can_submit():
-    at = _run("pages/2_Results_and_Override.py")
+    at = _run("pages/4_Validation_Decisions.py")
     assert not at.exception
     submit = [b for b in at.button if "disposition" in b.label.lower()]
     assert submit
@@ -296,32 +372,149 @@ def test_results_and_override_shows_the_selected_record_and_can_submit():
 
 
 def test_extraction_page_shows_field_coverage():
-    at = _run("pages/3_Extraction.py")
+    at = _run("pages/5_Validation_Extraction.py")
     assert not at.exception
     metric_labels = [m.label for m in at.metric]
     assert set(metric_labels) >= {"study_design", "sample_size", "country", "key_finding"}
 
 
 def test_gap_discovery_page_shows_precision():
-    at = _run("pages/4_Gap_Discovery.py")
+    at = _run("pages/6_Validation_Gaps.py")
     assert not at.exception
     precision = next(m for m in at.metric if m.label == "Precision")
     assert precision.value == "50%"  # 1 valid of 2 rated in the fixture
 
 
-def test_discover_page_searches_and_shows_results():
-    at = _run("pages/6_Discover.py")
-    text_inputs = [t for t in at.text_input if t.label == "Search text"]
-    text_inputs[0].set_value("fault prediction").run()
-    submit = [b for b in at.button if b.label == "Search"][0]
-    submit.click().run()
+# ---------------------------------------------------------------------------
+# Run a Review -- the product path
+# ---------------------------------------------------------------------------
+
+
+def _run_a_review(topic="hormone therapy", criteria="Include randomised controlled trials."):
+    at = AppTest.from_file(str(APP_DIR / "pages/1_Run_a_Review.py"))
+    at.run()
+    assert not at.exception, [str(e) for e in at.exception]
+    at.text_input[0].set_value(topic).run()
+    if criteria is not None:
+        at.text_area[0].set_value(criteria).run()
+    [b for b in at.button if b.label == "Run review"][0].click().run()
+    assert not at.exception, [str(e) for e in at.exception]
+    return at
+
+
+def test_run_a_review_screens_extracts_and_shows_gaps():
+    at = _run_a_review()
+    text = " ".join(m.value for m in at.markdown)
+    assert "A paper found on the open web" in text
+    assert "remains an open question" in text
+    labels = {m.label: m.value for m in at.metric}
+    assert labels["Papers found"] == "3"
+    assert labels["Kept"] == "1"
+    assert labels["Dropped"] == "1"
+    assert labels["Needs your eye"] == "1"
+
+
+def test_run_a_review_does_not_present_an_unverified_include_as_a_keep():
+    """The single most important rendering rule on this page.
+
+    W3's decision is `include` with confidence 0.84, but its quote was not
+    found in the abstract. Showing that as "Keep" would be exactly the
+    failure the span verifier exists to prevent, surfaced in the UI instead
+    of in the data.
+    """
+    at = _run_a_review()
+    headings = [m.value for m in at.markdown if "A paper whose quote was invented" in m.value]
+    assert headings, "the referred paper should still be listed"
+    assert "Needs your eye" in headings[0]
+    assert "Keep" not in headings[0]
+
+
+def test_run_a_review_explains_referrals_rather_than_hiding_them():
+    at = _run_a_review()
+    assert any("came back as a referral" in i.value for i in at.info)
+
+
+def test_run_a_review_withholds_extraction_for_papers_it_dropped():
+    """Extraction only ever reads verified includes -- the same boundary the
+    ingested pipeline keeps. The page must say why a paper has no fields
+    rather than rendering four empty columns."""
+    at = _run_a_review()
+    captions = " ".join(c.value for c in at.caption)
+    assert "doesn't meet your criteria" in captions
+    assert "referred to you first" in captions
+
+
+def test_run_a_review_without_criteria_does_not_invent_decisions(monkeypatch):
+    """No criteria, no include/exclude. The system does not guess."""
+    no_screening = dict(DISCOVER_SESSION)
+    no_screening["criteria"] = None
+    no_screening["n_screened"] = 0
+    no_screening["n_included"] = no_screening["n_excluded"] = no_screening["n_referred"] = 0
+    no_screening["papers"] = [
+        {**DISCOVER_SESSION["papers"][0], "decision": None},
+    ]
+    monkeypatch.setattr(
+        api_client, "discover", lambda query, limit=5, criteria=None: no_screening
+    )
+    at = _run_a_review(criteria="")
+    assert any("No criteria given" in i.value for i in at.info)
+    labels = {m.label for m in at.metric}
+    assert "Kept" not in labels, "nothing should be reported as kept"
+
+
+def test_run_a_review_requires_a_topic():
+    at = AppTest.from_file(str(APP_DIR / "pages/1_Run_a_Review.py"))
+    at.run()
+    [b for b in at.button if b.label == "Run review"][0].click().run()
     assert not at.exception
-    assert any("A paper found on the open web" in m.value for m in at.markdown)
-    assert any("remains an open question" in m.value for m in at.markdown)
+    assert any("Type a topic" in w.value for w in at.warning)
+
+
+def test_run_a_review_points_at_the_validation_pages_for_accuracy():
+    """There is no ground truth for an ad-hoc topic, so this page must not
+    imply a measured accuracy -- it should say where the real numbers are."""
+    at = _run_a_review()
+    captions = " ".join(c.value for c in at.caption)
+    assert "nothing on this page is scored" in captions.lower()
+    assert "12,598" in captions
+
+
+def test_run_a_review_surfaces_a_cache_mismatch_as_a_guard_not_a_crash(monkeypatch):
+    import httpx
+
+    def boom(query, limit=5, criteria=None):
+        request = httpx.Request("POST", "http://test/discover")
+        response = httpx.Response(409, text="CacheMismatch", request=request)
+        raise httpx.HTTPStatusError("conflict", request=request, response=response)
+
+    monkeypatch.setattr(api_client, "discover", boom)
+    at = AppTest.from_file(str(APP_DIR / "pages/1_Run_a_Review.py"))
+    at.run()
+    at.text_input[0].set_value("x").run()
+    at.text_area[0].set_value("y").run()
+    [b for b in at.button if b.label == "Run review"][0].click().run()
+    assert not at.exception
+    assert any("cache guard doing its job" in e.value for e in at.error)
+
+
+def test_validation_pages_say_they_are_validation():
+    """Every six-review page must label itself, or the restructure only
+    moved the confusion somewhere less visible."""
+    for page in [
+        "pages/2_Validation_Trust.py",
+        "pages/3_Validation_Screening.py",
+        "pages/4_Validation_Decisions.py",
+        "pages/5_Validation_Extraction.py",
+        "pages/6_Validation_Gaps.py",
+    ]:
+        at = _run(page)
+        banners = [i.value for i in at.info if "validation evidence, not the tool" in i.value]
+        assert banners, f"{page} does not identify itself as validation"
+        assert "Run a review" in banners[0], f"{page} does not point at the tool"
 
 
 def test_trust_dashboard_scales_percentages_before_display():
-    at = _run("pages/5_Trust_Dashboard.py")
+    at = _run("pages/2_Validation_Trust.py")
     assert not at.exception
     rows = {r["Review"]: r for r in at.dataframe[0].value.to_dict("records")}
     # verification_rate 0.505 must be scaled to 50.5, not left as 0.505 (the bug this test exists to catch)
@@ -341,7 +534,7 @@ def test_trust_dashboard_scales_percentages_before_display():
 
 
 def test_trust_dashboard_renders_its_charts():
-    at = _run("pages/5_Trust_Dashboard.py")
+    at = _run("pages/2_Validation_Trust.py")
     assert len(at.get("arrow_vega_lite_chart")) >= 4, "verification, failures, confidence, scatter"
     assert not any("Charts unavailable" in w.value for w in at.warning)
 
@@ -350,7 +543,7 @@ def test_trust_dashboard_shows_the_calibration_gap_as_a_signed_number():
     """The confidence finding is the difference between two means, and it is
     small. If this metric ever renders unsigned or unscaled, the chart's
     whole point is lost."""
-    at = _run("pages/5_Trust_Dashboard.py")
+    at = _run("pages/2_Validation_Trust.py")
     difference = next(m for m in at.metric if m.label == "Difference")
     assert difference.value == "+0.015"
 
@@ -362,14 +555,14 @@ def test_trust_dashboard_survives_a_failing_chart_route():
     def boom():
         raise RuntimeError("chart route down")
 
-    at = AppTest.from_file(str(APP_DIR / "pages/5_Trust_Dashboard.py"))
+    at = AppTest.from_file(str(APP_DIR / "pages/2_Validation_Trust.py"))
     at.run()
     import api_client as client
 
     original = client.charts_trust
     try:
         client.charts_trust = boom
-        at = AppTest.from_file(str(APP_DIR / "pages/5_Trust_Dashboard.py"))
+        at = AppTest.from_file(str(APP_DIR / "pages/2_Validation_Trust.py"))
         at.run()
         assert not at.exception
         assert any("Charts unavailable" in w.value for w in at.warning)
@@ -381,7 +574,7 @@ def test_trust_dashboard_survives_a_failing_chart_route():
 def test_search_and_screen_shows_the_recall_curve_before_any_query():
     """The curve is context for the ranking, so it renders on page load --
     a reviewer shouldn't have to run a query to see what the saving is."""
-    at = _run("pages/1_Search_and_Screen.py")
+    at = _run("pages/3_Validation_Screening.py")
     assert at.get("arrow_vega_lite_chart"), "recall curve should render immediately"
     labels = {m.label: m.value for m in at.metric}
     assert labels["Read to reach 95%"] == "300"
@@ -393,7 +586,7 @@ def test_search_and_screen_handles_a_review_with_no_screening_run(monkeypatch):
         raise RuntimeError("no run")
 
     monkeypatch.setattr(api_client, "charts_recall_curve", boom)
-    at = _run("pages/1_Search_and_Screen.py")
+    at = _run("pages/3_Validation_Screening.py")
     assert any("no curve to draw" in c.value for c in at.caption)
 
 
@@ -406,19 +599,25 @@ def test_search_and_screen_says_so_when_a_review_has_no_embeddings(monkeypatch):
             "reason": "no cached embeddings for Radjenovic_2013; run a dense/hybrid config first",
         },
     )
-    at = _run("pages/1_Search_and_Screen.py")
+    at = _run("pages/3_Validation_Screening.py")
     assert any("No semantic map" in c.value for c in at.caption)
 
 
-def test_home_charts_the_corpus_and_names_what_it_cannot_chart():
-    at = _run("Home.py")
-    assert len(at.get("arrow_vega_lite_chart")) >= 2, "prevalence and years"
+def test_validation_trust_charts_the_corpus_and_names_what_it_cannot_chart():
+    """The corpus charts live on the validation page, not Home.
+
+    How hard each review is *is* validation evidence -- a verification rate
+    is unreadable without it -- so it belongs beside the results it
+    qualifies rather than on the product's front door.
+    """
+    at = _run("pages/2_Validation_Trust.py")
+    assert len(at.get("arrow_vega_lite_chart")) >= 6, "corpus pair plus the four trust charts"
     # venue and country are empty in the real database; saying so is the point.
-    assert any("Not chartable yet" in c.value and "venue" in c.value for c in at.caption)
+    assert any("Not chartable" in c.value and "venue" in c.value for c in at.caption)
 
 
 def test_extraction_page_renders_both_charts():
-    at = _run("pages/3_Extraction.py")
+    at = _run("pages/5_Validation_Extraction.py")
     assert len(at.get("arrow_vega_lite_chart")) >= 2, "status bars and coverage heatmap"
 
 
@@ -435,7 +634,7 @@ def test_extraction_coverage_drops_never_attempted_fields():
 
 
 def test_gap_page_renders_rate_and_precision_recall_charts():
-    at = _run("pages/4_Gap_Discovery.py")
+    at = _run("pages/6_Validation_Gaps.py")
     assert len(at.get("arrow_vega_lite_chart")) >= 2
     assert any("either one alone misrepresents" in c.value for c in at.caption)
 
@@ -453,7 +652,7 @@ def test_gap_precision_recall_omits_the_bar_it_cannot_measure():
 
 
 def test_trust_dashboard_renders_performance_and_override_sections():
-    at = _run("pages/5_Trust_Dashboard.py")
+    at = _run("pages/2_Validation_Trust.py")
     labels = {m.label for m in at.metric}
     assert {"Dispositions recorded", "Override rate"} <= labels
     assert any("Cost and speed" in s.value for s in at.subheader)
@@ -469,5 +668,5 @@ def test_trust_dashboard_explains_an_all_cached_run_instead_of_an_empty_chart(mo
                       "tokens_in": 0, "tokens_out": 0, "cost_usd": 0.0, "hours_saved": None},
         },
     )
-    at = _run("pages/5_Trust_Dashboard.py")
+    at = _run("pages/2_Validation_Trust.py")
     assert any("served from the cache" in i.value for i in at.info)

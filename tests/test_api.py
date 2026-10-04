@@ -281,10 +281,110 @@ def test_discover_returns_papers_with_extraction_and_gap_results(client, monkeyp
     resp = client.post("/discover", json={"query": "fault prediction", "limit": 3})
     assert resp.status_code == 200
     body = resp.json()
-    assert len(body) == 1
-    assert body[0]["work_id"] == "W1"
-    assert body[0]["study_design"]["status"] == "verified"
-    assert body[0]["gap"]["status"] == "not_stated"
+    assert body["n_found"] == 1
+    assert body["criteria"] is None
+    assert body["n_screened"] == 0, "no criteria given, so nothing was screened"
+    papers = body["papers"]
+    assert papers[0]["work_id"] == "W1"
+    assert papers[0]["study_design"]["status"] == "verified"
+    assert papers[0]["gap"]["status"] == "not_stated"
+    assert papers[0]["decision"] is None
+
+
+def _discover_paper(work_id, decision_status, verified, *, extracted):
+    """Build one DiscoverPaper the way run_discover would."""
+    from slr.services.discover import DiscoverPaper
+    from slr.services.extract import FieldExtraction
+    from slr.services.gap import GapExtraction
+    from slr.services.screen import Decision
+
+    fields = gap = None
+    if extracted:
+        fields = [
+            FieldExtraction(
+                work_id=work_id, review="_discover", field_name=name, value="v",
+                evidence_span="a genuinely long quote here", span_verified=True,
+                verify_note="exact_after_normalisation", from_cache=False,
+                tokens_in=1, tokens_out=1, cost_usd=0.0, latency_ms=1,
+            )
+            for name in ("study_design", "sample_size", "country", "key_finding")
+        ]
+        gap = GapExtraction(
+            work_id=work_id, review="_discover", value="gap_stated",
+            evidence_span="remains an important open question for future work",
+            span_verified=True, verify_note="exact_after_normalisation", from_cache=False,
+            tokens_in=1, tokens_out=1, cost_usd=0.0, latency_ms=1,
+        )
+    return DiscoverPaper(
+        work_id=work_id, title=f"Paper {work_id}", year=2020, source_url=None,
+        fields=fields, gap=gap,
+        decision=Decision(
+            work_id=work_id, review="_discover", decision=decision_status, confidence=0.9,
+            evidence_span="a genuinely long quote here", span_verified=verified,
+            verify_note="exact_after_normalisation" if verified else "not_found",
+            from_cache=False, tokens_in=1, tokens_out=1, cost_usd=0.0, latency_ms=1,
+        ),
+    )
+
+
+def test_discover_with_criteria_screens_and_counts_the_session(client, monkeypatch):
+    captured = {}
+
+    def fake_run_discover(conn, query, **kwargs):
+        captured.update(kwargs)
+        return [
+            _discover_paper("W1", "include", True, extracted=True),
+            _discover_paper("W2", "exclude", True, extracted=False),
+            _discover_paper("W3", "unverified", False, extracted=False),
+        ]
+
+    monkeypatch.setattr(app_module, "run_discover", fake_run_discover)
+    resp = client.post(
+        "/discover",
+        json={"query": "hrt", "limit": 5, "criteria": "Include randomised trials."},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+
+    # The user's criteria reach the service, and a screening template is loaded.
+    assert captured["criteria"] == "Include randomised trials."
+    assert captured["screen_template"], "screening needs the screen_v1 template"
+
+    assert (body["n_found"], body["n_screened"]) == (3, 3)
+    assert body["n_included"] == 1
+    assert body["n_excluded"] == 1
+    assert body["n_referred"] == 1
+    assert body["n_verified_quotes"] == 2
+    assert body["n_gaps"] == 1
+
+    by_id = {p["work_id"]: p for p in body["papers"]}
+    assert by_id["W1"]["study_design"]["status"] == "verified"
+    # Screened out or referred -> no extracted data at all, not empty fields.
+    assert by_id["W2"]["study_design"] is None and by_id["W2"]["gap"] is None
+    assert by_id["W3"]["study_design"] is None
+
+
+def test_discover_never_counts_an_unverified_include_as_included(client, monkeypatch):
+    """An include whose quote wasn't found is a referral. If this ever counts
+    as an include, the product page would show a fabricated quote as a keep.
+    """
+
+    def fake_run_discover(conn, query, **kwargs):
+        return [_discover_paper("W9", "include", False, extracted=False)]
+
+    monkeypatch.setattr(app_module, "run_discover", fake_run_discover)
+    body = client.post(
+        "/discover", json={"query": "q", "criteria": "Include trials."}
+    ).json()
+
+    assert body["n_included"] == 0
+    assert body["n_referred"] == 1
+    assert body["papers"][0]["decision"]["span_verified"] is False
+
+
+def test_discover_rejects_criteria_longer_than_the_cap(client):
+    resp = client.post("/discover", json={"query": "q", "criteria": "x" * 5000})
+    assert resp.status_code == 422
 
 
 # --------------------------------------------------------------------------

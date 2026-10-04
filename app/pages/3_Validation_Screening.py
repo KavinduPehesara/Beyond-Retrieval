@@ -18,8 +18,15 @@ from api_client import (
     review_criteria,
 )
 
-st.set_page_config(page_title="Search & Screen", page_icon="\U0001f50d", layout="wide")
-st.title("Search & Screen")
+st.set_page_config(page_title="Validation \u00b7 Screening", page_icon="\U0001f9ea", layout="wide")
+st.title("Validation \u2014 screening the test reviews")
+st.info(
+    "**This is validation evidence, not the tool.** These six systematic reviews were completed "
+    "years ago by other research teams, and their correct answers were published. Running the "
+    "pipeline over them is how every figure in this project is checked \u2014 including where it "
+    "does badly. To use the tool on your own topic, go to **Run a review**.",
+    icon="\U0001f9ea",
+)
 
 if not health():
     st.error("Can't reach the API. Start it with `uvicorn slr.api.app:app`.")
