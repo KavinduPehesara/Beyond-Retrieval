@@ -6,8 +6,9 @@ filled by the same paper.
 
 from __future__ import annotations
 
+import plots
 import streamlit as st
-from api_client import health, list_gaps, list_reviews
+from api_client import charts_gaps, health, list_gaps, list_reviews
 
 st.set_page_config(page_title="Gap Discovery", page_icon="\U0001f9e9", layout="wide")
 st.title("Gap Discovery")
@@ -42,9 +43,53 @@ m2.metric("Rated valid", f"{len(valid)}/{len(rated)}" if rated else "n/a")
 m3.metric("Precision", f"{len(valid) / len(rated):.0%}" if rated else "n/a")
 m4.metric("Still open", f"{len(open_gaps)}/{len(rated)}" if rated else "n/a", help="Excludes gaps the same paper goes on to fill.")
 
+# ---------------------------------------------------------------------------
+# The two charts that keep this feature honestly described: how often a gap
+# is stated at all, and precision next to recall rather than instead of it.
+# ---------------------------------------------------------------------------
+
+st.divider()
+try:
+    gap_charts = charts_gaps()
+except Exception as exc:
+    st.warning(f"Charts unavailable: {exc}")
+else:
+    st.subheader("How often an abstract states a gap")
+    st.caption(
+        "Ordered by inclusion rate, and the point is that there's no trend: the rate swings from "
+        "3.8% to 52% and tracks the *genre* of the abstract, not the review's class balance. "
+        "Menon_2022's records are themselves systematic reviews, whose conclusions nearly always "
+        "end \"further studies are needed\"; software-engineering abstracts rarely state a gap at all."
+    )
+    st.altair_chart(plots.gap_rate_bars(gap_charts["rates"]), use_container_width=True)
+
+    st.subheader("Precision and recall together")
+    st.caption(
+        "**Read these two bars as a pair — either one alone misrepresents the feature.** "
+        "When this system flags a gap it is usually a real one (precision, blue). But it misses "
+        "a lot of the gaps that are there (recall, orange), especially *motivating* gaps — "
+        "\"little is known about…\" — which the prompt suppresses because they read like the "
+        "paper's own aim. So: a usable surfacer of stated gaps, not a claim of coverage."
+    )
+    st.altair_chart(
+        plots.gap_precision_recall_bars(gap_charts["precision_vs_recall"]),
+        use_container_width=True,
+    )
+    st.caption(
+        f"Precision is live, from each review's gap run. Recall is a one-off blind-labelling "
+        f"measurement (`{gap_charts['recall_source']}`) on a seeded sample of ten `not_stated` "
+        "records per review — ten is a small sample and every interval around it is wide, so read "
+        "the orange bars as direction, not as figures to quote. Two reviews have too few records "
+        "to sample and show no recall bar rather than a borrowed one."
+    )
+
+st.divider()
+
 if not gaps:
     st.info(f"No abstract among {review}'s included papers states a research gap.")
     st.stop()
+
+st.subheader(f"Every statement found in {review}")
 
 KIND_LABEL = {"open": "\U0001f7e6 Open gap", "motivating": "\U0001f7e8 Motivating gap"}
 for g in gaps:

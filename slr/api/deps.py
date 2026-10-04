@@ -16,6 +16,7 @@ from slr.db import connect
 DB_PATH = Path(os.environ.get("SLR_DB_PATH", "data/slr.db"))
 RUNS_DIR = Path(os.environ.get("SLR_RUNS_DIR", "runs"))
 PROMPTS_DIR = Path(os.environ.get("SLR_PROMPTS_DIR", "prompts"))
+EMBEDDINGS_DIR = Path(os.environ.get("SLR_EMBEDDINGS_DIR", "data/embeddings"))
 
 MAX_LIVE_SCREEN = 15  # a live query is answered in a browser session, not left running
 

@@ -134,6 +134,10 @@ slr/
     gap_report.py          writes runs/<ts>-gap-<hash>/gap_ratings.json
     gap_recall.py          blind-labelled recall estimate for gap discovery
     inter_run.py          genuine inter-run Gwet AC1 across repeated runs
+    charts.py              one pure data function per dashboard chart. Lives
+                         here, not in api/, because four of them read
+                         label_included (recall curve, prevalence, scatter)
+                         and rule 4 allows that only inside slr/eval.
     report_tables.py     run directories -> reports/results.{csv,md}
     asreview_baseline.py   exports one review to ASReview's own CSV shape
     asreview_report.py     turns a finished `asreview simulate` into the
@@ -143,12 +147,15 @@ slr/
     app.py                 FastAPI routes -- reads a run directory or the
                          live tables, or calls a service function directly.
                          POST /query/screen is the one route that writes.
+                         8 /charts/* routes wrap eval/charts.py.
     runs_index.py           "current" run per review per harness kind
     deps.py                 DB_PATH/RUNS_DIR/PROMPTS_DIR, get_conn
     schemas.py              pydantic request/response models
 app/
   Home.py                 review table, links to the 6 panels
   api_client.py            thin httpx wrapper, one function per route
+  plots.py                 Altair builders, one per chart. Draws only --
+                         every number comes from /charts/* via charts.py
   pages/1_Search_and_Screen.py    rank + live-screen up to 15 -- the query
                                  exit test runs here
   pages/2_Results_and_Override.py
@@ -1034,6 +1041,74 @@ unseen papers — one fully verified (cohort study, 4,958 participants, its
 key finding quoted verbatim), one `schema_validation_failed` on every
 field, the same honest failure mode already documented for the ingested
 corpus, not a new bug. 230 tests passing (was 219).
+
+**4 October 2026 — fourteen charts, built as one data layer rather than
+fourteen one-offs.** The five panels showed tables and metrics but not a
+single chart, including the one chart every screening-prioritisation paper
+leads with (recall against records read). Built `slr/eval/charts.py`: one
+pure function per chart, returning plain dicts, plotting nothing.
+`app/plots.py` holds the Altair builders, eight `/charts/*` routes wire them
+up, and no panel computes anything itself — the same discipline as every
+service since `extract.py`.
+
+Deliberately placed in `slr/eval` rather than `slr/api` or `app/`: four of
+these functions read `work.label_included` (the recall curve, prevalence,
+the verification/recall scatter), and rule 4 permits ground truth to be read
+inside `slr/eval` and nowhere else. A chart needing it has to live there.
+`test_chart_routes_never_return_ground_truth` asserts no route hands a
+per-record label back out.
+
+What landed, by panel: **Trust** — verification rate ordered by prevalence,
+a failure-type heatmap (row-normalised, because Radjenović_2013 has sixteen
+times more records than Nelson_2002 and raw counts show one bright row),
+the confidence histogram split by verification, a verification-vs-recall
+scatter, override outcomes, and latency/cache. **Search & Screen** — the
+recall curve with the random diagonal and the 95% cutoff, plus a semantic
+map. **Extraction** — per-field status bars and the six-review coverage
+heatmap. **Gaps** — gap rate by review, and precision beside recall.
+**Home** — prevalence and publication years.
+
+**The confidence histogram is the one that earns its place.** It renders the
+calibration finding directly: mean confidence 0.813 on decisions whose quote
+verified, 0.798 on decisions whose quote was invented — a 0.015 gap across
+23,148 decisions. The model is as confident when it fabricates as when it
+quotes correctly. That is the argument for the span verifier in one picture,
+and for `unverified` being a referral rather than a prediction: no
+confidence threshold could have separated these two distributions. Drawn as
+two overlaid outlines rather than a stacked bar, because whether they sit on
+top of each other *is* the question.
+
+**Three charts deliberately not built, and said so on the page rather than
+drawn empty.** Country map, venue breakdown, language split: `venue`,
+`publisher`, `country` and `language` are 0 of 12,598 non-null, because
+ingest never populated them. Home lists them as "not chartable yet" with the
+reason. Same principle inside the heatmaps: a field never extracted for a
+review is left blank, not shaded 0% — "never attempted" and "attempted and
+never verified" are different findings and must not share a colour.
+
+**Two things the charts are tested to not do.** `charts.recall_curve`'s 95%
+crossing is asserted equal to `metrics.ranking_metrics`'s `cutoff` on the
+same ranking, so the curve cannot drift from the TNR@95 in the table beside
+it. And five tests run against the real `data/slr.db`, asserting the charts
+reproduce figures this file already records — the corpus table (12,598
+records, 351 included), week 11's per-review gap counts, and the calibration
+gap. If a recorded figure and its chart ever disagree, a test says so rather
+than a reader noticing.
+
+Downsampling keeps every include: a 5,935-record curve sends ~400 points,
+but never drops a position where the curve steps up, and the semantic map
+samples excludes only — Smid_2020's 27 includes among 2,627 records would
+otherwise be invisible. The map projects by hand-rolled PCA rather than
+t-SNE or UMAP: no new pinned dependency, deterministic, and linear, so
+distance on the plot can honestly be described as distance in the embedding
+space projected. It reports variance explained (~21%) so clusters aren't
+over-read.
+
+`altair==5.5.0` pinned explicitly — Streamlit pulled it in already, but
+`plots.py` imports it directly now. 283 tests passing (was 230): 28 in
+`test_charts.py`, 13 new API route tests, 11 new page tests. Verified end to
+end against the real six-review database — all 8 routes, 35 Vega-Lite specs
+validated on real data, and Streamlit's own `AppTest` driving every panel.
 
 ## Next: close out week 11, run the week 12 usability check, submit ethics
 

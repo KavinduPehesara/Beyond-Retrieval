@@ -110,3 +110,66 @@ def discover(query: str, limit: int = 5) -> list[dict]:
     )
     r.raise_for_status()
     return r.json()
+
+
+# -- charts -----------------------------------------------------------------
+# One function per chart route. Same rule as everything above: build the
+# request, raise on a bad status, return the JSON. No shaping here -- that
+# all happens in slr/eval/charts.py so the panels and the report agree.
+
+
+def charts_corpus(review: str | None = None) -> dict:
+    r = _client().get("/charts/corpus", params={"review": review} if review else None)
+    r.raise_for_status()
+    return r.json()
+
+
+def charts_trust() -> dict:
+    r = _client().get("/charts/trust")
+    r.raise_for_status()
+    return r.json()
+
+
+def charts_confidence(review: str, run_id: str | None = None) -> dict:
+    r = _client().get(
+        f"/charts/reviews/{review}/confidence", params={"run_id": run_id} if run_id else None
+    )
+    r.raise_for_status()
+    return r.json()
+
+
+def charts_recall_curve(review: str, run_id: str | None = None) -> dict:
+    r = _client().get(
+        f"/charts/reviews/{review}/recall-curve", params={"run_id": run_id} if run_id else None
+    )
+    r.raise_for_status()
+    return r.json()
+
+
+def charts_extraction(review: str, run_id: str | None = None) -> dict:
+    r = _client().get(
+        f"/charts/reviews/{review}/extraction", params={"run_id": run_id} if run_id else None
+    )
+    r.raise_for_status()
+    return r.json()
+
+
+def charts_gaps() -> dict:
+    r = _client().get("/charts/gaps")
+    r.raise_for_status()
+    return r.json()
+
+
+def charts_semantic_map(review: str, max_points: int = 1500) -> dict:
+    r = _client().get(
+        f"/charts/reviews/{review}/semantic-map", params={"max_points": max_points}
+    )
+    r.raise_for_status()
+    return r.json()
+
+
+def charts_performance(review: str | None = None, run_id: str | None = None) -> dict:
+    params = {k: v for k, v in {"review": review, "run_id": run_id}.items() if v}
+    r = _client().get("/charts/performance", params=params or None)
+    r.raise_for_status()
+    return r.json()

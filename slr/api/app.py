@@ -22,8 +22,13 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from slr.adapters.llm import BudgetExceeded, CacheMismatch, Meter, build_provider
-from slr.api.deps import DB_PATH, PROMPTS_DIR, RUNS_DIR, get_conn
-from slr.api.runs_index import latest_extract_run, latest_gap_run, latest_screen_run
+from slr.api.deps import DB_PATH, EMBEDDINGS_DIR, PROMPTS_DIR, RUNS_DIR, get_conn
+from slr.api.runs_index import (
+    latest_extract_run,
+    latest_gap_run,
+    latest_screen_run,
+    list_reviews_with_screen_runs,
+)
 from slr.api.schemas import (
     DiscoverPaperOut,
     DiscoverRequest,
@@ -41,6 +46,7 @@ from slr.api.schemas import (
     ScreenRequest,
     ScreenResult,
 )
+from slr.eval import charts
 from slr.eval.metrics import load_labels
 from slr.services import criteria as criteria_service
 from slr.services import retrieve
@@ -478,3 +484,137 @@ def discover(req: DiscoverRequest, conn: sqlite3.Connection = Depends(get_conn))
             )
         )
     return out
+
+
+# --------------------------------------------------------------------------
+# Charts
+#
+# Thin wrappers over slr.eval.charts, grouped by the panel that draws them
+# rather than one route per chart. Every one is a read: the shaping lives in
+# slr/eval so a figure drawn here is computed by the same code a CLI run
+# would use, and no route invents a number that isn't already in a run
+# directory or a harness-written table.
+# --------------------------------------------------------------------------
+
+
+@app.get("/charts/corpus")
+def charts_corpus(review: str | None = None, conn: sqlite3.Connection = Depends(get_conn)):
+    """Prevalence per review, publication years, and which optional metadata
+    columns have enough data to chart at all."""
+    return {
+        "prevalence": charts.prevalence_by_review(conn),
+        "years": charts.year_histogram(conn, review),
+        "metadata_coverage": charts.metadata_coverage(conn),
+    }
+
+
+@app.get("/charts/trust")
+def charts_trust(conn: sqlite3.Connection = Depends(get_conn)):
+    """Everything the Trust Dashboard plots except the confidence histogram,
+    which needs a run and a review."""
+    runs = list_reviews_with_screen_runs(RUNS_DIR)
+    return {
+        "runs": runs,
+        "verification": charts.verification_by_review(conn, runs),
+        "failures": charts.failure_type_matrix(conn, runs),
+        "verification_vs_recall": charts.verification_vs_recall(conn, RUNS_DIR),
+        "overrides": charts.override_outcomes(conn),
+    }
+
+
+@app.get("/charts/reviews/{review}/confidence")
+def charts_confidence(
+    review: str, run_id: str | None = None, conn: sqlite3.Connection = Depends(get_conn)
+):
+    run_id = run_id or latest_screen_run(RUNS_DIR, review)
+    if not run_id:
+        raise HTTPException(404, f"no screening run covers {review}")
+    return charts.confidence_histogram(conn, run_id, review)
+
+
+@app.get("/charts/reviews/{review}/recall-curve")
+def charts_recall_curve(
+    review: str, run_id: str | None = None, conn: sqlite3.Connection = Depends(get_conn)
+):
+    """Recall against records read, for the screening run's own ordering.
+
+    The 95% crossing this returns is the same point the review's reported
+    TNR@95 is computed at -- ``charts.recall_curve`` and
+    ``metrics.ranking_metrics`` are tested against each other precisely so
+    the chart can't drift from the table.
+    """
+    run_id = run_id or latest_screen_run(RUNS_DIR, review)
+    if not run_id:
+        raise HTTPException(404, f"no screening run covers {review}")
+    return charts.screening_recall_curve(conn, run_id, review).as_dict()
+
+
+@app.get("/charts/reviews/{review}/extraction")
+def charts_extraction(
+    review: str, run_id: str | None = None, conn: sqlite3.Connection = Depends(get_conn)
+):
+    """This review's per-field status, plus the all-review coverage heatmap
+    it should be read against."""
+    run_id = run_id or latest_extract_run(RUNS_DIR, review)
+    if not run_id:
+        raise HTTPException(404, f"no extraction run for {review}")
+    all_runs = {
+        r: latest_extract_run(RUNS_DIR, r)
+        for r in list_reviews_with_screen_runs(RUNS_DIR)
+    }
+    return {
+        "run_id": run_id,
+        "status": charts.extraction_status(conn, run_id, review),
+        "coverage": charts.extraction_coverage(
+            conn, {r: v for r, v in all_runs.items() if v}
+        ),
+    }
+
+
+@app.get("/charts/gaps")
+def charts_gaps(conn: sqlite3.Connection = Depends(get_conn)):
+    """Gap rate and precision per review, with the recorded recall estimate
+    beside it. Both halves, always -- precision alone overstates what gap
+    discovery does, which is the week 11 finding."""
+    runs = {
+        r: latest_gap_run(RUNS_DIR, r) for r in list_reviews_with_screen_runs(RUNS_DIR)
+    }
+    runs = {r: v for r, v in runs.items() if v}
+    return {
+        "runs": runs,
+        "rates": charts.gap_rate_by_review(conn, runs),
+        "precision_vs_recall": charts.gap_precision_vs_recall(conn, runs),
+        "recall_source": charts.GAP_RECALL_RUN,
+    }
+
+
+@app.get("/charts/reviews/{review}/semantic-map")
+def charts_semantic_map(
+    review: str, max_points: int = 1500, conn: sqlite3.Connection = Depends(get_conn)
+):
+    """SPECTER2 vectors projected to two dimensions by PCA.
+
+    Returns ``available: false`` with a reason when a review has no cached
+    embeddings -- normal for the three reviews week 9 never ran dense
+    retrieval on -- rather than a 404, so the panel can say why.
+    """
+    return charts.semantic_map(
+        conn, review, EMBEDDINGS_DIR, max_points=min(max_points, 3000)
+    )
+
+
+@app.get("/charts/performance")
+def charts_performance(
+    review: str | None = None,
+    run_id: str | None = None,
+    conn: sqlite3.Connection = Depends(get_conn),
+):
+    """Latency and cache savings -- RQ2's time arm, such as it is on local
+    inference. Cache hits are excluded from the latency distribution."""
+    if not run_id and review:
+        run_id = latest_screen_run(RUNS_DIR, review)
+    return {
+        "run_id": run_id,
+        "latency": charts.latency_summary(conn, run_id, review) if run_id else {"n": 0},
+        "cache": charts.cache_savings(conn, run_id),
+    }

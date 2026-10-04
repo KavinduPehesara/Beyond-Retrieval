@@ -285,3 +285,144 @@ def test_discover_returns_papers_with_extraction_and_gap_results(client, monkeyp
     assert body[0]["work_id"] == "W1"
     assert body[0]["study_design"]["status"] == "verified"
     assert body[0]["gap"]["status"] == "not_stated"
+
+
+# --------------------------------------------------------------------------
+# Chart routes
+#
+# Wiring only: the shaping has its own tests in test_charts.py against the
+# real database. What matters here is that each route finds the right run,
+# 404s when there isn't one, and -- for the semantic map -- reports an
+# absent embedding cache as a normal state rather than an error.
+# --------------------------------------------------------------------------
+
+
+RUN_DIR_NAME = "20260101T000000Z-aaa"  # run directories sort chronologically
+
+
+def _screened(conn, run_id=RUN_DIR_NAME, review="R1"):
+    """Decisions must be written under the *run directory's* name: the chart
+    routes resolve "current run" from runs/, then query the tables with that
+    id, so a mismatched run_id silently returns nothing."""
+    conn.execute(
+        "INSERT OR IGNORE INTO run (run_id, config_hash, model, prompt_version) "
+        "VALUES (?, 'h', 'qwen2.5:7b-instruct', 'screen_v1')",
+        (run_id,),
+    )
+    for wid, decision, confidence, verified, note in [
+        ("W1", "include", 0.9, 1, "exact_after_normalisation"),
+        ("W2", "unverified", 0.8, 0, "not_found"),
+    ]:
+        conn.execute(
+            "INSERT INTO screening_decision (run_id, review, work_id, decision, confidence, "
+            "evidence_span, span_verified, verify_note, latency_ms, from_cache) "
+            "VALUES (?, ?, ?, ?, ?, 's', ?, ?, 1500, 0)",
+            (run_id, review, wid, decision, confidence, verified, note),
+        )
+    conn.commit()
+
+
+def test_charts_corpus_reports_prevalence_and_unchartable_columns(client, conn):
+    body = client.get("/charts/corpus").json()
+    assert body["prevalence"][0]["review"] == "R1"
+    assert body["prevalence"][0]["prevalence"] == pytest.approx(0.5)
+    # venue is set in the fixture, country is not.
+    coverage = {c["column"]: c for c in body["metadata_coverage"]}
+    assert coverage["venue"]["chartable"] is True
+    assert coverage["country"]["chartable"] is False
+
+
+def test_charts_trust_is_empty_without_a_run_but_does_not_error(client):
+    body = client.get("/charts/trust").json()
+    assert body["verification"] == []
+    assert body["overrides"]["n"] == 0
+
+
+def test_charts_trust_reads_the_latest_screening_run(client, conn, runs_dir):
+    _write_run(runs_dir, "20260101T000000Z-aaa", {
+        "mode": "screen", "reviews_completed": ["R1"],
+        "per_review": [{"review": "R1", "verification_rate": 0.5, "recall_verified": 1.0,
+                        "prevalence": 0.5}],
+    })
+    _screened(conn)
+    body = client.get("/charts/trust").json()
+    assert body["verification"][0]["verification_rate"] == pytest.approx(0.5)
+    assert body["verification"][0]["prevalence"] == pytest.approx(0.5)
+    assert body["failures"]["notes"] == ["not_found"]
+    assert len(body["verification_vs_recall"]) == 1
+
+
+def test_charts_confidence_404_without_a_run(client):
+    assert client.get("/charts/reviews/R1/confidence").status_code == 404
+
+
+def test_charts_confidence_splits_by_verification(client, conn, runs_dir):
+    _write_run(runs_dir, "20260101T000000Z-aaa", {"mode": "screen", "reviews_completed": ["R1"]})
+    _screened(conn)
+    body = client.get("/charts/reviews/R1/confidence").json()
+    assert body["n_verified"] == 1 and body["n_unverified"] == 1
+    assert body["mean_verified"] == pytest.approx(0.9)
+    assert body["mean_unverified"] == pytest.approx(0.8)
+    assert len(body["bin_labels"]) == 10
+
+
+def test_charts_recall_curve_404_without_a_run(client):
+    assert client.get("/charts/reviews/R1/recall-curve").status_code == 404
+
+
+def test_charts_recall_curve_is_monotonic(client, conn, runs_dir):
+    _write_run(runs_dir, "20260101T000000Z-aaa", {"mode": "screen", "reviews_completed": ["R1"]})
+    _screened(conn)
+    body = client.get("/charts/reviews/R1/recall-curve").json()
+    assert body["n_included"] == 1
+    assert all(b >= a for a, b in zip(body["y"], body["y"][1:]))
+    assert body["y"][-1] == pytest.approx(1.0)
+    assert len(body["random_baseline"]) == len(body["x"])
+
+
+def test_charts_extraction_404_without_an_extraction_run(client):
+    assert client.get("/charts/reviews/R1/extraction").status_code == 404
+
+
+def test_charts_gaps_is_empty_without_a_gap_run(client):
+    body = client.get("/charts/gaps").json()
+    assert body["rates"] == []
+    assert body["recall_source"]  # the recorded provenance string is always present
+
+
+def test_charts_semantic_map_reports_a_missing_cache_as_unavailable_not_an_error(client, tmp_path, monkeypatch):
+    """An absent embedding cache is normal for a review no dense config has
+    run on. The panel needs a reason to show, not a 500."""
+    monkeypatch.setattr(app_module, "EMBEDDINGS_DIR", tmp_path / "nope")
+    resp = client.get("/charts/reviews/R1/semantic-map")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["available"] is False
+    assert "no cached embeddings" in body["reason"]
+
+
+def test_charts_performance_separates_cached_from_live(client, conn, runs_dir):
+    _write_run(runs_dir, "20260101T000000Z-aaa", {"mode": "screen", "reviews_completed": ["R1"]})
+    _screened(conn)
+    body = client.get("/charts/performance", params={"review": "R1"}).json()
+    assert body["latency"]["n"] == 2
+    assert body["latency"]["mean_ms"] == pytest.approx(1500.0)
+    assert body["cache"]["live_calls"] == 2
+    assert body["cache"]["cached_calls"] == 0
+
+
+def test_chart_routes_never_return_ground_truth(client, conn, runs_dir):
+    """Rule 4 at the boundary: label_included is read inside slr/eval to
+    compute recall and prevalence, but no chart route may hand a per-record
+    label back to a caller.
+    """
+    _write_run(runs_dir, "20260101T000000Z-aaa", {"mode": "screen", "reviews_completed": ["R1"]})
+    _screened(conn)
+    for path in [
+        "/charts/corpus",
+        "/charts/trust",
+        "/charts/gaps",
+        "/charts/reviews/R1/confidence",
+        "/charts/reviews/R1/recall-curve",
+    ]:
+        assert "label_included" not in client.get(path).text, path

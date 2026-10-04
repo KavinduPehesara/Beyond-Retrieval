@@ -11,8 +11,9 @@ see its own page for why.
 
 from __future__ import annotations
 
+import plots
 import streamlit as st
-from api_client import API_URL, health, list_reviews
+from api_client import API_URL, charts_corpus, health, list_reviews
 
 st.set_page_config(page_title="Beyond Retrieval", page_icon="\U0001f4da", layout="wide")
 
@@ -56,6 +57,46 @@ st.dataframe(
 not_screened = [r["review"] for r in reviews if not r["screen_run"]]
 if not_screened:
     st.warning("Not yet screened: " + ", ".join(not_screened))
+
+# ---------------------------------------------------------------------------
+# The corpus, as two pictures. Prevalence first because the spread is a
+# deliberate design choice rather than whatever the data happened to be.
+# ---------------------------------------------------------------------------
+
+try:
+    corpus = charts_corpus()
+except Exception as exc:
+    st.warning(f"Charts unavailable: {exc}")
+else:
+    c1, c2 = st.columns([1, 1])
+    with c1:
+        st.markdown("**Inclusion rate across the corpus**")
+        st.caption(
+            "A twenty-seven-fold spread, chosen on purpose: screening accuracy is known to "
+            "inflate on balanced data, so six reviews spanning 0.8% to 21.9% test more than a "
+            "larger corpus at uniform prevalence would."
+        )
+        st.altair_chart(plots.prevalence_bars(corpus["prevalence"]), use_container_width=True)
+    with c2:
+        st.markdown("**When these papers were published**")
+        years = plots.year_bars(corpus["years"])
+        if years is None:
+            st.info("No publication years recorded.")
+        else:
+            span = corpus["years"]["span"]
+            st.caption(
+                f"All six reviews together, {span[0]}–{span[1]}. Grey is every record screened; "
+                "blue is the ones that made it into a review."
+            )
+            st.altair_chart(years, use_container_width=True)
+
+    missing = [m["column"] for m in corpus["metadata_coverage"] if not m["chartable"]]
+    if missing:
+        st.caption(
+            "Not chartable yet: " + ", ".join(f"`{m}`" for m in missing) + ". These columns exist "
+            "in the schema but ingest never populated them, so there is no country map, venue "
+            "breakdown or language split — shown as a gap rather than an empty axis."
+        )
 
 st.divider()
 st.subheader("Panels")

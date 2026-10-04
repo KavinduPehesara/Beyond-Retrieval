@@ -6,8 +6,17 @@ a query unassisted" exit test runs on.
 
 from __future__ import annotations
 
+import plots
 import streamlit as st
-from api_client import health, list_reviews, query_rank, query_screen, review_criteria
+from api_client import (
+    charts_recall_curve,
+    charts_semantic_map,
+    health,
+    list_reviews,
+    query_rank,
+    query_screen,
+    review_criteria,
+)
 
 st.set_page_config(page_title="Search & Screen", page_icon="\U0001f50d", layout="wide")
 st.title("Search & Screen")
@@ -111,3 +120,73 @@ if results and st.session_state.get("ranked_review") == review:
                     )
 else:
     st.info("Choose a review and strategy, then **Rank** to see candidates.")
+
+# ---------------------------------------------------------------------------
+# How much reading does the ordering actually save? The live query above
+# returns the top N; this is the whole review, from its recorded screening
+# run. Shown regardless of whether a query has been submitted, because it's
+# the context that makes the ranking above mean something.
+# ---------------------------------------------------------------------------
+
+st.divider()
+st.subheader("How much reading this saves")
+try:
+    curve = charts_recall_curve(review)
+except Exception as exc:
+    st.caption(f"No screening run for {review} yet, so there's no curve to draw. ({exc})")
+else:
+    st.caption(
+        "Read down the ranking and this is how fast you find the papers that belong in the "
+        "review. The grey diagonal is what you'd get screening in no particular order — the "
+        "gap between the two lines *is* the saving. The dashed lines mark 95% recall, the "
+        "point every reported figure in this project is measured at."
+    )
+    st.altair_chart(plots.recall_curve(curve), use_container_width=True)
+
+    cols = st.columns(4)
+    cols[0].metric("Records", f"{curve['n_ranked']:,}")
+    cols[1].metric("Included", f"{curve['n_included']:,}")
+    if curve["cutoff_95"]:
+        read = curve["cutoff_95"]
+        cols[2].metric("Read to reach 95%", f"{read:,}")
+        cols[3].metric(
+            "Of the review",
+            f"{read / curve['n_ranked']:.0%}",
+            help="Screening in a random order would need about 95% of it.",
+        )
+    st.caption(
+        f"Ordering: {curve['strategy']} — verified includes by confidence, then everything "
+        "referred to a human, then verified excludes. The same ordering this review's reported "
+        "TNR@95 is computed on, so this curve and that number cannot disagree."
+    )
+
+# ---------------------------------------------------------------------------
+# The shape of the review, from the embeddings dense retrieval already
+# cached. Only available for reviews a dense/hybrid config has been run on.
+# ---------------------------------------------------------------------------
+
+with st.expander("See the shape of this review"):
+    try:
+        smap = charts_semantic_map(review, max_points=1200)
+    except Exception as exc:
+        st.caption(f"Map unavailable: {exc}")
+    else:
+        if not smap["available"]:
+            st.caption(
+                f"No semantic map for {review}: {smap['reason']}. Embeddings are computed and "
+                "cached the first time a `dense`, `hybrid` or `rerank` config runs on a review."
+            )
+        else:
+            st.caption(
+                "Every paper placed by what it's *about*, not by keyword. Each point is one "
+                "record; blue ones belong in the review. This is the SPECTER2 embedding space "
+                "flattened to two dimensions by PCA — a linear projection, so distance here is "
+                "real distance projected, not a neighbour-preserving distortion. "
+                f"Those two dimensions carry {smap['variance_explained']:.0%} of the variation, "
+                "so clusters that look separate may overlap in the full 768 dimensions."
+            )
+            st.altair_chart(plots.semantic_scatter(smap), use_container_width=True)
+            note = f"{smap['n_plotted']:,} of {smap['n_total']:,} records plotted"
+            if smap["downsampled"]:
+                note += " — excluded records sampled to keep the chart readable; every included record is shown"
+            st.caption(note + ".")

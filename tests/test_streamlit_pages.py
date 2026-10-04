@@ -86,8 +86,145 @@ DISCOVER_RESULTS = [
 ]
 
 
+# Chart fixtures, shaped exactly like slr.eval.charts returns. The numbers
+# are the recorded ones where it matters: CHARTS_CONFIDENCE's two means are
+# Nelson_2002's real pair, because the Trust Dashboard renders the
+# difference between them as a metric and a wrong shape would pass silently.
+CHARTS_TRUST = {
+    "runs": {"Nelson_2002": "run-screen-1"},
+    "verification": [
+        {"review": "Nelson_2002", "run_id": "run-screen-1", "n": 366, "verified": 185,
+         "verification_rate": 0.505, "prevalence": 0.219},
+    ],
+    "failures": {
+        "notes": ["not_found", "schema_validation_failed"],
+        "rows": [
+            {"review": "Nelson_2002", "total_failures": 181,
+             "counts": {"not_found": 170, "schema_validation_failed": 11},
+             "shares": {"not_found": 170 / 181, "schema_validation_failed": 11 / 181}},
+        ],
+        "totals": {"not_found": 170, "schema_validation_failed": 11},
+    },
+    "verification_vs_recall": [
+        {"review": "Nelson_2002", "run_id": "run-screen-1", "prevalence": 0.219,
+         "verification_rate": 0.505, "recall_verified": 0.906,
+         "recall_with_referrals": 0.95, "agreement_ac1": 0.28},
+    ],
+    "overrides": {"n": 13, "changed": 9, "confirmed": 4, "override_rate": 9 / 13,
+                  "disposed_referrals": 8, "disposed_verified": 5,
+                  "by_review": {"Nelson_2002": 13}},
+}
+
+CHARTS_CONFIDENCE = {
+    "run_id": "run-screen-1", "review": "Nelson_2002",
+    "bin_edges": [i / 10 for i in range(11)],
+    "bin_labels": [f"{i / 10:.1f}-{(i + 1) / 10:.1f}" for i in range(10)],
+    "verified": [0, 0, 0, 0, 0, 2, 10, 40, 90, 43],
+    "unverified": [1, 0, 0, 0, 2, 5, 20, 60, 80, 13],
+    "mean_verified": 0.813, "mean_unverified": 0.798,
+    "n_verified": 185, "n_unverified": 181,
+}
+
+CHARTS_RECALL_CURVE = {
+    "strategy": "screening confidence", "review": "Nelson_2002",
+    "n_ranked": 366, "n_included": 80,
+    "x": [0, 100, 200, 300, 366],
+    "y": [0.0, 0.5, 0.8, 0.95, 1.0],
+    "cutoff_95": 300,
+    "random_baseline": [0.0, 100 / 366, 200 / 366, 300 / 366, 1.0],
+}
+
+
+CHARTS_CORPUS = {
+    "prevalence": [
+        {"review": "Smid_2020", "n": 2627, "included": 27, "prevalence": 0.010,
+         "without_abstract": 110},
+        {"review": "Nelson_2002", "n": 366, "included": 80, "prevalence": 0.219,
+         "without_abstract": 8},
+    ],
+    "years": {"review": None, "years": [1990, 2000, 2010], "counts": [5, 50, 100],
+              "included": [1, 10, 20], "span": (1990, 2010)},
+    # Every optional column is empty in the real database; the page must say
+    # so rather than drawing an empty axis.
+    "metadata_coverage": [
+        {"column": "venue", "filled": 0, "total": 2993, "share": 0.0, "chartable": False},
+        {"column": "country", "filled": 0, "total": 2993, "share": 0.0, "chartable": False},
+        {"column": "doi", "filled": 2993, "total": 2993, "share": 1.0, "chartable": True},
+    ],
+}
+
+CHARTS_EXTRACTION = {
+    "run_id": "run-extract-1",
+    "status": [
+        {"field": "study_design", "n": 114, "verified": 102, "not_stated": 7, "unverified": 5},
+        {"field": "sample_size", "n": 114, "verified": 91, "not_stated": 10, "unverified": 13},
+        {"field": "country", "n": 114, "verified": 22, "not_stated": 90, "unverified": 2},
+        {"field": "key_finding", "n": 114, "verified": 110, "not_stated": 0, "unverified": 4},
+    ],
+    "coverage": {
+        "fields": ["study_design", "sample_size", "country", "key_finding"],
+        "rows": [
+            {"review": "Nelson_2002", "run_id": "run-extract-1", "prevalence": 0.219,
+             "fields": {
+                 "study_design": {"n": 114, "verified": 102, "share": 102 / 114},
+                 "sample_size": {"n": 114, "verified": 91, "share": 91 / 114},
+                 "country": {"n": 114, "verified": 22, "share": 22 / 114},
+                 # Never attempted -> must be dropped, not drawn as 0%.
+                 "key_finding": {"n": 0, "verified": 0, "share": None},
+             }},
+        ],
+    },
+}
+
+CHARTS_GAPS = {
+    "runs": {"Nelson_2002": "run-gap-1"},
+    "rates": [
+        {"review": "Nelson_2002", "run_id": "run-gap-1", "prevalence": 0.219,
+         "n_records": 114, "gap_stated": 12, "gap_rate": 12 / 114,
+         "valid": 11, "invalid": 1, "unrated": 0, "precision": 11 / 12},
+    ],
+    "precision_vs_recall": [
+        {"review": "Nelson_2002", "prevalence": 0.219, "precision": 11 / 12, "n_rated": 12,
+         "recall_estimate": 0.52, "recall_worst_case": 0.21, "recall_sampled": 10,
+         "recall_source": "runs/20260924T120813705057Z-gaprecall-d6901cb0a0"},
+        # A review with precision but no recall pass: one bar, not two.
+        {"review": "Smid_2020", "prevalence": 0.010, "precision": 1.0, "n_rated": 1,
+         "recall_estimate": None, "recall_worst_case": None, "recall_sampled": None,
+         "recall_source": None},
+    ],
+    "recall_source": "runs/20260924T120813705057Z-gaprecall-d6901cb0a0",
+}
+
+CHARTS_PERFORMANCE = {
+    "run_id": "run-screen-1",
+    "latency": {"run_id": "run-screen-1", "review": "Nelson_2002", "n": 3,
+                "values": [900, 1200, 2400], "mean_ms": 1500.0, "p50_ms": 1200.0,
+                "p90_ms": 2400.0, "p99_ms": 2400.0, "total_hours": 0.00125},
+    "cache": {"run_id": "run-screen-1", "live_calls": 3, "cached_calls": 363,
+              "cache_hit_rate": 363 / 366, "tokens_in": 500000, "tokens_out": 20000,
+              "cost_usd": 0.0, "hours_saved": 0.15},
+}
+
+CHARTS_SEMANTIC_MAP = {
+    "available": True, "review": "Nelson_2002", "n_plotted": 300, "n_total": 366,
+    "downsampled": True, "variance_explained": 0.21,
+    "points": [
+        {"work_id": f"W{i}", "x": i * 0.1, "y": -i * 0.05, "included": i % 10 == 0}
+        for i in range(300)
+    ],
+}
+
+
 @pytest.fixture(autouse=True)
 def _patched(monkeypatch):
+    monkeypatch.setattr(api_client, "charts_trust", lambda: CHARTS_TRUST)
+    monkeypatch.setattr(api_client, "charts_corpus", lambda review=None: CHARTS_CORPUS)
+    monkeypatch.setattr(api_client, "charts_extraction", lambda review, run_id=None: CHARTS_EXTRACTION)
+    monkeypatch.setattr(api_client, "charts_gaps", lambda: CHARTS_GAPS)
+    monkeypatch.setattr(api_client, "charts_performance", lambda review=None, run_id=None: CHARTS_PERFORMANCE)
+    monkeypatch.setattr(api_client, "charts_semantic_map", lambda review, max_points=1500: CHARTS_SEMANTIC_MAP)
+    monkeypatch.setattr(api_client, "charts_confidence", lambda review, run_id=None: CHARTS_CONFIDENCE)
+    monkeypatch.setattr(api_client, "charts_recall_curve", lambda review, run_id=None: CHARTS_RECALL_CURVE)
     monkeypatch.setattr(api_client, "health", lambda: True)
     monkeypatch.setattr(api_client, "list_reviews", lambda: REVIEWS)
     monkeypatch.setattr(api_client, "review_criteria", lambda review: {"review": review, "text": "Include RCTs.", "status": "published", "source": "test"})
@@ -192,3 +329,145 @@ def test_trust_dashboard_scales_percentages_before_display():
     assert rows["Nelson_2002"]["Prevalence"] == pytest.approx(21.9)
     assert pytest.approx(rows["Smid_2020"]["Prevalence"]) == 1.0
     assert rows["Smid_2020"]["Verified"] is None or rows["Smid_2020"]["Verified"] != rows["Smid_2020"]["Verified"]  # NaN or None: not screened
+
+
+# ---------------------------------------------------------------------------
+# Charts
+#
+# AppTest records altair charts, so these assert the charts are actually
+# built and rendered -- not merely that the page didn't raise. A chart that
+# silently fails to render looks identical to a page with no charts.
+# ---------------------------------------------------------------------------
+
+
+def test_trust_dashboard_renders_its_charts():
+    at = _run("pages/5_Trust_Dashboard.py")
+    assert len(at.get("arrow_vega_lite_chart")) >= 4, "verification, failures, confidence, scatter"
+    assert not any("Charts unavailable" in w.value for w in at.warning)
+
+
+def test_trust_dashboard_shows_the_calibration_gap_as_a_signed_number():
+    """The confidence finding is the difference between two means, and it is
+    small. If this metric ever renders unsigned or unscaled, the chart's
+    whole point is lost."""
+    at = _run("pages/5_Trust_Dashboard.py")
+    difference = next(m for m in at.metric if m.label == "Difference")
+    assert difference.value == "+0.015"
+
+
+def test_trust_dashboard_survives_a_failing_chart_route():
+    """The RQ1 table is the page's reason to exist; a broken chart route must
+    degrade to a warning, not take the table down with it."""
+
+    def boom():
+        raise RuntimeError("chart route down")
+
+    at = AppTest.from_file(str(APP_DIR / "pages/5_Trust_Dashboard.py"))
+    at.run()
+    import api_client as client
+
+    original = client.charts_trust
+    try:
+        client.charts_trust = boom
+        at = AppTest.from_file(str(APP_DIR / "pages/5_Trust_Dashboard.py"))
+        at.run()
+        assert not at.exception
+        assert any("Charts unavailable" in w.value for w in at.warning)
+        assert at.dataframe, "the RQ1 table still renders"
+    finally:
+        client.charts_trust = original
+
+
+def test_search_and_screen_shows_the_recall_curve_before_any_query():
+    """The curve is context for the ranking, so it renders on page load --
+    a reviewer shouldn't have to run a query to see what the saving is."""
+    at = _run("pages/1_Search_and_Screen.py")
+    assert at.get("arrow_vega_lite_chart"), "recall curve should render immediately"
+    labels = {m.label: m.value for m in at.metric}
+    assert labels["Read to reach 95%"] == "300"
+    assert labels["Of the review"] == "82%"  # 300 of 366
+
+
+def test_search_and_screen_handles_a_review_with_no_screening_run(monkeypatch):
+    def boom(review, run_id=None):
+        raise RuntimeError("no run")
+
+    monkeypatch.setattr(api_client, "charts_recall_curve", boom)
+    at = _run("pages/1_Search_and_Screen.py")
+    assert any("no curve to draw" in c.value for c in at.caption)
+
+
+def test_search_and_screen_says_so_when_a_review_has_no_embeddings(monkeypatch):
+    monkeypatch.setattr(
+        api_client,
+        "charts_semantic_map",
+        lambda review, max_points=1500: {
+            "available": False, "review": review,
+            "reason": "no cached embeddings for Radjenovic_2013; run a dense/hybrid config first",
+        },
+    )
+    at = _run("pages/1_Search_and_Screen.py")
+    assert any("No semantic map" in c.value for c in at.caption)
+
+
+def test_home_charts_the_corpus_and_names_what_it_cannot_chart():
+    at = _run("Home.py")
+    assert len(at.get("arrow_vega_lite_chart")) >= 2, "prevalence and years"
+    # venue and country are empty in the real database; saying so is the point.
+    assert any("Not chartable yet" in c.value and "venue" in c.value for c in at.caption)
+
+
+def test_extraction_page_renders_both_charts():
+    at = _run("pages/3_Extraction.py")
+    assert len(at.get("arrow_vega_lite_chart")) >= 2, "status bars and coverage heatmap"
+
+
+def test_extraction_coverage_drops_never_attempted_fields():
+    """A field extracted zero times must not be shaded as 0% verified --
+    "never attempted" and "attempted, never verified" are different findings.
+    """
+    import plots
+
+    chart = plots.extraction_coverage_heatmap(CHARTS_EXTRACTION["coverage"])
+    fields = {row["field"] for row in chart.data.to_dict("records")}
+    assert "key_finding" not in fields
+    assert "country" in fields
+
+
+def test_gap_page_renders_rate_and_precision_recall_charts():
+    at = _run("pages/4_Gap_Discovery.py")
+    assert len(at.get("arrow_vega_lite_chart")) >= 2
+    assert any("either one alone misrepresents" in c.value for c in at.caption)
+
+
+def test_gap_precision_recall_omits_the_bar_it_cannot_measure():
+    """Smid_2020 has rated precision but no blind recall sample. It gets one
+    bar; it must not inherit another review's recall figure."""
+    import plots
+
+    chart = plots.gap_precision_recall_bars(CHARTS_GAPS["precision_vs_recall"])
+    records = chart.data.to_dict("records")
+    smid = [r for r in records if r["review"] == "Smid_2020"]
+    assert len(smid) == 1
+    assert smid[0]["measure"] == "Precision (rated)"
+
+
+def test_trust_dashboard_renders_performance_and_override_sections():
+    at = _run("pages/5_Trust_Dashboard.py")
+    labels = {m.label for m in at.metric}
+    assert {"Dispositions recorded", "Override rate"} <= labels
+    assert any("Cost and speed" in s.value for s in at.subheader)
+
+
+def test_trust_dashboard_explains_an_all_cached_run_instead_of_an_empty_chart(monkeypatch):
+    monkeypatch.setattr(
+        api_client,
+        "charts_performance",
+        lambda review=None, run_id=None: {
+            "run_id": "r", "latency": {"n": 0},
+            "cache": {"live_calls": 0, "cached_calls": 366, "cache_hit_rate": 1.0,
+                      "tokens_in": 0, "tokens_out": 0, "cost_usd": 0.0, "hours_saved": None},
+        },
+    )
+    at = _run("pages/5_Trust_Dashboard.py")
+    assert any("served from the cache" in i.value for i in at.info)
