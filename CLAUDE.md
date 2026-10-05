@@ -134,6 +134,17 @@ slr/
     gap_report.py          writes runs/<ts>-gap-<hash>/gap_ratings.json
     gap_recall.py          blind-labelled recall estimate for gap discovery
     inter_run.py          genuine inter-run Gwet AC1 across repeated runs
+    ablation.py            what each component buys. Reconstructs the
+                         un-verified system from cached_response, so the
+                         counterfactual is exact rather than estimated.
+                         PolicyResult.comparable guards the one comparison
+                         that is not like-for-like.
+    ablation_harness.py    CLI -> runs/<ts>-ablation-<hash>/
+    error_typology.py      why verification fails. echoed_criteria is the
+                         category that matters: 97.8% of failures are the
+                         model quoting the criteria, not inventing a quote.
+    typology_harness.py    CLI -> runs/<ts>-typology-<hash>/, plus a seeded
+                         blind rating sheet
     charts.py              one pure data function per dashboard chart. Lives
                          here, not in api/, because four of them read
                          label_included (recall curve, prevalence, scatter)
@@ -193,7 +204,7 @@ configs/ingest_all.yaml  all six reviews, screening disabled -- the fresh-clone/
 data/embeddings/         SPECTER2 vectors cached per review (gitignored)
 data/asreview/           per-review CSV exports for the ASReview baseline (gitignored, SYNERGY text)
 scripts/reproduce.sh     venv -> pinned install -> pytest -> ingest -> smoke harness, one command
-tests/                   307 tests
+tests/                   339 tests
 reports/results.{csv,md} generated from runs/
 ```
 
@@ -1199,6 +1210,109 @@ rule worth naming — an `include` whose quote was not found in the abstract
 renders as "Needs your eye", never as "Keep" — has its own test, because
 that is the span verifier's entire argument surfacing in the UI rather than
 only in the data.
+
+**5 October 2026 — the ablation and the error typology, the two promised
+Table 9 measurements that had no number at all. Both change what this
+project can honestly claim.**
+
+**Everything here is computed from recorded data. No model was called, and
+it cost $0.** The ablation reconstructs the un-verified system exactly
+rather than approximating it: `screen.py` overwrites a decision with
+`unverified` when its quote fails, but `cached_response.raw_response` still
+holds the model's literal answer, keyed on (model, prompt_version, review,
+work_id). All 12,598 decisions were recoverable, so the counterfactual runs
+on the full corpus, not a sample. `test_every_decision_is_recoverable_on_the_real_corpus`
+fails if the cache is ever wiped again, rather than the ablation quietly
+shrinking.
+
+**A methodological trap, avoided and then encoded.** The shipped system's
+recall is over verified decisions *only* — referred records are excluded
+from the denominator rather than counted as misses. Setting that figure
+beside a policy that scores every record would credit the verifier for the
+records it declined to answer. `PolicyResult.comparable` marks it, the
+report prints it in a separate section, and a test asserts it stays out of
+the comparison table. The only like-for-like pair is "trust the model" vs
+"refer unverified to a human", both scored over every record.
+
+**The verifier buys recall on every review, and it is not close.**
+
+| Review | Prev | Recall trusting the model | Recall with the gate | Δ | Read w/ trust | Read w/ gate |
+|---|---|---|---|---|---|---|
+| Radjenovic_2013 | 0.8% | 0.771 | 0.938 | +0.167 | 141 | 3,953 |
+| Smid_2020 | 1.0% | 0.296 | 0.333 | +0.037 | 9 | 229 |
+| van_der_Waal_2022 | 1.7% | 0.424 | 0.788 | +0.364 | 85 | 1,278 |
+| Menon_2022 | 7.6% | 0.703 | 0.730 | +0.027 | 70 | 120 |
+| van_der_Valk_2021 | 12.3% | 0.112 | 0.809 | **+0.697** | 13 | 451 |
+| Nelson_2002 | 21.9% | 0.688 | 0.963 | +0.275 | 134 | 291 |
+
+The records whose quotes fail are disproportionately the ones the model got
+wrong, so refusing to trust them recovers included papers that trusting the
+model drops. van_der_Valk_2021 is the extreme case: recall 0.112 → 0.809.
+The price is reading — 13 records becomes 451, and on Radjenovic_2013 141
+becomes 3,953. **That is the honest trade and it should be reported as a
+trade, not a win.**
+
+**0.2% of verification failures are fabrication. 97.8% are the model
+quoting the eligibility criteria back at us.** `verify_note` says
+`not_found` on 98.6% of failures, which is true and useless — it cannot
+tell a reworded real sentence from an invented one. `slr/eval/
+error_typology.py` classifies each failed span against the source using
+`verify.normalise`, so a category cannot disagree with the decision that
+produced it. The first pass reported 97% "fabricated", which was alarming
+enough to check rather than write down — and the spans turned out to be
+lines like *"Studies discussing software metrics in a context other than
+software fault prediction (e.g. maintainability) OR."*, which is
+Radjenovic_2013's own published exclusion criterion, sitting in the prompt.
+
+| Review | Failures | echoed_criteria | near_paraphrase | stitched | fabricated | other |
+|---|---|---|---|---|---|---|
+| Menon_2022 | 51 | 36 (71%) | 6 | 8 | 0 | 1 |
+| Nelson_2002 | 181 | 178 (98%) | 2 | 1 | 0 | 0 |
+| Radjenovic_2013 | 3,821 | 3,799 (99%) | 12 | 5 | 3 | 2 |
+| Smid_2020 | 220 | 156 (71%) | 26 | 31 | 2 | 5 |
+| van_der_Valk_2021 | 440 | 432 (98%) | 4 | 3 | 1 | 0 |
+| van_der_Waal_2022 | 1,196 | 1,177 (98%) | 3 | 9 | 6 | 1 |
+| **All six** | **5,909** | **5,778 (97.8%)** | 53 (0.9%) | 57 (1.0%) | **12 (0.2%)** | 9 |
+
+**This reframes the project's central finding, and mostly in the model's
+favour.** `qwen2.5:7b-instruct` almost never invents a quote — 12 times in
+5,909 failures. What it does, overwhelmingly, is answer a different
+question: asked for the sentence that justifies the decision, it returns the
+*rule* it applied instead of the *evidence* for applying it. That is a
+prompt-comprehension failure, not a honesty failure, and it is plausibly
+fixable. A `screen_v4` that states the span must come from the abstract and
+never from the criteria is the obvious candidate — but week 10's two prompt
+variants both made things worse, so it needs the same discipline: a new
+version, a full rerun, a re-rating, not an edit.
+
+**The caveat that keeps this honest.** If the dominant failure is fixable by
+prompt design, then the verification rate reported throughout this project
+is partly a measure of *prompt quality*, not only of model trustworthiness.
+The verifier still does exactly what RQ1 claims — it refuses to present an
+unbackable decision as a fact — but the headline "only 35–95% of decisions
+verify" should be read as "the prompt leaks the criteria into the answer
+slot", not as "the model hallucinates a third of the time". Week 15's
+limitations section has to say that plainly.
+
+**Being unverifiable is not the same as being wrong.** Of the 5,778 criteria
+echoes, only 113 (2.0%) were also factually wrong decisions; genuine
+fabrications were wrong 8.3% of the time, stitched quotes 7.0%. So the gate
+refers a great many decisions that would have been right — that is the cost
+column in the table above, now with a cause attached to it.
+
+A seeded, review-stratified sample of 50 failures is written as a blind
+rating sheet (`rating_sheet.json`, automatic labels withheld behind an
+underscore prefix), the same method the week 11 gap-recall pass used.
+**Not yet rated by hand** — the automatic labels are unvalidated until that
+pass happens, and the figures above should carry that caveat until it does.
+
+Run directories: `runs/20261005T081610581869Z-ablation-414c762b99`,
+`runs/20261005T082109115224Z-typology-414c762b99`. The ablation also
+reproduces week 9's corrected retrieval figures from their own run
+directories (0.520/0.696/0.757/0.757 on Smid_2020), which is a cross-check
+that the ablation reads the same artefacts the report does.
+
+339 tests passing (was 307): 19 for the ablation, 20 for the typology.
 
 ## Next: close out week 11, run the week 12 usability check, submit ethics
 

@@ -1,0 +1,664 @@
+{
+  "mode": "error_typology",
+  "screen_runs": {
+    "Nelson_2002": "20260923T074803087022Z-9a8ec8f4db",
+    "Smid_2020": "20260921T112221881735Z-86c962f1d6",
+    "van_der_Valk_2021": "20260921T112221881735Z-86c962f1d6",
+    "Radjenovic_2013": "20260921T112221881735Z-86c962f1d6",
+    "Menon_2022": "20260924T090935787946Z-88b91f8dc3",
+    "van_der_Waal_2022": "20260924T090935787946Z-88b91f8dc3"
+  },
+  "sample_seed": 42,
+  "sample_size": 50,
+  "distribution": {
+    "per_review": [
+      {
+        "review": "Menon_2022",
+        "n_failures": 51,
+        "counts": {
+          "echoed_criteria": 36,
+          "too_short": 1,
+          "near_paraphrase": 6,
+          "stitched": 8
+        },
+        "shares": {
+          "echoed_criteria": 0.7059,
+          "too_short": 0.0196,
+          "near_paraphrase": 0.1176,
+          "stitched": 0.1569
+        }
+      },
+      {
+        "review": "Nelson_2002",
+        "n_failures": 181,
+        "counts": {
+          "echoed_criteria": 178,
+          "near_paraphrase": 2,
+          "stitched": 1
+        },
+        "shares": {
+          "echoed_criteria": 0.9834,
+          "near_paraphrase": 0.011,
+          "stitched": 0.0055
+        }
+      },
+      {
+        "review": "Radjenovic_2013",
+        "n_failures": 3821,
+        "counts": {
+          "echoed_criteria": 3799,
+          "too_short": 1,
+          "near_paraphrase": 12,
+          "stitched": 5,
+          "partial_overlap": 1,
+          "fabricated": 3
+        },
+        "shares": {
+          "echoed_criteria": 0.9942,
+          "too_short": 0.0003,
+          "near_paraphrase": 0.0031,
+          "stitched": 0.0013,
+          "partial_overlap": 0.0003,
+          "fabricated": 0.0008
+        }
+      },
+      {
+        "review": "Smid_2020",
+        "n_failures": 220,
+        "counts": {
+          "echoed_criteria": 156,
+          "too_short": 4,
+          "near_paraphrase": 26,
+          "stitched": 31,
+          "partial_overlap": 1,
+          "fabricated": 2
+        },
+        "shares": {
+          "echoed_criteria": 0.7091,
+          "too_short": 0.0182,
+          "near_paraphrase": 0.1182,
+          "stitched": 0.1409,
+          "partial_overlap": 0.0045,
+          "fabricated": 0.0091
+        }
+      },
+      {
+        "review": "van_der_Valk_2021",
+        "n_failures": 440,
+        "counts": {
+          "echoed_criteria": 432,
+          "near_paraphrase": 4,
+          "stitched": 3,
+          "fabricated": 1
+        },
+        "shares": {
+          "echoed_criteria": 0.9818,
+          "near_paraphrase": 0.0091,
+          "stitched": 0.0068,
+          "fabricated": 0.0023
+        }
+      },
+      {
+        "review": "van_der_Waal_2022",
+        "n_failures": 1196,
+        "counts": {
+          "echoed_criteria": 1177,
+          "too_short": 1,
+          "near_paraphrase": 3,
+          "stitched": 9,
+          "fabricated": 6
+        },
+        "shares": {
+          "echoed_criteria": 0.9841,
+          "too_short": 0.0008,
+          "near_paraphrase": 0.0025,
+          "stitched": 0.0075,
+          "fabricated": 0.005
+        }
+      }
+    ],
+    "overall": {
+      "echoed_criteria": 5778,
+      "too_short": 7,
+      "near_paraphrase": 53,
+      "stitched": 57,
+      "partial_overlap": 2,
+      "fabricated": 12
+    },
+    "n_failures": 5909
+  },
+  "wrong_by_category": {
+    "echoed_criteria": {
+      "n": 5778,
+      "wrong": 113,
+      "share_wrong": 0.0196
+    },
+    "near_paraphrase": {
+      "n": 53,
+      "wrong": 2,
+      "share_wrong": 0.0377
+    },
+    "stitched": {
+      "n": 57,
+      "wrong": 4,
+      "share_wrong": 0.0702
+    },
+    "too_short": {
+      "n": 7,
+      "wrong": 0,
+      "share_wrong": 0.0
+    },
+    "fabricated": {
+      "n": 12,
+      "wrong": 1,
+      "share_wrong": 0.0833
+    },
+    "partial_overlap": {
+      "n": 2,
+      "wrong": 0,
+      "share_wrong": 0.0
+    }
+  },
+  "sample": [
+    {
+      "review": "Menon_2022",
+      "work_id": "https://openalex.org/W3021629462",
+      "span": "We excluded umbrella reviews and review protocols, SRs of the wrong population (e.g. plants), and SRs of the following exposures: pathogens; poisons; smoking and tobacco related products, except for exposure to second-hand smoke (to prevent our sample being dominated by studies of direct tobacco exposure); social, psychological, or behavioural risk factors; housing conditions; SRs of exposure only (e.g. biomonitoring); and protocols for SRs.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2132154440",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2115324379",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Nelson_2002",
+      "work_id": "https://openalex.org/W1987169166",
+      "span": "All relevant English-language studies were identified",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W2789302929",
+      "span": "We excluded conference abstracts, non-original research, studies on paediatric population (defined as younger than eighteen years old), as well as studies addressing specific ethnographic subgroups within western healthcare systems.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W2058613725",
+      "span": "We excluded conference abstracts, non-original research, studies on paediatric population (defined as younger than eighteen years old), as well as studies addressing specific ethnographic subgroups within western healthcare systems.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "van_der_Valk_2021",
+      "work_id": "https://openalex.org/W3168614774",
+      "span": "We excluded case reports, animal studies, review articles, non-English or nonpeer reviewed studies, and studies in which hair sampling and weight measurements were not performed simultaneously (Figure 1).",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W1574608205",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2145213169",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2134227958",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2040507829",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W2317670676",
+      "span": "Amy is nonverbal and unable to participate in decision-making.",
+      "decision": "unverified",
+      "_auto_category": "near_paraphrase",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2138087462",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2148815373",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W1967645337",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2132150768",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W2129232635",
+      "span": "We excluded conference abstracts, non-original research, studies on paediatric population (defined as younger than eighteen years old), as well as studies addressing specific ethnographic subgroups within western healthcare systems.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W2888083480",
+      "span": "We excluded conference abstracts, non-original research, studies on paediatric population (defined as younger than eighteen years old), as well as studies addressing specific ethnographic subgroups within western healthcare systems.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W1950713008",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2069831410",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "van_der_Valk_2021",
+      "work_id": "https://openalex.org/W3105221449",
+      "span": "We excluded case reports, animal studies, review articles, non-English or nonpeer reviewed studies, and studies in which hair sampling and weight measurements were not performed simultaneously (Figure 1).",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2157551728",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2056557198",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2058179593",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2157084248",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W2783642918",
+      "span": "Studies included in this review were performed among adults (defined as eighteen years and older) with cancer treated in research centres that are part of a western healthcare system (including: European Union, United Kingdom, United States of America, Canada, Japan, Australia, and New Zealand).",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2157769831",
+      "span": "Studies discussing and comparing prediction techniques were excluded from the review, Studies proposing new software metrics and not empirically validating them were also excluded",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W2567828073",
+      "span": "Studies included in this review were performed among adults (defined as eighteen years and older) with cancer treated in research centres that are part of a western healthcare system (including: European Union, United Kingdom, United States of America, Canada, Japan, Australia, and New Zealand).",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W2936622492",
+      "span": "We excluded conference abstracts, non-original research, studies on paediatric population (defined as younger than eighteen years old), as well as studies addressing specific ethnographic subgroups within western healthcare systems.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2154142939",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2119318131",
+      "span": "Studies discussing and comparing prediction techniques were excluded from the review, Studies proposing new software metrics and not empirically validating them were also excluded",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "van_der_Valk_2021",
+      "work_id": "https://openalex.org/W1483199116",
+      "span": "We excluded case reports, animal studies, review articles, non-English or nonpeer reviewed studies, and studies in which hair sampling and weight measurements were not performed simultaneously (Figure 1).",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W1921815940",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W2123548059",
+      "span": "We excluded conference abstracts, non-original research, studies on paediatric population (defined as younger than eighteen years old), as well as studies addressing specific ethnographic subgroups within western healthcare systems.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": true,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2096621989",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W3144294647",
+      "span": "Studies discussing and comparing prediction techniques were excluded from the review, Studies proposing new software metrics and not empirically validating them were also excluded",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2139446967",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W1568433103",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Smid_2020",
+      "work_id": "https://openalex.org/W2016377072",
+      "span": "This heuristic approach is contrasted with the normative (Bayesian) approach to the analysis of the judgment of uncertainty.",
+      "decision": "unverified",
+      "_auto_category": "near_paraphrase",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2080311345",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W1558939510",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W1994149242",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Smid_2020",
+      "work_id": "https://openalex.org/W2128347131",
+      "span": "Direct application of such multivariate models to even moderately large datasets is often computationally infeasible because of cubic order matrix algorithms involved in estimation.",
+      "decision": "unverified",
+      "_auto_category": "stitched",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2152125017",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Nelson_2002",
+      "work_id": "https://openalex.org/W1871020240",
+      "span": "Studies were excluded if the population was selected according to prior events or presence of conditions associated with higher risks for targeted outcomes.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2115596169",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "van_der_Valk_2021",
+      "work_id": "https://openalex.org/W3025428317",
+      "span": "We excluded case reports, animal studies, review articles, non-English or nonpeer reviewed studies, and studies in which hair sampling and weight measurements were not performed simultaneously (Figure 1).",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "van_der_Waal_2022",
+      "work_id": "https://openalex.org/W2045869220",
+      "span": "Studies included in this review were performed among adults (defined as eighteen years and older) with cancer treated in research centres that are part of a western healthcare system (including: European Union, United Kingdom, United States of America, Canada, Japan, Australia, and New Zealand).",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2126611504",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    },
+    {
+      "review": "Radjenovic_2013",
+      "work_id": "https://openalex.org/W2060958500",
+      "span": "Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.",
+      "decision": "unverified",
+      "_auto_category": "echoed_criteria",
+      "_truly_included": false,
+      "rating": null,
+      "rating_note": null
+    }
+  ]
+}

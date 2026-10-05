@@ -1,0 +1,560 @@
+{
+  "mode": "ablation",
+  "reviews": [
+    "Nelson_2002",
+    "Smid_2020",
+    "van_der_Valk_2021",
+    "Radjenovic_2013",
+    "Menon_2022",
+    "van_der_Waal_2022"
+  ],
+  "screen_runs": {
+    "Nelson_2002": "20260923T074803087022Z-9a8ec8f4db",
+    "Smid_2020": "20260921T112221881735Z-86c962f1d6",
+    "van_der_Valk_2021": "20260921T112221881735Z-86c962f1d6",
+    "Radjenovic_2013": "20260921T112221881735Z-86c962f1d6",
+    "Menon_2022": "20260924T090935787946Z-88b91f8dc3",
+    "van_der_Waal_2022": "20260924T090935787946Z-88b91f8dc3"
+  },
+  "verifier": [
+    {
+      "review": "Nelson_2002",
+      "run_id": "20260923T074803087022Z-9a8ec8f4db",
+      "n_records": 366,
+      "n_unrecovered": 0,
+      "unrecovered_sample": [],
+      "policies": {
+        "with_verifier": {
+          "review": "Nelson_2002",
+          "policy": "with_verifier",
+          "n_records": 366,
+          "n_included_truth": 80,
+          "prevalence": 0.2185792349726776,
+          "n_predictions": 185,
+          "n_to_human": 291,
+          "true_positives": 45,
+          "false_positives": 65,
+          "false_negatives": 3,
+          "true_negatives": 72,
+          "recall": 0.9375,
+          "precision": 0.4090909090909091,
+          "work_saved": 0.20491803278688525,
+          "tnr_at_95": 0.27972027972027974,
+          "comparable": false,
+          "n_unverifiable_trusted": 0,
+          "n_unverifiable_wrong": 0
+        },
+        "no_verifier": {
+          "review": "Nelson_2002",
+          "policy": "no_verifier",
+          "n_records": 366,
+          "n_included_truth": 80,
+          "prevalence": 0.2185792349726776,
+          "n_predictions": 366,
+          "n_to_human": 134,
+          "true_positives": 55,
+          "false_positives": 79,
+          "false_negatives": 25,
+          "true_negatives": 207,
+          "recall": 0.6875,
+          "precision": 0.41044776119402987,
+          "work_saved": 0.6338797814207651,
+          "tnr_at_95": 0.0944055944055944,
+          "comparable": true,
+          "n_unverifiable_trusted": 181,
+          "n_unverifiable_wrong": 35
+        },
+        "referrals_to_human": {
+          "review": "Nelson_2002",
+          "policy": "referrals_to_human",
+          "n_records": 366,
+          "n_included_truth": 80,
+          "prevalence": 0.2185792349726776,
+          "n_predictions": 366,
+          "n_to_human": 291,
+          "true_positives": 77,
+          "false_positives": 214,
+          "false_negatives": 3,
+          "true_negatives": 72,
+          "recall": 0.9625,
+          "precision": 0.2646048109965636,
+          "work_saved": 0.20491803278688525,
+          "tnr_at_95": 0.27972027972027974,
+          "comparable": true,
+          "n_unverifiable_trusted": 0,
+          "n_unverifiable_wrong": 0
+        }
+      }
+    },
+    {
+      "review": "Smid_2020",
+      "run_id": "20260921T112221881735Z-86c962f1d6",
+      "n_records": 2627,
+      "n_unrecovered": 0,
+      "unrecovered_sample": [],
+      "policies": {
+        "with_verifier": {
+          "review": "Smid_2020",
+          "policy": "with_verifier",
+          "n_records": 2627,
+          "n_included_truth": 27,
+          "prevalence": 0.010277883517320136,
+          "n_predictions": 2407,
+          "n_to_human": 229,
+          "true_positives": 8,
+          "false_positives": 1,
+          "false_negatives": 18,
+          "true_negatives": 2380,
+          "recall": 0.3076923076923077,
+          "precision": 0.8888888888888888,
+          "work_saved": 0.9128283212790255,
+          "tnr_at_95": 0.11269230769230769,
+          "comparable": false,
+          "n_unverifiable_trusted": 0,
+          "n_unverifiable_wrong": 0
+        },
+        "no_verifier": {
+          "review": "Smid_2020",
+          "policy": "no_verifier",
+          "n_records": 2627,
+          "n_included_truth": 27,
+          "prevalence": 0.010277883517320136,
+          "n_predictions": 2627,
+          "n_to_human": 9,
+          "true_positives": 8,
+          "false_positives": 1,
+          "false_negatives": 19,
+          "true_negatives": 2599,
+          "recall": 0.2962962962962963,
+          "precision": 0.8888888888888888,
+          "work_saved": 0.9965740388275599,
+          "tnr_at_95": 0.12230769230769231,
+          "comparable": true,
+          "n_unverifiable_trusted": 220,
+          "n_unverifiable_wrong": 1
+        },
+        "referrals_to_human": {
+          "review": "Smid_2020",
+          "policy": "referrals_to_human",
+          "n_records": 2627,
+          "n_included_truth": 27,
+          "prevalence": 0.010277883517320136,
+          "n_predictions": 2627,
+          "n_to_human": 229,
+          "true_positives": 9,
+          "false_positives": 220,
+          "false_negatives": 18,
+          "true_negatives": 2380,
+          "recall": 0.3333333333333333,
+          "precision": 0.039301310043668124,
+          "work_saved": 0.9128283212790255,
+          "tnr_at_95": 0.11269230769230769,
+          "comparable": true,
+          "n_unverifiable_trusted": 0,
+          "n_unverifiable_wrong": 0
+        }
+      }
+    },
+    {
+      "review": "van_der_Valk_2021",
+      "run_id": "20260921T112221881735Z-86c962f1d6",
+      "n_records": 725,
+      "n_unrecovered": 0,
+      "unrecovered_sample": [],
+      "policies": {
+        "with_verifier": {
+          "review": "van_der_Valk_2021",
+          "policy": "with_verifier",
+          "n_records": 725,
+          "n_included_truth": 89,
+          "prevalence": 0.12275862068965518,
+          "n_predictions": 285,
+          "n_to_human": 451,
+          "true_positives": 8,
+          "false_positives": 3,
+          "false_negatives": 17,
+          "true_negatives": 257,
+          "recall": 0.32,
+          "precision": 0.7272727272727273,
+          "work_saved": 0.3779310344827586,
+          "tnr_at_95": 0.13836477987421383,
+          "comparable": false,
+          "n_unverifiable_trusted": 0,
+          "n_unverifiable_wrong": 0
+        },
+        "no_verifier": {
+          "review": "van_der_Valk_2021",
+          "policy": "no_verifier",
+          "n_records": 725,
+          "n_included_truth": 89,
+          "prevalence": 0.12275862068965518,
+          "n_predictions": 725,
+          "n_to_human": 13,
+          "true_positives": 10,
+          "false_positives": 3,
+          "false_negatives": 79,
+          "true_negatives": 633,
+          "recall": 0.11235955056179775,
+          "precision": 0.7692307692307693,
+          "work_saved": 0.9820689655172414,
+          "tnr_at_95": 0.1509433962264151,
+          "comparable": true,
+          "n_unverifiable_trusted": 440,
+          "n_unverifiable_wrong": 62
+        },
+        "referrals_to_human": {
+          "review": "van_der_Valk_2021",
+          "policy": "referrals_to_human",
+          "n_records": 725,
+          "n_included_truth": 89,
+          "prevalence": 0.12275862068965518,
+          "n_predictions": 725,
+          "n_to_human": 451,
+          "true_positives": 72,
+          "false_positives": 379,
+          "false_negatives": 17,
+          "true_negatives": 257,
+          "recall": 0.8089887640449438,
+          "precision": 0.15964523281596452,
+          "work_saved": 0.3779310344827586,
+          "tnr_at_95": 0.13836477987421383,
+          "comparable": true,
+          "n_unverifiable_trusted": 0,
+          "n_unverifiable_wrong": 0
+        }
+      }
+    },
+    {
+      "review": "Radjenovic_2013",
+      "run_id": "20260921T112221881735Z-86c962f1d6",
+      "n_records": 5935,
+      "n_unrecovered": 0,
+      "unrecovered_sample": [],
+      "policies": {
+        "with_verifier": {
+          "review": "Radjenovic_2013",
+          "policy": "with_verifier",
+          "n_records": 5935,
+          "n_included_truth": 48,
+          "prevalence": 0.008087615838247682,
+          "n_predictions": 2114,
+          "n_to_human": 3953,
+          "true_positives": 37,
+          "false_positives": 95,
+          "false_negatives": 3,
+          "true_negatives": 1979,
+          "recall": 0.925,
+          "precision": 0.2803030303030303,
+          "work_saved": 0.33395113732097725,
+          "tnr_at_95": 0.20876507559028368,
+          "comparable": false,
+          "n_unverifiable_trusted": 0,
+          "n_unverifiable_wrong": 0
+        },
+        "no_verifier": {
+          "review": "Radjenovic_2013",
+          "policy": "no_verifier",
+          "n_records": 5935,
+          "n_included_truth": 48,
+          "prevalence": 0.008087615838247682,
+          "n_predictions": 5935,
+          "n_to_human": 141,
+          "true_positives": 37,
+          "false_positives": 104,
+          "false_negatives": 11,
+          "true_negatives": 5783,
+          "recall": 0.7708333333333334,
+          "precision": 0.2624113475177305,
+          "work_saved": 0.9762426284751474,
+          "tnr_at_95": 0.3264820791574656,
+          "comparable": true,
+          "n_unverifiable_trusted": 3821,
+          "n_unverifiable_wrong": 17
+        },
+        "referrals_to_human": {
+          "review": "Radjenovic_2013",
+          "policy": "referrals_to_human",
+          "n_records": 5935,
+          "n_included_truth": 48,
+          "prevalence": 0.008087615838247682,
+          "n_predictions": 5935,
+          "n_to_human": 3953,
+          "true_positives": 45,
+          "false_positives": 3908,
+          "false_negatives": 3,
+          "true_negatives": 1979,
+          "recall": 0.9375,
+          "precision": 0.011383759170250442,
+          "work_saved": 0.33395113732097725,
+          "tnr_at_95": 0.20876507559028368,
+          "comparable": true,
+          "n_unverifiable_trusted": 0,
+          "n_unverifiable_wrong": 0
+        }
+      }
+    },
+    {
+      "review": "Menon_2022",
+      "run_id": "20260924T090935787946Z-88b91f8dc3",
+      "n_records": 975,
+      "n_unrecovered": 0,
+      "unrecovered_sample": [],
+      "policies": {
+        "with_verifier": {
+          "review": "Menon_2022",
+          "policy": "with_verifier",
+          "n_records": 975,
+          "n_included_truth": 74,
+          "prevalence": 0.0758974358974359,
+          "n_predictions": 924,
+          "n_to_human": 120,
+          "true_positives": 52,
+          "false_positives": 17,
+          "false_negatives": 20,
+          "true_negatives": 835,
+          "recall": 0.7222222222222222,
+          "precision": 0.7536231884057971,
+          "work_saved": 0.8769230769230769,
+          "tnr_at_95": 0.31520532741398444,
+          "comparable": false,
+          "n_unverifiable_trusted": 0,
+          "n_unverifiable_wrong": 0
+        },
+        "no_verifier": {
+          "review": "Menon_2022",
+          "policy": "no_verifier",
+          "n_records": 975,
+          "n_included_truth": 74,
+          "prevalence": 0.0758974358974359,
+          "n_predictions": 975,
+          "n_to_human": 70,
+          "true_positives": 52,
+          "false_positives": 18,
+          "false_negatives": 22,
+          "true_negatives": 883,
+          "recall": 0.7027027027027027,
+          "precision": 0.7428571428571429,
+          "work_saved": 0.9282051282051282,
+          "tnr_at_95": 0.2685904550499445,
+          "comparable": true,
+          "n_unverifiable_trusted": 51,
+          "n_unverifiable_wrong": 3
+        },
+        "referrals_to_human": {
+          "review": "Menon_2022",
+          "policy": "referrals_to_human",
+          "n_records": 975,
+          "n_included_truth": 74,
+          "prevalence": 0.0758974358974359,
+          "n_predictions": 975,
+          "n_to_human": 120,
+          "true_positives": 54,
+          "false_positives": 66,
+          "false_negatives": 20,
+          "true_negatives": 835,
+          "recall": 0.7297297297297297,
+          "precision": 0.45,
+          "work_saved": 0.8769230769230769,
+          "tnr_at_95": 0.31520532741398444,
+          "comparable": true,
+          "n_unverifiable_trusted": 0,
+          "n_unverifiable_wrong": 0
+        }
+      }
+    },
+    {
+      "review": "van_der_Waal_2022",
+      "run_id": "20260924T090935787946Z-88b91f8dc3",
+      "n_records": 1970,
+      "n_unrecovered": 0,
+      "unrecovered_sample": [],
+      "policies": {
+        "with_verifier": {
+          "review": "van_der_Waal_2022",
+          "policy": "with_verifier",
+          "n_records": 1970,
+          "n_included_truth": 33,
+          "prevalence": 0.016751269035532996,
+          "n_predictions": 774,
+          "n_to_human": 1278,
+          "true_positives": 13,
+          "false_positives": 69,
+          "false_negatives": 7,
+          "true_negatives": 685,
+          "recall": 0.65,
+          "precision": 0.15853658536585366,
+          "work_saved": 0.35126903553299493,
+          "tnr_at_95": 0.15797625193598347,
+          "comparable": false,
+          "n_unverifiable_trusted": 0,
+          "n_unverifiable_wrong": 0
+        },
+        "no_verifier": {
+          "review": "van_der_Waal_2022",
+          "policy": "no_verifier",
+          "n_records": 1970,
+          "n_included_truth": 33,
+          "prevalence": 0.016751269035532996,
+          "n_predictions": 1970,
+          "n_to_human": 85,
+          "true_positives": 14,
+          "false_positives": 71,
+          "false_negatives": 19,
+          "true_negatives": 1866,
+          "recall": 0.42424242424242425,
+          "precision": 0.16470588235294117,
+          "work_saved": 0.9568527918781726,
+          "tnr_at_95": 0.1997934950955085,
+          "comparable": true,
+          "n_unverifiable_trusted": 1196,
+          "n_unverifiable_wrong": 14
+        },
+        "referrals_to_human": {
+          "review": "van_der_Waal_2022",
+          "policy": "referrals_to_human",
+          "n_records": 1970,
+          "n_included_truth": 33,
+          "prevalence": 0.016751269035532996,
+          "n_predictions": 1970,
+          "n_to_human": 1278,
+          "true_positives": 26,
+          "false_positives": 1252,
+          "false_negatives": 7,
+          "true_negatives": 685,
+          "recall": 0.7878787878787878,
+          "precision": 0.02034428794992175,
+          "work_saved": 0.35126903553299493,
+          "tnr_at_95": 0.15797625193598347,
+          "comparable": true,
+          "n_unverifiable_trusted": 0,
+          "n_unverifiable_wrong": 0
+        }
+      }
+    }
+  ],
+  "retrieval": {
+    "metric": "tnr_at_recall",
+    "baseline": "bm25",
+    "stages": [
+      "bm25",
+      "dense",
+      "hybrid",
+      "rerank"
+    ],
+    "missing_runs": [],
+    "rows": [
+      {
+        "review": "Smid_2020",
+        "prevalence": 0.010277883517320136,
+        "stages": {
+          "bm25": 0.5203846153846153,
+          "dense": 0.6961538461538461,
+          "hybrid": 0.7569230769230769,
+          "rerank": 0.7569230769230769
+        },
+        "deltas": {
+          "bm25": 0.0,
+          "dense": 0.1758,
+          "hybrid": 0.2365,
+          "rerank": 0.2365
+        }
+      },
+      {
+        "review": "van_der_Valk_2021",
+        "prevalence": 0.12275862068965518,
+        "stages": {
+          "bm25": 0.04874213836477988,
+          "dense": 0.18081761006289307,
+          "hybrid": 0.06761006289308176,
+          "rerank": 0.06761006289308176
+        },
+        "deltas": {
+          "bm25": 0.0,
+          "dense": 0.1321,
+          "hybrid": 0.0189,
+          "rerank": 0.0189
+        }
+      },
+      {
+        "review": "Nelson_2002",
+        "prevalence": 0.2185792349726776,
+        "stages": {
+          "bm25": 0.038461538461538464,
+          "dense": 0.17832167832167833,
+          "hybrid": 0.0944055944055944,
+          "rerank": 0.0944055944055944
+        },
+        "deltas": {
+          "bm25": 0.0,
+          "dense": 0.1399,
+          "hybrid": 0.0559,
+          "rerank": 0.0559
+        }
+      }
+    ]
+  },
+  "prompt_variants": {
+    "variants": [
+      "screen_v1",
+      "screen_v2",
+      "screen_v3"
+    ],
+    "missing_runs": [],
+    "rows": [
+      {
+        "review": "Nelson_2002",
+        "variants": {
+          "screen_v1": {
+            "verification_rate": 0.5191256830601093,
+            "recall_verified": 0.9056603773584906,
+            "n_verified": 190,
+            "n_errors": 0,
+            "run_id": "20260921T122043060429Z-df0fc175b2"
+          },
+          "screen_v2": {
+            "verification_rate": 0.13387978142076504,
+            "recall_verified": 0.6153846153846154,
+            "n_verified": 49,
+            "n_errors": 164,
+            "run_id": "20260922T115430121258Z-33c61120f3"
+          },
+          "screen_v3": {
+            "verification_rate": 0.13934426229508196,
+            "recall_verified": 0.6666666666666666,
+            "n_verified": 51,
+            "n_errors": 0,
+            "run_id": "20260922T123132050251Z-6e54fdd202"
+          }
+        }
+      }
+    ]
+  },
+  "model_tiers": {
+    "variants": [
+      "qwen2.5:7b-instruct",
+      "qwen3:8b"
+    ],
+    "missing_runs": [],
+    "rows": [
+      {
+        "review": "Nelson_2002",
+        "variants": {
+          "qwen2.5:7b-instruct": {
+            "verification_rate": 0.5191256830601093,
+            "recall_verified": 0.9056603773584906,
+            "n_verified": 190,
+            "n_errors": 0,
+            "run_id": "20260921T122043060429Z-df0fc175b2"
+          },
+          "qwen3:8b": {
+            "verification_rate": 0.4207650273224044,
+            "recall_verified": 0.38461538461538464,
+            "n_verified": 154,
+            "n_errors": 0,
+            "run_id": "20260922T123756418737Z-298d2bcad2"
+          }
+        }
+      }
+    ]
+  }
+}
