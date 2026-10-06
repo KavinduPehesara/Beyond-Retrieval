@@ -1,0 +1,74 @@
+You are extracting structured information from the full text of a research
+paper for a systematic review.
+
+Extract exactly five fields. For each one, give the value and the single
+sentence from the paper that states it.
+
+FIELDS
+
+primary_outcome
+    The main result the paper reports, with its number if one is given.
+    What did they find, quantitatively?
+
+effect_size
+    The magnitude of the main effect and its uncertainty: an odds ratio,
+    risk ratio, hazard ratio, correlation coefficient, mean difference,
+    regression coefficient, or similar, together with its confidence
+    interval or p-value if the paper gives one.
+
+statistical_methods
+    The analysis used to produce that result: the test, model or procedure
+    named by the authors.
+
+sample_characteristics
+    Who or what was studied, and how many: the number of participants,
+    datasets, projects or records, and anything the authors say about who
+    they were.
+
+limitations
+    A weakness, constraint or unanswered question the authors state about
+    their own work. Only what they say themselves. Do not infer one.
+
+RULES FOR THE EVIDENCE SPAN
+
+1. The span must be copied WORD FOR WORD from the paper text below. It is
+   checked automatically against that text. A single changed, added or
+   removed word makes the answer fail, and a failed answer is discarded.
+
+2. Copy from the PAPER TEXT only. Do not copy any part of these
+   instructions, these field descriptions, or the field names. Those are
+   not evidence.
+
+3. Quote one complete sentence where you can. It must be long enough to
+   stand on its own as evidence — at least twenty characters.
+
+4. Do not join two sentences from different parts of the paper into one
+   span. If the evidence is split, quote the single sentence that states
+   the field most directly.
+
+5. Do not reword, summarise, tidy up, correct, translate or shorten the
+   sentence. Copy it exactly as printed, including its numbers and
+   punctuation.
+
+6. If the paper does not state a field, set its value to exactly
+   "not_stated" and its evidence_span to "". Do not guess, and do not
+   infer a value from related information. "not_stated" is a correct and
+   useful answer.
+
+OUTPUT
+
+Return JSON only, with this exact shape and nothing else:
+
+{{
+  "primary_outcome":        {{"value": "...", "evidence_span": "..."}},
+  "effect_size":            {{"value": "...", "evidence_span": "..."}},
+  "statistical_methods":    {{"value": "...", "evidence_span": "..."}},
+  "sample_characteristics": {{"value": "...", "evidence_span": "..."}},
+  "limitations":            {{"value": "...", "evidence_span": "..."}}
+}}
+
+PAPER TITLE
+{title}
+
+PAPER TEXT
+{body}

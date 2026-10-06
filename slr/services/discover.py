@@ -27,6 +27,7 @@ import httpx
 
 from slr.adapters.llm import Meter, Provider
 from slr.services.extract import FieldExtraction, extract_record
+from slr.services.extract_fulltext import FullTextExtraction, extract_fulltext_record
 from slr.services.gap import GapExtraction, extract_gap
 from slr.services.screen import Decision, screen_record
 
@@ -92,7 +93,9 @@ def search_openalex(
     params = {
         "search": query,
         "per-page": min(limit * fetch_multiplier, 50),
-        "select": "id,title,abstract_inverted_index,publication_year,primary_location",
+        # doi is requested so a caller can look the paper up in Europe PMC
+        # for full text; without it only a fuzzy title match is possible.
+        "select": "id,doi,title,abstract_inverted_index,publication_year,primary_location",
     }
     mailto = os.getenv("OPENALEX_MAILTO")
     if mailto:
@@ -121,6 +124,7 @@ def search_openalex(
                 "title": w.get("title"),
                 "abstract": abstract,
                 "year": w.get("publication_year"),
+                "doi": w.get("doi"),
                 "source_url": loc.get("landing_page_url"),
             }
         )
@@ -149,6 +153,18 @@ class DiscoverPaper:
     gap: GapExtraction | None
     decision: Decision | None = None
 
+    # Full text, when it was asked for and Europe PMC had it. ``fulltext``
+    # is the five model-extracted fields, each with a verified quote;
+    # ``tables``, ``equations`` and ``figures`` are parsed straight from the
+    # publisher's XML with no model involved, and are exact. ``fulltext_note``
+    # says why there is nothing here when there isn't -- "paywalled" and
+    # "not indexed" are facts about the world, not failures of this code.
+    fulltext: list["FullTextExtraction"] | None = None
+    tables: list[dict] | None = None
+    equations: list[str] | None = None
+    figures: list[dict] | None = None
+    fulltext_note: str = ""
+
     @property
     def included(self) -> bool:
         """Verified include. An unverified decision is a referral, not a yes."""
@@ -175,6 +191,8 @@ def run_discover(
     criteria: str | None = None,
     screen_template: str | None = None,
     screen_prompt_version: str = "screen_v1",
+    fulltext_template: str | None = None,
+    fetch_full_text=None,
 ) -> list[DiscoverPaper]:
     """Search the open web for ``query``, then run every result through the
     same verified pipeline the rest of this project uses on its ingested
@@ -200,6 +218,11 @@ def run_discover(
         raise ValueError("criteria and screen_template must be given together")
     if criteria is not None and not criteria.strip():
         raise ValueError("criteria must not be empty")
+
+    # Injected so tests never touch the network, same reason ``candidates``
+    # exists for the OpenAlex call.
+    if fetch_full_text is None:
+        from slr.adapters.fulltext import get_full_text as fetch_full_text
 
     rows = candidates if candidates is not None else search_openalex(query, limit=limit)
     screening = criteria is not None
@@ -265,15 +288,88 @@ def run_discover(
             seed=42,
             use_cache=use_cache,
         )
-        results.append(
-            DiscoverPaper(
-                work_id=row["work_id"],
-                title=row["title"],
-                year=row.get("year"),
-                source_url=row.get("source_url"),
-                fields=fields,
-                gap=gap,
-                decision=decision,
-            )
+        paper = DiscoverPaper(
+            work_id=row["work_id"],
+            title=row["title"],
+            year=row.get("year"),
+            source_url=row.get("source_url"),
+            fields=fields,
+            gap=gap,
+            decision=decision,
         )
+
+        if fulltext_template is not None:
+            _attach_full_text(
+                paper,
+                row,
+                provider=provider,
+                template=fulltext_template,
+                meter=meter,
+                conn=conn,
+                use_cache=use_cache,
+                fetch=fetch_full_text,
+            )
+
+        results.append(paper)
     return results
+
+
+def _attach_full_text(
+    paper: DiscoverPaper,
+    row: dict,
+    *,
+    provider: Provider,
+    template: str,
+    meter: Meter,
+    conn,
+    use_cache: bool,
+    fetch,
+) -> None:
+    """Look the paper up in Europe PMC and extract from its full text.
+
+    Never raises. Every way this can come back empty -- no DOI, not
+    indexed, paywalled, network down -- is recorded as a note rather than
+    an exception, because none of them is a fault in this project and all
+    of them are normal for most papers. Coverage is the headline limitation
+    of this feature and it should be visible, not swallowed.
+    """
+    doi = (row.get("doi") or "").strip()
+    title = row.get("title")
+    if not doi and not title:
+        paper.fulltext_note = "no DOI or title to look up"
+        return
+
+    try:
+        full_text, availability = fetch(doi=doi or None, title=title)
+    except Exception as exc:  # network, timeout, malformed XML
+        paper.fulltext_note = f"full-text lookup failed: {exc}"
+        return
+
+    if full_text is None:
+        paper.fulltext_note = availability.reason or "no full text available"
+        return
+
+    paper.tables = [t.as_dict() for t in full_text.tables]
+    paper.equations = list(full_text.equations)
+    paper.figures = [f.as_dict() for f in full_text.figures]
+
+    try:
+        paper.fulltext = extract_fulltext_record(
+            full_text,
+            work_id=paper.work_id,
+            review=DISCOVER_REVIEW,
+            provider=provider,
+            template=template,
+            meter=meter,
+            conn=conn,
+            use_cache=use_cache,
+        )
+    except Exception as exc:
+        paper.fulltext_note = f"full-text extraction failed: {exc}"
+        return
+
+    verified = sum(1 for f in paper.fulltext if f.span_verified)
+    paper.fulltext_note = (
+        f"full text from {availability.pmcid}: {verified} of {len(paper.fulltext)} "
+        f"fields verified, {len(paper.tables)} tables, {len(paper.equations)} equations"
+    )
