@@ -59,9 +59,20 @@ with st.form("review_form"):
             "judge against."
         ),
     )
-    c1, c2 = st.columns([1, 3])
+    c1, c2 = st.columns([1, 2])
     with c1:
         limit = st.slider("Papers to check", min_value=1, max_value=10, value=5)
+    with c2:
+        fulltext = st.checkbox(
+            "Also read the full paper, not just the abstract",
+            help=(
+                "Looks each paper up in Europe PMC and reads its body text, which makes "
+                "effect sizes, statistical methods and the authors' stated limitations "
+                "reachable, and pulls tables and equations straight out of the "
+                "publisher's file. Slower, and only works for open-access papers — "
+                "Europe PMC is life sciences, so coverage outside medicine is thin."
+            ),
+        )
     submitted = st.form_submit_button("Run review", type="primary")
 
 if submitted and not topic.strip():
@@ -75,10 +86,15 @@ if submitted:
         if screening
         else f"Searching, then checking up to {limit} papers..."
     )
+    if fulltext:
+        spinner += " Reading full text where it's available, which takes longer."
     with st.spinner(spinner):
         try:
             st.session_state["session"] = discover(
-                topic, limit=limit, criteria=criteria.strip() or None
+                topic,
+                limit=limit,
+                criteria=criteria.strip() or None,
+                fulltext=fulltext,
             )
         except httpx.HTTPStatusError as exc:
             if exc.response.status_code == 502:
@@ -168,6 +184,91 @@ DECISION_BADGE = {
     "unverified": ("\U0001f7e1", "Needs your eye"),
     "error": ("⚪", "No usable answer"),
 }
+
+
+FULLTEXT_FIELDS = [
+    ("primary_outcome", "Main result"),
+    ("effect_size", "Effect size"),
+    ("statistical_methods", "Statistical method"),
+    ("sample_characteristics", "Sample"),
+    ("limitations", "Limitations the authors state"),
+]
+
+
+def _render_full_text(paper: dict) -> None:
+    """The full-text section, if this paper had one.
+
+    Two blocks, kept visually apart because they are different kinds of
+    claim. The five fields are what a model read and are shown with their
+    quotes, withheld when the quote didn't verify. Tables and equations
+    came out of the publisher's own file with no model involved, so they
+    carry no verification badge -- there is nothing to verify.
+    """
+    note = paper.get("fulltext_note") or ""
+    has_fields = any(paper.get(name) for name, _ in FULLTEXT_FIELDS)
+    tables = paper.get("tables") or []
+    equations = paper.get("equations") or []
+    figures = paper.get("figures") or []
+
+    if not (has_fields or tables or equations or figures):
+        if note:
+            st.caption(f"Full text: {note}")
+        return
+
+    with st.expander("From the full paper", expanded=False):
+        if note:
+            st.caption(note)
+
+        for name, label in FULLTEXT_FIELDS:
+            value = paper.get(name)
+            if not value:
+                continue
+            if value["status"] == "verified":
+                st.markdown(f"**{label}:** {value['value']}")
+                st.caption(f"“{value['quote']}”")
+            elif value["status"] == "not_stated":
+                st.markdown(f"**{label}:** the paper doesn't state this")
+            elif value["status"] == "unverified":
+                st.markdown(f"**{label}:** withheld")
+                st.caption(
+                    "The model proposed an answer but the sentence it quoted wasn't found "
+                    "in the paper, so the value isn't shown."
+                )
+
+        if tables:
+            st.markdown(f"**Tables ({len(tables)})**")
+            st.caption(
+                "Read straight from the publisher's file. No model was involved, so these "
+                "are exact — there is nothing here that could have been invented."
+            )
+            for table in tables:
+                heading = " · ".join(x for x in (table.get("label"), table.get("caption")) if x)
+                if heading:
+                    st.markdown(f"*{heading}*")
+                rows = table.get("rows") or []
+                if len(rows) > 1:
+                    st.dataframe(rows[1:], hide_index=True, use_container_width=True)
+                elif rows:
+                    st.dataframe(rows, hide_index=True, use_container_width=True)
+
+        if equations:
+            st.markdown(f"**Equations ({len(equations)})**")
+            for equation in equations[:10]:
+                st.code(equation, language=None)
+
+        if figures:
+            st.markdown(f"**Figures ({len(figures)})**")
+            st.caption(
+                "Captions only. The images themselves are not fetched or interpreted — "
+                "reading what a chart or heat map *shows* would need image analysis, which "
+                "this system does not do."
+            )
+            for figure in figures[:10]:
+                bits = " · ".join(
+                    x for x in (figure.get("label"), figure.get("caption")) if x
+                )
+                if bits:
+                    st.caption(bits)
 
 
 def _order(paper: dict) -> tuple:
@@ -265,6 +366,8 @@ for paper in sorted(papers, key=_order):
             st.caption("No research gap stated in the abstract.")
         elif gap:
             st.caption("Gap check returned nothing usable.")
+
+        _render_full_text(paper)
 
 st.divider()
 st.caption(

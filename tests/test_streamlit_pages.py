@@ -291,7 +291,7 @@ def _patched(monkeypatch):
         "human_decision": decision, "changed": True,
     })
     monkeypatch.setattr(
-        api_client, "discover", lambda query, limit=5, criteria=None: DISCOVER_SESSION
+        api_client, "discover", lambda query, limit=5, criteria=None, fulltext=False: DISCOVER_SESSION
     )
 
 
@@ -454,7 +454,7 @@ def test_run_a_review_without_criteria_does_not_invent_decisions(monkeypatch):
         {**DISCOVER_SESSION["papers"][0], "decision": None},
     ]
     monkeypatch.setattr(
-        api_client, "discover", lambda query, limit=5, criteria=None: no_screening
+        api_client, "discover", lambda query, limit=5, criteria=None, fulltext=False: no_screening
     )
     at = _run_a_review(criteria="")
     assert any("No criteria given" in i.value for i in at.info)
@@ -482,7 +482,7 @@ def test_run_a_review_points_at_the_validation_pages_for_accuracy():
 def test_run_a_review_surfaces_a_cache_mismatch_as_a_guard_not_a_crash(monkeypatch):
     import httpx
 
-    def boom(query, limit=5, criteria=None):
+    def boom(query, limit=5, criteria=None, fulltext=False):
         request = httpx.Request("POST", "http://test/discover")
         response = httpx.Response(409, text="CacheMismatch", request=request)
         raise httpx.HTTPStatusError("conflict", request=request, response=response)
@@ -670,3 +670,121 @@ def test_trust_dashboard_explains_an_all_cached_run_instead_of_an_empty_chart(mo
     )
     at = _run("pages/2_Validation_Trust.py")
     assert any("served from the cache" in i.value for i in at.info)
+
+
+# ---------------------------------------------------------------------------
+# Full text on the review page
+#
+# The rule these guard: model-extracted fields carry a verification status
+# and are withheld when their quote fails; tables and equations came out of
+# the publisher's file with no model involved and carry no status at all.
+# Showing them the same way would misrepresent both.
+# ---------------------------------------------------------------------------
+
+_FT_VERIFIED = {
+    "status": "verified",
+    "value": "HR 0.72 (95% CI 0.61-0.85)",
+    "quote": "The hazard ratio was 0.72 (95% CI 0.61-0.85, p<0.001).",
+    "note": None,
+}
+
+FULLTEXT_SESSION = {
+    **DISCOVER_SESSION,
+    "papers": [
+        {
+            **DISCOVER_SESSION["papers"][0],
+            "primary_outcome": _FT_VERIFIED,
+            "effect_size": _FT_VERIFIED,
+            "statistical_methods": {"status": "not_stated"},
+            "sample_characteristics": {
+                "status": "unverified",
+                "quote": "a sentence not in the paper",
+                "note": "not_found",
+            },
+            "limitations": _FT_VERIFIED,
+            "tables": [
+                {"label": "Table 1", "caption": "Baseline", "rows": [["Group", "n"], ["A", "120"]]}
+            ],
+            "equations": ["HR = exp(b1 x1)"],
+            "figures": [{"label": "Figure 2", "caption": "Correlation heat map"}],
+            "fulltext_note": "full text from PMC9: 3 of 5 fields verified, 1 tables, 1 equations",
+        },
+        DISCOVER_SESSION["papers"][1],
+        DISCOVER_SESSION["papers"][2],
+    ],
+}
+
+
+def _run_with_fulltext(monkeypatch, session=None):
+    monkeypatch.setattr(
+        api_client,
+        "discover",
+        lambda query, limit=5, criteria=None, fulltext=False: session or FULLTEXT_SESSION,
+    )
+    at = AppTest.from_file(str(APP_DIR / "pages/1_Run_a_Review.py"))
+    at.run()
+    at.text_input[0].set_value("hormone therapy").run()
+    at.text_area[0].set_value("Include randomised trials.").run()
+    at.checkbox[0].set_value(True).run()
+    [b for b in at.button if b.label == "Run review"][0].click().run()
+    assert not at.exception, [str(e) for e in at.exception]
+    return at
+
+
+def test_the_full_text_toggle_exists_and_is_off_by_default():
+    at = AppTest.from_file(str(APP_DIR / "pages/1_Run_a_Review.py"))
+    at.run()
+    assert at.checkbox, "there must be a full-text toggle"
+    assert at.checkbox[0].value is False, "full text is opt-in -- it's slow and often unavailable"
+
+
+def test_verified_full_text_fields_are_shown_with_their_quote(monkeypatch):
+    at = _run_with_fulltext(monkeypatch)
+    text = " ".join(m.value for m in at.markdown)
+    assert "Main result" in text
+    assert "HR 0.72" in text
+    captions = " ".join(c.value for c in at.caption)
+    assert "The hazard ratio was 0.72" in captions
+
+
+def test_an_unverified_full_text_field_is_withheld_not_shown(monkeypatch):
+    """Same rule as every other claim in this project: no verified quote,
+    no value."""
+    at = _run_with_fulltext(monkeypatch)
+    text = " ".join(m.value for m in at.markdown)
+    assert "**Sample:** withheld" in text
+    captions = " ".join(c.value for c in at.caption)
+    assert "wasn't found in the paper" in captions
+
+
+def test_tables_are_presented_as_exact_not_as_a_model_claim(monkeypatch):
+    at = _run_with_fulltext(monkeypatch)
+    captions = " ".join(c.value for c in at.caption)
+    assert "No model was involved" in captions
+    assert "could have been invented" in captions
+
+
+def test_figures_say_the_image_was_not_read(monkeypatch):
+    """A heat map's meaning is in the picture. Showing its caption is
+    honest; implying the chart was read would not be."""
+    at = _run_with_fulltext(monkeypatch)
+    captions = " ".join(c.value for c in at.caption)
+    assert "not fetched or interpreted" in captions
+    assert "would need image analysis" in captions
+
+
+def test_a_paper_with_no_full_text_says_why(monkeypatch):
+    """Paywalled and not-indexed are facts about the paper, not failures,
+    and the page has to distinguish them from a bug."""
+    session = {
+        **DISCOVER_SESSION,
+        "papers": [
+            {
+                **DISCOVER_SESSION["papers"][0],
+                "fulltext_note": "in Europe PMC but not open access -- full text is paywalled",
+            }
+        ],
+    }
+    at = _run_with_fulltext(monkeypatch, session)
+    captions = " ".join(c.value for c in at.caption)
+    assert "paywalled" in captions

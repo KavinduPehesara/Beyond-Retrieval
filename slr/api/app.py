@@ -34,6 +34,7 @@ from slr.api.schemas import (
     DiscoverRequest,
     DiscoverSessionOut,
     FieldValue,
+    FigureOut,
     GapStatementOut,
     GapValue,
     OverrideRequest,
@@ -47,6 +48,7 @@ from slr.api.schemas import (
     ScreenDecisionOut,
     ScreenRequest,
     ScreenResult,
+    TableOut,
 )
 from slr.eval import charts
 from slr.eval.metrics import load_labels
@@ -461,6 +463,9 @@ def discover(req: DiscoverRequest, conn: sqlite3.Connection = Depends(get_conn))
     screen_template = (
         load_prompt_template(PROMPTS_DIR / "screen_v1.txt") if req.criteria else None
     )
+    fulltext_template = (
+        load_prompt_template(PROMPTS_DIR / "extract_fulltext_v1.txt") if req.fulltext else None
+    )
     meter = Meter(ceiling_usd=0.0, usd_per_1m_input=0.0, usd_per_1m_output=0.0)
 
     try:
@@ -475,6 +480,7 @@ def discover(req: DiscoverRequest, conn: sqlite3.Connection = Depends(get_conn))
             use_cache=True,
             criteria=req.criteria,
             screen_template=screen_template,
+            fulltext_template=fulltext_template,
         )
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
@@ -513,6 +519,28 @@ def discover(req: DiscoverRequest, conn: sqlite3.Connection = Depends(get_conn))
             entry.key_finding = _field_value_from_extraction(by_name["key_finding"])
         if paper.gap is not None:
             entry.gap = _gap_value_from_extraction(paper.gap)
+
+        entry.fulltext_note = paper.fulltext_note
+        if paper.fulltext is not None:
+            by_field = {f.field_name: f for f in paper.fulltext}
+            for name in (
+                "primary_outcome",
+                "effect_size",
+                "statistical_methods",
+                "sample_characteristics",
+                "limitations",
+            ):
+                if name in by_field:
+                    setattr(entry, name, _field_value_from_extraction(by_field[name]))
+        # Exact, parsed content. Separate from the five above because there
+        # is no verification status to report -- nothing was inferred.
+        if paper.tables is not None:
+            entry.tables = [TableOut(**t) for t in paper.tables]
+        if paper.equations is not None:
+            entry.equations = list(paper.equations)
+        if paper.figures is not None:
+            entry.figures = [FigureOut(**f) for f in paper.figures]
+
         out.append(entry)
 
     screened = [p for p in out if p.decision]

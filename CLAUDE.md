@@ -109,10 +109,22 @@ slr/
     verify.py            THE span verifier. RQ1 lives here. Shared by all three.
     override.py           human_decision reads/writes. Blind to label_included,
                          same boundary screen.py keeps.
+    extract_fulltext.py     5 fields that only exist in a paper's body:
+                         primary_outcome, effect_size, statistical_methods,
+                         sample_characteristics, limitations. Same ask ->
+                         validate -> verify as everything else; the span is
+                         checked against exactly the text the model was
+                         shown, with table content stripped out so a cell
+                         cannot be quoted as prose.
     discover.py             OpenAlex live search -> extract.py/gap.py, unchanged.
                          review="_discover", never written to `work` --
                          outside the evaluation corpus by construction.
   adapters/
+    fulltext.py            Europe PMC: DOI -> open-access JATS XML -> sections,
+                         tables, equations, figure captions. Tables and
+                         equations are parsed, not inferred, so they are
+                         exact. Reports WHY there is no full text --
+                         paywalled and not-indexed are facts, not failures.
     llm.py                Mock + Gemini + Ollama behind one Provider protocol,
                          response cache with request fingerprint (now includes
                          response_schema), budget Meter
@@ -186,6 +198,9 @@ prompts/screen_v2.txt    step-by-step + one-sentence reasoning (week 10, underpe
 prompts/screen_v3.txt    terse, minimal rules (week 10, underperformed v1)
 prompts/extract_v1.txt   extraction prompt: 4 fields, each with a quote or "not_stated"
 prompts/gap_v1.txt       gap-discovery prompt: 1 field, "gap_stated" or "not_stated"
+prompts/extract_fulltext_v1.txt  full-text prompt, 5 fields. Forbids quoting the
+                         instructions -- directly informed by the 5 Oct typology
+                         finding that 97.8% of screening failures were criteria echoes
 configs/smoke.yaml       Nelson_2002, 50 records, mock provider, free
 configs/baseline_*.yaml  random and BM25 over Smid_2020 + Nelson_2002, free
 configs/week08_gemini.yaml  Smid_2020 + Nelson_2002, gemini-3.5-flash-lite (priced 2 Oct, not run)
@@ -204,7 +219,7 @@ configs/ingest_all.yaml  all six reviews, screening disabled -- the fresh-clone/
 data/embeddings/         SPECTER2 vectors cached per review (gitignored)
 data/asreview/           per-review CSV exports for the ASReview baseline (gitignored, SYNERGY text)
 scripts/reproduce.sh     venv -> pinned install -> pytest -> ingest -> smoke harness, one command
-tests/                   339 tests
+tests/                   376 tests
 reports/results.{csv,md} generated from runs/
 ```
 

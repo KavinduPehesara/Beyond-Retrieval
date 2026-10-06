@@ -102,7 +102,12 @@ def query_screen(review: str, work_ids: list[str], model: str, prompt_version: s
     return r.json()
 
 
-def discover(query: str, limit: int = 5, criteria: str | None = None) -> dict:
+def discover(
+    query: str,
+    limit: int = 5,
+    criteria: str | None = None,
+    fulltext: bool = False,
+) -> dict:
     """One ad-hoc review session. Returns the session summary, not a bare list.
 
     ``criteria`` given, every result is screened against it and only verified
@@ -111,12 +116,16 @@ def discover(query: str, limit: int = 5, criteria: str | None = None) -> dict:
     payload: dict = {"query": query, "limit": limit}
     if criteria:
         payload["criteria"] = criteria
+    if fulltext:
+        payload["fulltext"] = True
     r = _client().post(
         "/discover",
         json=payload,
         # Live OpenAlex search, then up to three model calls per result
         # (screen, extract, gap) on local hardware.
-        timeout=900.0,
+        # Full text adds a Europe PMC lookup, a document fetch and another
+        # model call per paper, so this can be slow on local inference.
+        timeout=1800.0,
     )
     r.raise_for_status()
     return r.json()

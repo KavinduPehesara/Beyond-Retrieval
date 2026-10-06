@@ -132,6 +132,29 @@ class DiscoverRequest(BaseModel):
     # includes are extracted. Omitted, nothing is screened -- the system does
     # not invent an include/exclude with no criteria to judge against.
     criteria: str | None = Field(default=None, max_length=4000)
+    # Look each paper up in Europe PMC and read its body, not just the
+    # abstract. Slower, and most papers won't have open-access full text.
+    fulltext: bool = False
+
+
+class TableOut(BaseModel):
+    """One table as the publisher printed it. Exact -- no model read this."""
+
+    label: str | None = None
+    caption: str | None = None
+    rows: list[list[str]] = Field(default_factory=list)
+
+
+class FigureOut(BaseModel):
+    """A figure's label and caption.
+
+    The image itself is not fetched and is not interpreted. A heat map's
+    meaning is in the picture; what this carries is what the authors wrote
+    underneath it, and it must not be presented as if the plot were read.
+    """
+
+    label: str | None = None
+    caption: str | None = None
 
 
 class ScreenDecisionOut(BaseModel):
@@ -164,6 +187,24 @@ class DiscoverPaperOut(BaseModel):
     gap: GapValue | None = None
     # None when no criteria were supplied.
     decision: ScreenDecisionOut | None = None
+
+    # --- full text, when it was asked for and Europe PMC had it ----------
+    # Model-extracted, each with a verified quote. Same rules as any other
+    # field here: an unverified value is not reported.
+    primary_outcome: FieldValue | None = None
+    effect_size: FieldValue | None = None
+    statistical_methods: FieldValue | None = None
+    sample_characteristics: FieldValue | None = None
+    limitations: FieldValue | None = None
+    # Parsed straight from the publisher's XML. No model involved, so these
+    # are exact and carry no verification status -- there is nothing to
+    # verify. Kept in separate fields from the five above for that reason.
+    tables: list[TableOut] | None = None
+    equations: list[str] | None = None
+    figures: list[FigureOut] | None = None
+    # Why there is no full text, when there isn't. "paywalled" and "not
+    # indexed" are facts about the paper, not failures.
+    fulltext_note: str = ""
 
 
 class DiscoverSessionOut(BaseModel):
