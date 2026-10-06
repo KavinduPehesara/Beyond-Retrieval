@@ -298,6 +298,25 @@ def _escape(value: str) -> str:
     return value.replace('"', " ").strip()
 
 
+def normalise_doi(value: str | None) -> str | None:
+    """A bare DOI, whatever form it arrived in.
+
+    OpenAlex returns DOIs as resolver URLs -- ``https://doi.org/10.1002/
+    jrsm.1715`` -- and Europe PMC's ``DOI:"..."`` query expects the bare
+    ``10.1002/jrsm.1715``. Passing the URL through finds nothing, and the
+    result is indistinguishable from the paper genuinely not being indexed,
+    which is exactly the wrong thing for this module to be vague about.
+    """
+    if not value:
+        return None
+    doi = value.strip()
+    for prefix in ("https://doi.org/", "http://doi.org/", "https://dx.doi.org/", "doi:"):
+        if doi.lower().startswith(prefix):
+            doi = doi[len(prefix) :]
+            break
+    return doi.strip().lower() or None
+
+
 def find_availability(
     *,
     doi: str | None = None,
@@ -313,27 +332,43 @@ def find_availability(
     in Europe PMC" from "in Europe PMC but paywalled" -- those are different
     facts and the second one is not a failure of this code.
     """
+    doi = normalise_doi(doi)
     if not doi and not title:
         raise ValueError("need a doi or a title to look up")
 
-    query = f'DOI:"{_escape(doi)}"' if doi else f'TITLE:"{_escape(title)}"'
-    params = {"query": query, "resultType": "core", "format": "json", "pageSize": 1}
+    # DOI first when there is one, then the title. The fallback matters:
+    # a DOI that Europe PMC does not hold under that exact string would
+    # otherwise report "not indexed" for a paper it does have, and the two
+    # are indistinguishable to a reader.
+    queries = []
+    if doi:
+        queries.append(f'DOI:"{_escape(doi)}"')
+    if title:
+        queries.append(f'TITLE:"{_escape(title)}"')
 
     owns = client is None
     client = client or httpx.Client()
+    record = None
     try:
-        response = client.get(SEARCH_URL, params=params, timeout=timeout)
-        response.raise_for_status()
-        payload = response.json()
+        for query in queries:
+            params = {
+                "query": query,
+                "resultType": "core",
+                "format": "json",
+                "pageSize": 1,
+            }
+            response = client.get(SEARCH_URL, params=params, timeout=timeout)
+            response.raise_for_status()
+            results = (response.json().get("resultList") or {}).get("result") or []
+            if results:
+                record = results[0]
+                break
     finally:
         if owns:
             client.close()
 
-    results = (payload.get("resultList") or {}).get("result") or []
-    if not results:
+    if record is None:
         return Availability(found=False, reason="not indexed in Europe PMC")
-
-    record = results[0]
     pmcid = record.get("pmcid")
     open_access = str(record.get("isOpenAccess", "")).upper() == "Y"
     in_epmc = str(record.get("inEPMC", "")).upper() == "Y"

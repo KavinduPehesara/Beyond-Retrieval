@@ -410,3 +410,88 @@ def test_the_discover_review_name_is_not_a_real_review():
     from slr.services.discover import DISCOVER_REVIEW
 
     assert DISCOVER_REVIEW not in SUBSET
+
+
+# --------------------------------------------------------------------------
+# DOI normalisation
+#
+# Found live: OpenAlex returns DOIs as resolver URLs, Europe PMC's query
+# wants the bare DOI, and passing the URL straight through reported
+# "not indexed" for a paper Europe PMC actually holds. The two outcomes
+# are indistinguishable to a reader, which is the worst kind of bug for a
+# module whose whole job is saying why there is no full text.
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "https://doi.org/10.1002/jrsm.1715",
+        "http://doi.org/10.1002/jrsm.1715",
+        "https://dx.doi.org/10.1002/jrsm.1715",
+        "doi:10.1002/jrsm.1715",
+        "10.1002/jrsm.1715",
+        "  10.1002/JRSM.1715  ",
+    ],
+)
+def test_every_doi_form_normalises_to_the_bare_identifier(raw):
+    assert ft.normalise_doi(raw) == "10.1002/jrsm.1715"
+
+
+def test_normalise_doi_of_nothing_is_none():
+    assert ft.normalise_doi(None) is None
+    assert ft.normalise_doi("   ") is None
+
+
+def test_an_openalex_style_doi_url_is_queried_as_a_bare_doi():
+    client = _availability(pmcid="PMC1", isOpenAccess="Y")
+    ft.find_availability(doi="https://doi.org/10.1002/jrsm.1715", client=client)
+    _, params = client.calls[0]
+    assert params["query"] == 'DOI:"10.1002/jrsm.1715"'
+    assert "doi.org" not in params["query"]
+
+
+class _SequencedClient:
+    """Returns a different response per call, for the fallback path."""
+
+    def __init__(self, responses):
+        self.responses = list(responses)
+        self.calls = []
+
+    def get(self, url, params=None, timeout=None):
+        self.calls.append((url, params))
+        return self.responses.pop(0)
+
+    def close(self):
+        pass
+
+
+def test_a_doi_miss_falls_back_to_the_title():
+    """A DOI Europe PMC does not hold under that exact string must not be
+    reported as "not indexed" when it holds the paper under its title."""
+    empty = _FakeResponse({"resultList": {"result": []}})
+    found = _FakeResponse(
+        {"resultList": {"result": [{"pmcid": "PMC7", "isOpenAccess": "Y", "inEPMC": "Y"}]}}
+    )
+    client = _SequencedClient([empty, found])
+
+    result = ft.find_availability(doi="10.1/nope", title="A trial of X", client=client)
+    assert result.has_full_text is True
+    assert len(client.calls) == 2
+    assert client.calls[0][1]["query"].startswith("DOI:")
+    assert client.calls[1][1]["query"].startswith("TITLE:")
+
+
+def test_the_title_fallback_is_not_tried_when_the_doi_hits():
+    """One request, not two, when the first answer is good."""
+    client = _availability(pmcid="PMC1", isOpenAccess="Y")
+    ft.find_availability(doi="10.1/x", title="A trial of X", client=client)
+    assert len(client.calls) == 1
+
+
+def test_still_not_indexed_when_neither_lookup_finds_anything():
+    empty = _FakeResponse({"resultList": {"result": []}})
+    client = _SequencedClient([empty, empty])
+    result = ft.find_availability(doi="10.1/x", title="Nothing", client=client)
+    assert result.found is False
+    assert "not indexed" in result.reason

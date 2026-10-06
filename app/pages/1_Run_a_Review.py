@@ -59,20 +59,25 @@ with st.form("review_form"):
             "judge against."
         ),
     )
-    c1, c2 = st.columns([1, 2])
-    with c1:
-        limit = st.slider("Papers to check", min_value=1, max_value=10, value=5)
-    with c2:
-        fulltext = st.checkbox(
-            "Also read the full paper, not just the abstract",
-            help=(
-                "Looks each paper up in Europe PMC and reads its body text, which makes "
-                "effect sizes, statistical methods and the authors' stated limitations "
-                "reachable, and pulls tables and equations straight out of the "
-                "publisher's file. Slower, and only works for open-access papers — "
-                "Europe PMC is life sciences, so coverage outside medicine is thin."
-            ),
-        )
+    limit = st.slider("Papers to check", min_value=1, max_value=10, value=5)
+    # On its own row rather than beside the slider: in a narrow window a
+    # side-by-side column squeezed this off-screen, and an option nobody can
+    # see is an option that does not exist.
+    fulltext = st.checkbox(
+        "Also read the full paper, not just the abstract",
+        help=(
+            "Looks each paper up in Europe PMC and reads its body text, which makes "
+            "effect sizes, statistical methods and the authors' stated limitations "
+            "reachable, and pulls tables and equations straight out of the "
+            "publisher's file. Slower, and only works for open-access papers — "
+            "Europe PMC is life sciences, so coverage outside medicine is thin."
+        ),
+    )
+    st.caption(
+        "Full text is opt-in because most papers don't have it: Europe PMC holds the "
+        "open-access subset of life-sciences literature, so expect several papers to come "
+        "back “paywalled” or “not indexed”. That's the honest coverage limit, not a fault."
+    )
     submitted = st.form_submit_button("Run review", type="primary")
 
 if submitted and not topic.strip():
