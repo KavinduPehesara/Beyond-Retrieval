@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import httpx
 import streamlit as st
-from api_client import discover, health
+from api_client import discover, discover_fulltext, health
 
 st.set_page_config(page_title="Run a Review", page_icon="\U0001f50d", layout="wide")
 
@@ -60,25 +60,12 @@ with st.form("review_form"):
         ),
     )
     limit = st.slider("Papers to check", min_value=1, max_value=10, value=5)
-    # On its own row rather than beside the slider: in a narrow window a
-    # side-by-side column squeezed this off-screen, and an option nobody can
-    # see is an option that does not exist.
-    fulltext = st.checkbox(
-        "Also read the full paper, not just the abstract",
-        help=(
-            "Looks each paper up in Europe PMC and reads its body text, which makes "
-            "effect sizes, statistical methods and the authors' stated limitations "
-            "reachable, and pulls tables and equations straight out of the "
-            "publisher's file. Slower, and only works for open-access papers — "
-            "Europe PMC is life sciences, so coverage outside medicine is thin."
-        ),
-    )
     st.caption(
-        "Full text is opt-in because most papers don't have it: Europe PMC holds the "
-        "open-access subset of life-sciences literature, so expect several papers to come "
-        "back “paywalled” or “not indexed”. That's the honest coverage limit, not a fault."
+        "This first pass reads titles and abstracts only, which is how the first stage of "
+        "a systematic review works. Once you've seen what came back, you pick the papers "
+        "worth reading in full."
     )
-    submitted = st.form_submit_button("Run review", type="primary")
+    submitted = st.form_submit_button("Screen these papers", type="primary")
 
 if submitted and not topic.strip():
     st.warning("Type a topic to search for.")
@@ -91,16 +78,15 @@ if submitted:
         if screening
         else f"Searching, then checking up to {limit} papers..."
     )
-    if fulltext:
-        spinner += " Reading full text where it's available, which takes longer."
     with st.spinner(spinner):
         try:
             st.session_state["session"] = discover(
                 topic,
                 limit=limit,
                 criteria=criteria.strip() or None,
-                fulltext=fulltext,
             )
+            # A new screening run invalidates any full text from the last one.
+            st.session_state.pop("fulltext", None)
         except httpx.HTTPStatusError as exc:
             if exc.response.status_code == 502:
                 st.error("Couldn't reach OpenAlex. Check your internet connection and try again.")
@@ -264,16 +250,22 @@ def _render_full_text(paper: dict) -> None:
         if figures:
             st.markdown(f"**Figures ({len(figures)})**")
             st.caption(
-                "Captions only. The images themselves are not fetched or interpreted — "
-                "reading what a chart or heat map *shows* would need image analysis, which "
-                "this system does not do."
+                "The images are not fetched or interpreted — reading what a chart or heat map "
+                "*shows* would need image analysis, which this system does not do. What you get "
+                "instead is the caption, plus the sentences where the authors describe the "
+                "figure themselves. Those are real text and can be checked against the paper."
             )
             for figure in figures[:10]:
                 bits = " · ".join(
                     x for x in (figure.get("label"), figure.get("caption")) if x
                 )
                 if bits:
-                    st.caption(bits)
+                    st.markdown(f"*{bits}*")
+                mentions = figure.get("mentions") or []
+                for mention in mentions:
+                    st.caption(f"“{mention}”")
+                if not mentions:
+                    st.caption("The body text never refers to this figure.")
 
 
 def _order(paper: dict) -> tuple:
@@ -373,6 +365,83 @@ for paper in sorted(papers, key=_order):
             st.caption("Gap check returned nothing usable.")
 
         _render_full_text(paper)
+
+# ---------------------------------------------------------------------------
+# Stage two. Screening on abstracts narrows the field; the reviewer decides
+# which survivors are worth the deeper read, and only those get fetched.
+# That is PRISMA's own two-stage shape, and it is the sensible one here too:
+# full text costs a lookup, a download and a long model call per paper, and
+# most papers will not have it at all.
+# ---------------------------------------------------------------------------
+
+st.divider()
+st.subheader("Read the full paper")
+
+_candidates = [
+    p
+    for p in papers
+    if not p.get("decision")
+    or (p["decision"]["status"] == "include" and p["decision"]["span_verified"])
+]
+
+if not _candidates:
+    st.caption(
+        "Nothing was kept, so there is nothing to read in full. Loosen your criteria or try "
+        "different search terms."
+    )
+else:
+    st.caption(
+        "Abstracts rarely carry effect sizes, confidence intervals, statistical methods or the "
+        "authors' stated limitations — those live in the body of the paper. Pick the ones "
+        "worth a deeper read. Only open-access papers held by Europe PMC can be read this way, "
+        "which is mostly medicine and life sciences, so expect some to come back unavailable."
+    )
+    _labels = {(p["title"] or p["work_id"])[:90]: p for p in _candidates}
+    _picked = st.multiselect(
+        "Papers to read in full",
+        list(_labels),
+        max_selections=5,
+        help="Each one is a lookup, a download and a model call, so start with two or three.",
+    )
+    if st.button("Read these in full", disabled=not _picked, type="primary"):
+        _targets = [
+            {
+                "work_id": _labels[label]["work_id"],
+                "title": _labels[label]["title"],
+                "doi": _labels[label].get("doi"),
+            }
+            for label in _picked
+        ]
+        with st.spinner(f"Fetching and reading {len(_targets)} paper(s)..."):
+            try:
+                st.session_state["fulltext"] = discover_fulltext(_targets)
+            except httpx.HTTPStatusError as exc:
+                st.error(f"Request failed: {exc.response.text}")
+            except httpx.HTTPError:
+                st.error("The model didn't respond in time. Is Ollama running?")
+
+_ft = st.session_state.get("fulltext")
+if _ft:
+    _found, _asked = _ft["n_with_full_text"], _ft["n_requested"]
+    if _found:
+        st.success(f"Full text found for {_found} of {_asked}.")
+    else:
+        st.warning(
+            f"None of the {_asked} selected papers had open-access full text in Europe PMC. "
+            "That is a coverage limit, not a failure — each paper's reason is below."
+        )
+    for _paper in _ft["papers"]:
+        with st.container(border=True):
+            st.markdown(f"#### {_paper['title'] or _paper['work_id']}")
+            _render_full_text(
+                {
+                    **{name: _paper.get(name) for name, _ in FULLTEXT_FIELDS},
+                    "tables": _paper.get("tables"),
+                    "equations": _paper.get("equations"),
+                    "figures": _paper.get("figures"),
+                    "fulltext_note": _paper.get("note", ""),
+                }
+            )
 
 st.divider()
 st.caption(

@@ -137,6 +137,23 @@ class DiscoverRequest(BaseModel):
     fulltext: bool = False
 
 
+class FullTextRequest(BaseModel):
+    """Read the full text of papers the reviewer chose, after screening.
+
+    Stage two of the review. The papers are identified by DOI and title
+    rather than by any stored id, because nothing about an ad-hoc session
+    is persisted -- there is no row to point at, by design.
+    """
+
+    papers: list["FullTextTarget"] = Field(min_length=1, max_length=10)
+
+
+class FullTextTarget(BaseModel):
+    work_id: str
+    title: str | None = None
+    doi: str | None = None
+
+
 class TableOut(BaseModel):
     """One table as the publisher printed it. Exact -- no model read this."""
 
@@ -146,15 +163,19 @@ class TableOut(BaseModel):
 
 
 class FigureOut(BaseModel):
-    """A figure's label and caption.
+    """A figure's label, caption, and what the paper says about it.
 
-    The image itself is not fetched and is not interpreted. A heat map's
-    meaning is in the picture; what this carries is what the authors wrote
-    underneath it, and it must not be presented as if the plot were read.
+    The image is never fetched or interpreted. A heat map's meaning is in
+    the picture, and reading it would need image analysis this system does
+    not do. ``mentions`` is the honest substitute: the sentences in the
+    body that cite this figure, so a reader gets what the authors say it
+    shows, quotable and checkable, without anyone pretending the plot was
+    read.
     """
 
     label: str | None = None
     caption: str | None = None
+    mentions: list[str] = Field(default_factory=list)
 
 
 class ScreenDecisionOut(BaseModel):
@@ -225,3 +246,28 @@ class DiscoverSessionOut(BaseModel):
     n_verified_quotes: int
     n_gaps: int
     papers: list[DiscoverPaperOut]
+
+
+class FullTextPaperOut(BaseModel):
+    """One paper's full-text result, from stage two."""
+
+    work_id: str
+    title: str | None = None
+    primary_outcome: FieldValue | None = None
+    effect_size: FieldValue | None = None
+    statistical_methods: FieldValue | None = None
+    sample_characteristics: FieldValue | None = None
+    limitations: FieldValue | None = None
+    tables: list[TableOut] = Field(default_factory=list)
+    equations: list[str] = Field(default_factory=list)
+    figures: list[FigureOut] = Field(default_factory=list)
+    # Why there is nothing here, when there isn't. Paywalled and
+    # not-indexed are facts about the paper, not failures of the system.
+    note: str = ""
+    found: bool = False
+
+
+class FullTextSessionOut(BaseModel):
+    n_requested: int
+    n_with_full_text: int
+    papers: list[FullTextPaperOut]

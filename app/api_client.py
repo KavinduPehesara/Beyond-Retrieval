@@ -192,3 +192,20 @@ def charts_performance(review: str | None = None, run_id: str | None = None) -> 
     r = _client().get("/charts/performance", params=params or None)
     r.raise_for_status()
     return r.json()
+
+
+def discover_fulltext(papers: list[dict]) -> dict:
+    """Stage two: read the full text of the papers the reviewer chose.
+
+    ``papers`` is a list of {work_id, title, doi}. Nothing is stored
+    between the two calls, so the page sends back what it got.
+    """
+    r = _client().post(
+        "/discover/fulltext",
+        json={"papers": papers},
+        # A Europe PMC lookup, a document fetch and a long model call per
+        # paper, on local inference.
+        timeout=1800.0,
+    )
+    r.raise_for_status()
+    return r.json()

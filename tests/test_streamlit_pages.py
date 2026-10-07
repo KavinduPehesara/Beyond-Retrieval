@@ -293,6 +293,7 @@ def _patched(monkeypatch):
     monkeypatch.setattr(
         api_client, "discover", lambda query, limit=5, criteria=None, fulltext=False: DISCOVER_SESSION
     )
+    monkeypatch.setattr(api_client, "discover_fulltext", lambda papers: FULLTEXT_RESULT)
 
 
 def _run(path):
@@ -397,7 +398,7 @@ def _run_a_review(topic="hormone therapy", criteria="Include randomised controll
     at.text_input[0].set_value(topic).run()
     if criteria is not None:
         at.text_area[0].set_value(criteria).run()
-    [b for b in at.button if b.label == "Run review"][0].click().run()
+    [b for b in at.button if b.label == "Screen these papers"][0].click().run()
     assert not at.exception, [str(e) for e in at.exception]
     return at
 
@@ -465,7 +466,7 @@ def test_run_a_review_without_criteria_does_not_invent_decisions(monkeypatch):
 def test_run_a_review_requires_a_topic():
     at = AppTest.from_file(str(APP_DIR / "pages/1_Run_a_Review.py"))
     at.run()
-    [b for b in at.button if b.label == "Run review"][0].click().run()
+    [b for b in at.button if b.label == "Screen these papers"][0].click().run()
     assert not at.exception
     assert any("Type a topic" in w.value for w in at.warning)
 
@@ -492,7 +493,7 @@ def test_run_a_review_surfaces_a_cache_mismatch_as_a_guard_not_a_crash(monkeypat
     at.run()
     at.text_input[0].set_value("x").run()
     at.text_area[0].set_value("y").run()
-    [b for b in at.button if b.label == "Run review"][0].click().run()
+    [b for b in at.button if b.label == "Screen these papers"][0].click().run()
     assert not at.exception
     assert any("cache guard doing its job" in e.value for e in at.error)
 
@@ -688,11 +689,13 @@ _FT_VERIFIED = {
     "note": None,
 }
 
-FULLTEXT_SESSION = {
-    **DISCOVER_SESSION,
+FULLTEXT_RESULT = {
+    "n_requested": 1,
+    "n_with_full_text": 1,
     "papers": [
         {
-            **DISCOVER_SESSION["papers"][0],
+            "work_id": "https://openalex.org/W1",
+            "title": "A paper found on the open web",
             "primary_outcome": _FT_VERIFIED,
             "effect_size": _FT_VERIFIED,
             "statistical_methods": {"status": "not_stated"},
@@ -706,36 +709,68 @@ FULLTEXT_SESSION = {
                 {"label": "Table 1", "caption": "Baseline", "rows": [["Group", "n"], ["A", "120"]]}
             ],
             "equations": ["HR = exp(b1 x1)"],
-            "figures": [{"label": "Figure 2", "caption": "Correlation heat map"}],
-            "fulltext_note": "full text from PMC9: 3 of 5 fields verified, 1 tables, 1 equations",
-        },
-        DISCOVER_SESSION["papers"][1],
-        DISCOVER_SESSION["papers"][2],
+            "figures": [
+                {
+                    "label": "Figure 2",
+                    "caption": "Correlation heat map",
+                    # What the authors say the chart shows -- the honest
+                    # substitute for reading the image.
+                    "mentions": ["As shown in Figure 2, risk declined across all cohorts."],
+                }
+            ],
+            "note": "full text from PMC9: 3 of 5 fields verified, 1 tables, 1 equations, 1 figures",
+            "found": True,
+        }
     ],
 }
 
 
-def _run_with_fulltext(monkeypatch, session=None):
+def _run_with_fulltext(monkeypatch, result=None):
+    """Screen, pick a paper, then read it in full -- the two real stages."""
     monkeypatch.setattr(
-        api_client,
-        "discover",
-        lambda query, limit=5, criteria=None, fulltext=False: session or FULLTEXT_SESSION,
+        api_client, "discover_fulltext", lambda papers: result or FULLTEXT_RESULT
     )
     at = AppTest.from_file(str(APP_DIR / "pages/1_Run_a_Review.py"))
     at.run()
     at.text_input[0].set_value("hormone therapy").run()
     at.text_area[0].set_value("Include randomised trials.").run()
-    at.checkbox[0].set_value(True).run()
-    [b for b in at.button if b.label == "Run review"][0].click().run()
+    [b for b in at.button if b.label == "Screen these papers"][0].click().run()
+    assert not at.exception, [str(e) for e in at.exception]
+
+    picker = at.multiselect[0]
+    picker.select(picker.options[0]).run()
+    [b for b in at.button if b.label == "Read these in full"][0].click().run()
     assert not at.exception, [str(e) for e in at.exception]
     return at
 
 
-def test_the_full_text_toggle_exists_and_is_off_by_default():
+def test_the_first_pass_screens_abstracts_only():
+    """Stage one does not fetch full text. That is PRISMA's own shape, and
+    it is also why screening stays fast: full text costs a lookup, a
+    download and a long model call per paper."""
     at = AppTest.from_file(str(APP_DIR / "pages/1_Run_a_Review.py"))
     at.run()
-    assert at.checkbox, "there must be a full-text toggle"
-    assert at.checkbox[0].value is False, "full text is opt-in -- it's slow and often unavailable"
+    assert [b for b in at.button if b.label == "Screen these papers"]
+    assert not [b for b in at.button if b.label == "Read these in full"], (
+        "stage two must not be reachable before anything has been screened"
+    )
+    captions = " ".join(c.value for c in at.caption)
+    assert "titles and abstracts only" in captions
+
+
+def test_stage_two_only_offers_papers_that_were_kept(monkeypatch):
+    """Reading the full text of a paper the criteria rejected would be
+    doing work on a paper the reviewer already excluded."""
+    at = AppTest.from_file(str(APP_DIR / "pages/1_Run_a_Review.py"))
+    at.run()
+    at.text_input[0].set_value("hormone therapy").run()
+    at.text_area[0].set_value("Include randomised trials.").run()
+    [b for b in at.button if b.label == "Screen these papers"][0].click().run()
+
+    options = at.multiselect[0].options
+    assert any("found on the open web" in o for o in options), "the kept paper is offered"
+    assert not any("animal study" in o.lower() for o in options), "the dropped one is not"
+    assert not any("quote was invented" in o.lower() for o in options), "nor is the referral"
 
 
 def test_verified_full_text_fields_are_shown_with_their_quote(monkeypatch):
@@ -776,15 +811,33 @@ def test_figures_say_the_image_was_not_read(monkeypatch):
 def test_a_paper_with_no_full_text_says_why(monkeypatch):
     """Paywalled and not-indexed are facts about the paper, not failures,
     and the page has to distinguish them from a bug."""
-    session = {
-        **DISCOVER_SESSION,
+    result = {
+        "n_requested": 1,
+        "n_with_full_text": 0,
         "papers": [
             {
-                **DISCOVER_SESSION["papers"][0],
-                "fulltext_note": "in Europe PMC but not open access -- full text is paywalled",
+                "work_id": "https://openalex.org/W1",
+                "title": "A paper found on the open web",
+                "tables": [],
+                "equations": [],
+                "figures": [],
+                "note": "in Europe PMC but not open access -- full text is paywalled",
+                "found": False,
             }
         ],
     }
-    at = _run_with_fulltext(monkeypatch, session)
+    at = _run_with_fulltext(monkeypatch, result)
     captions = " ".join(c.value for c in at.caption)
+    warnings = " ".join(w.value for w in at.warning)
     assert "paywalled" in captions
+    assert "coverage limit, not a failure" in warnings
+
+
+def test_what_the_authors_say_a_figure_shows_is_quoted(monkeypatch):
+    """The honest substitute for reading a chart: the image is never
+    fetched, but the sentence where the authors describe it is real text
+    and can be checked."""
+    at = _run_with_fulltext(monkeypatch)
+    captions = " ".join(c.value for c in at.caption)
+    assert "As shown in Figure 2, risk declined across all cohorts." in captions
+    assert "not fetched or interpreted" in captions

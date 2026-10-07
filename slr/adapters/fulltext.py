@@ -82,15 +82,24 @@ class Table:
 
 @dataclass
 class Figure:
-    """A figure's label and caption. The image itself is not fetched.
+    """A figure's label, caption, and what the body text says about it.
 
-    A heat map's *meaning* is in the image. What this carries is what the
-    authors wrote underneath it, which is worth having and must not be
-    presented as if the plot had been read.
+    The image itself is never fetched. A heat map's *meaning* is in the
+    pixels, and reading those would need image analysis this project does
+    not do.
+
+    ``mentions`` is the honest substitute. Papers describe their own
+    figures in prose -- "As shown in Figure 2, mortality declined steadily
+    across all three cohorts" -- and that sentence is real text that can be
+    quoted and checked. So a reader gets what the authors say the chart
+    shows, sourced and verifiable, without anyone pretending the plot was
+    read. For most questions ("what does this figure show?") that is the
+    answer they actually wanted.
     """
 
     label: str | None
     caption: str | None
+    mentions: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -189,6 +198,58 @@ def _parse_table(wrap: ET.Element) -> Table:
     )
 
 
+# "Figure 2", "Fig. 2", "Figs 2 and 3", "FIG 2B" -- journals write this a
+# dozen ways, so match the number and let the label supply what to look for.
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+(?=[A-Z(])")
+
+
+def _figure_number(label: str | None) -> str | None:
+    """The bare number from a label like "Figure 2" or "Fig. 3a"."""
+    if not label:
+        return None
+    match = re.search(r"(\d+)", label)
+    return match.group(1) if match else None
+
+
+def _mention_pattern(number: str) -> re.Pattern:
+    """Matches a reference to this figure number, not to figure 20 or 2.1.
+
+    Two guards, and they pull in opposite directions. Without the first,
+    "Figure 1" matches inside "Figure 12" and a reader is shown a sentence
+    about a different chart. But a naive guard that also rejects a
+    following period throws away "...as shown in Fig. 1." -- a reference
+    at the end of a sentence, which is where many of them live. So the
+    rule is: not followed by a digit, and not followed by a decimal point
+    that has a digit after it.
+    """
+    return re.compile(
+        rf"\b(?:fig(?:ure|s|\.)?|figures)\s*\.?\s*{number}(?!\d)(?!\.\d)",
+        re.IGNORECASE,
+    )
+
+
+def find_figure_mentions(body: str, label: str | None, *, limit: int = 3) -> list[str]:
+    """Sentences in the body that refer to this figure.
+
+    Returns whole sentences, so each one can be quoted and verified against
+    the paper exactly like any other claim here. Capped at ``limit``
+    because a heavily-referenced figure can be cited a dozen times and the
+    first few carry the description; the rest are usually bookkeeping.
+    """
+    number = _figure_number(label)
+    if not number or not body:
+        return []
+    pattern = _mention_pattern(number)
+    out: list[str] = []
+    for sentence in _SENTENCE_SPLIT.split(body):
+        text = sentence.strip()
+        if text and pattern.search(text):
+            out.append(text)
+            if len(out) >= limit:
+                break
+    return out
+
+
 def _parse_sections(parent: ET.Element) -> list[Section]:
     """Flatten nested ``<sec>`` into a list, keeping headings.
 
@@ -247,10 +308,22 @@ def parse_jats(xml: str) -> FullText:
     sections = _parse_sections(body) if body is not None else []
 
     tables = [_parse_table(w) for w in root.iter("table-wrap")]
-    figures = [
-        Figure(label=_text_of(f.find("label")) or None, caption=_text_of(f.find("caption")) or None)
-        for f in root.iter("fig")
-    ]
+
+    # Figures need the body prose to find their own mentions, so the body
+    # is assembled before they are built rather than after.
+    body_text = "\n\n".join(
+        f"{s.title}\n{s.text}" if s.title else s.text for s in sections
+    ).strip()
+    figures = []
+    for element in root.iter("fig"):
+        label = _text_of(element.find("label")) or None
+        figures.append(
+            Figure(
+                label=label,
+                caption=_text_of(element.find("caption")) or None,
+                mentions=find_figure_mentions(body_text, label),
+            )
+        )
     equations = []
     for formula in list(root.iter("disp-formula")) + list(root.iter("inline-formula")):
         text = _text_of(formula)

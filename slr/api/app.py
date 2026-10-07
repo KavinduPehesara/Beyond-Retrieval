@@ -35,6 +35,9 @@ from slr.api.schemas import (
     DiscoverSessionOut,
     FieldValue,
     FigureOut,
+    FullTextPaperOut,
+    FullTextRequest,
+    FullTextSessionOut,
     GapStatementOut,
     GapValue,
     OverrideRequest,
@@ -56,6 +59,7 @@ from slr.services import criteria as criteria_service
 from slr.services import retrieve
 from slr.services.discover import run_discover
 from slr.services.override import ModelDecision, model_decision, override_summary, record_override
+from slr.services.extract_fulltext import load_prompt_template as load_fulltext_prompt
 from slr.services.screen import load_prompt_template, persist as persist_screening, screen_record
 
 # Fixed metadata about the six-review corpus (CLAUDE.md's evaluation-corpus
@@ -697,3 +701,91 @@ def charts_performance(
         "latency": charts.latency_summary(conn, run_id, review) if run_id else {"n": 0},
         "cache": charts.cache_savings(conn, run_id),
     }
+
+
+@app.post("/discover/fulltext", response_model=FullTextSessionOut)
+def discover_fulltext(req: FullTextRequest, conn: sqlite3.Connection = Depends(get_conn)):
+    """Stage two: read the full text of papers the reviewer chose.
+
+    Screening on abstracts is stage one (`POST /discover`); this is what a
+    systematic review does next, and splitting them is not only faster but
+    closer to the method. PRISMA defines title/abstract screening and
+    full-text review as separate stages for the same reason: a human
+    decides what is worth the deeper read.
+
+    Nothing here is persisted and nothing is scored. There is no ground
+    truth for an extracted effect size, so this reports what verified and
+    never how often it was right -- the validation pages are where that
+    question is answered.
+    """
+    from slr.adapters.fulltext import get_full_text
+    from slr.services.discover import DISCOVER_REVIEW
+    from slr.services.extract_fulltext import extract_fulltext_record
+
+    provider = build_provider("ollama", "qwen2.5:7b-instruct")
+    template = load_fulltext_prompt(PROMPTS_DIR / "extract_fulltext_v1.txt")
+    meter = Meter(ceiling_usd=0.0, usd_per_1m_input=0.0, usd_per_1m_output=0.0)
+
+    out: list[FullTextPaperOut] = []
+    for target in req.papers:
+        entry = FullTextPaperOut(work_id=target.work_id, title=target.title)
+        try:
+            full_text, availability = get_full_text(doi=target.doi, title=target.title)
+        except ValueError as exc:  # no doi and no title
+            entry.note = str(exc)
+            out.append(entry)
+            continue
+        except httpx.HTTPError as exc:
+            entry.note = f"Europe PMC request failed: {exc}"
+            out.append(entry)
+            continue
+
+        if full_text is None:
+            entry.note = availability.reason or "no full text available"
+            out.append(entry)
+            continue
+
+        entry.found = True
+        entry.tables = [TableOut(**t.as_dict()) for t in full_text.tables]
+        entry.equations = list(full_text.equations)
+        entry.figures = [FigureOut(**f.as_dict()) for f in full_text.figures]
+
+        try:
+            rows = extract_fulltext_record(
+                full_text,
+                work_id=target.work_id,
+                review=DISCOVER_REVIEW,
+                provider=provider,
+                template=template,
+                meter=meter,
+                conn=conn,
+            )
+        except CacheMismatch as exc:
+            raise HTTPException(409, str(exc)) from exc
+        except BudgetExceeded as exc:
+            raise HTTPException(402, str(exc)) from exc
+
+        by_field = {r.field_name: r for r in rows}
+        for name in (
+            "primary_outcome",
+            "effect_size",
+            "statistical_methods",
+            "sample_characteristics",
+            "limitations",
+        ):
+            if name in by_field:
+                setattr(entry, name, _field_value_from_extraction(by_field[name]))
+
+        verified = sum(1 for r in rows if r.span_verified)
+        entry.note = (
+            f"full text from {availability.pmcid}: {verified} of {len(rows)} fields verified, "
+            f"{len(entry.tables)} tables, {len(entry.equations)} equations, "
+            f"{len(entry.figures)} figures"
+        )
+        out.append(entry)
+
+    return FullTextSessionOut(
+        n_requested=len(req.papers),
+        n_with_full_text=sum(1 for p in out if p.found),
+        papers=out,
+    )
