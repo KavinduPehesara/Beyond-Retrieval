@@ -56,6 +56,29 @@ LIMITATION_HEADINGS = re.compile(
     re.IGNORECASE,
 )
 RESULTS_HEADINGS = re.compile(r"\b(result|finding|outcome)s?\b", re.IGNORECASE)
+
+# Back matter: journal boilerplate that sits inside <body> as ordinary
+# sections but is not the paper. Observed live on PMC8056687, where eight of
+# nine sections were this and only one was the article.
+#
+# It matters more than its size suggests, because this text is *quotable*.
+# "The authors declare no competing interests" is a real sentence that would
+# verify, so a model reaching for a limitations field could return it and
+# the verifier would wave it through -- a true quote backing a claim the
+# paper never made. The span verifier checks that a sentence is real, not
+# that it is relevant, so relevance has to be handled here.
+BACK_MATTER_HEADINGS = re.compile(
+    r"^\s*("
+    r"acknowledge?ments?|authors?.{0,3} (contributions?|information)|funding|"
+    r"competing interests?|conflicts? of interest|declarations?|"
+    r"(availability|accessibility) of data|data availability( statement)?|"
+    r"ethics? (approval|statement)|consent (for publication|to participate)|"
+    r"abbreviations?|supplementary (information|material)|"
+    r"additional file|publisher.{0,3}s note|about this (article|supplement)|"
+    r"peer review|received|copyright|licen[cs]e"
+    r")\b",
+    re.IGNORECASE,
+)
 _WHITESPACE = re.compile(r"\s+")
 
 
@@ -292,6 +315,10 @@ def _parse_sections(parent: ET.Element) -> list[Section]:
     out: list[Section] = []
     for sec in parent.findall(".//sec"):
         title = _text_of(sec.find("title")) or None
+        # Journal boilerplate is dropped rather than kept-and-ignored,
+        # because anything kept here is text a model may quote from.
+        if title and BACK_MATTER_HEADINGS.search(title):
+            continue
         parts = []
         for para in sec.findall("p"):
             text = _text_of(para)

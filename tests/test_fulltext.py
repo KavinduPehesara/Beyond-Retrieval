@@ -554,3 +554,84 @@ def test_a_short_paper_with_real_structure_is_not_a_fragment():
     )
     parsed = ft.parse_jats(structured)
     assert parsed.is_fragment is False, "section headings mean this is a real paper"
+
+
+# --------------------------------------------------------------------------
+# Back matter
+#
+# Found live on PMC8056687 (a PRISMA editorial in Systematic Reviews): eight
+# of its nine body sections were journal boilerplate -- Acknowledgements,
+# Funding, Competing interests, Consent for publication -- and only one was
+# the article.
+#
+# The size is not the point. That text is *quotable*. "The authors declare
+# that they have no competing interests" is a real sentence that would
+# verify, so a model reaching for a limitations field could return it and
+# the verifier would pass it: a true quote backing a claim the paper never
+# made. The verifier checks that a sentence is real, not that it is
+# relevant, so relevance has to be handled before the text is ever shown.
+# --------------------------------------------------------------------------
+
+
+def _article_with_back_matter() -> str:
+    sections = [
+        ("Editorial", "It has been more than a decade since PRISMA was published. " * 20),
+        ("Acknowledgements", "NA"),
+        ("Authors' contributions", "All authors read and approved the final manuscript."),
+        ("Funding", "No funding was received for this work."),
+        ("Availability of data and materials", "Not applicable."),
+        ("Ethics approval and consent to participate", "Not applicable."),
+        ("Consent for publication", "Not applicable."),
+        ("Competing interests", "The authors declare that they have no competing interests."),
+        ("Data Availability Statement", "Not applicable."),
+    ]
+    body = "".join(f"<sec><title>{t}</title><p>{b}</p></sec>" for t, b in sections)
+    return f"<article><body>{body}</body></article>"
+
+
+def test_journal_boilerplate_is_dropped_from_the_body():
+    parsed = ft.parse_jats(_article_with_back_matter())
+    assert [s.title for s in parsed.sections] == ["Editorial"]
+
+
+def test_boilerplate_is_not_quotable():
+    """The failure this prevents: a verified quote from the competing
+    interests statement, offered as the paper's limitations."""
+    parsed = ft.parse_jats(_article_with_back_matter())
+    assert "no competing interests" not in parsed.body
+    assert "Not applicable" not in parsed.body
+
+
+def test_the_article_itself_survives():
+    parsed = ft.parse_jats(_article_with_back_matter())
+    assert "more than a decade since PRISMA" in parsed.body
+
+
+@pytest.mark.parametrize(
+    "heading",
+    [
+        "Acknowledgements", "Acknowledgments", "Authors' contributions",
+        "Author information", "Funding", "Competing interests",
+        "Conflict of interest", "Declarations", "Data availability statement",
+        "Availability of data and materials", "Ethics approval and consent to participate",
+        "Consent for publication", "Abbreviations", "Supplementary information",
+        "Additional file 1", "Publisher's Note", "Peer review",
+    ],
+)
+def test_every_known_back_matter_heading_is_recognised(heading):
+    assert ft.BACK_MATTER_HEADINGS.search(heading), heading
+
+
+@pytest.mark.parametrize(
+    "heading",
+    [
+        "Introduction", "Methods", "Results", "Discussion", "Conclusion",
+        "Limitations", "Statistical analysis", "Study design",
+        "Data extraction", "Data collection and analysis",
+    ],
+)
+def test_real_section_headings_are_not_mistaken_for_boilerplate(heading):
+    """"Data extraction" and "Data collection" must survive, even though
+    "Data availability" does not -- they are a methods section, not a
+    statement."""
+    assert not ft.BACK_MATTER_HEADINGS.search(heading), heading
