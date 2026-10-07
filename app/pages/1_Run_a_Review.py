@@ -269,23 +269,56 @@ def _render_full_text(paper: dict) -> None:
 
 
 def _order(paper: dict) -> tuple:
-    """Kept papers first, then referrals, then dropped.
+    """Kept papers first and strongest first, then referrals, then dropped.
 
-    The same priority a reviewer actually works in: read what the system
-    kept, then deal with what it couldn't answer, and only then check what
-    it discarded.
+    Two levels of sorting, and the second one matters once there are more
+    than a handful of results. The first is the order a reviewer actually
+    works in: read what the system kept, then deal with what it couldn't
+    answer, and only then check what it discarded.
+
+    Within the kept group, order by the model's own confidence, highest
+    first. That turns an undifferentiated pile of "kept" into a queue: the
+    strongest matches are the ones to read first, and a reviewer running
+    out of time has stopped at the right end of the list rather than an
+    arbitrary one.
+
+    This is a *predicted* relevance, not a measured one. The system has
+    read an abstract, nothing more, and the ranking is only as good as that
+    prediction -- which is exactly what the recall curve on the validation
+    pages measures. It prioritises; it does not absolve anyone of looking.
     """
     d = paper.get("decision")
     if not d:
-        return (0, paper["title"] or "")
+        return (0, 0.0, paper["title"] or "")
+    confidence = d.get("confidence") or 0.0
     if d["status"] == "include" and d["span_verified"]:
-        return (0, paper["title"] or "")
+        return (0, -confidence, paper["title"] or "")
     if not d["span_verified"]:
-        return (1, paper["title"] or "")
-    return (2, paper["title"] or "")
+        return (1, -confidence, paper["title"] or "")
+    return (2, confidence, paper["title"] or "")
 
 
-for paper in sorted(papers, key=_order):
+_ranked = sorted(papers, key=_order)
+# Rank numbers run over the kept papers only -- numbering a dropped paper
+# "7th most relevant" would be meaningless.
+_kept_ids = [
+    p["work_id"]
+    for p in _ranked
+    if p.get("decision")
+    and p["decision"]["status"] == "include"
+    and p["decision"]["span_verified"]
+]
+_rank_of = {work_id: i + 1 for i, work_id in enumerate(_kept_ids)}
+
+if len(_kept_ids) > 1:
+    st.caption(
+        f"The {len(_kept_ids)} papers it kept are listed strongest first, by how confident "
+        "the model was in its own decision. That is a prediction from an abstract, not a "
+        "measurement — it tells you where to start reading, not which papers are definitely "
+        "right."
+    )
+
+for paper in _ranked:
     decision = paper.get("decision")
     with st.container(border=True):
         title = paper["title"] or paper["work_id"]
@@ -294,7 +327,9 @@ for paper in sorted(papers, key=_order):
             # An include whose quote didn't verify is not a keep.
             if decision["status"] == "include" and not decision["span_verified"]:
                 icon, label = DECISION_BADGE["unverified"]
-            st.markdown(f"#### {icon} {label} — {title}")
+            rank = _rank_of.get(paper["work_id"])
+            prefix = f"#{rank} · " if rank else ""
+            st.markdown(f"#### {prefix}{icon} {label} — {title}")
         else:
             st.markdown(f"#### {title}")
 
@@ -396,7 +431,15 @@ else:
         "worth a deeper read. Only open-access papers held by Europe PMC can be read this way, "
         "which is mostly medicine and life sciences, so expect some to come back unavailable."
     )
-    _labels = {(p["title"] or p["work_id"])[:90]: p for p in _candidates}
+    # Same order as the cards above, so "the top three" means the same
+    # thing in both places.
+    _candidates = sorted(_candidates, key=_order)
+    _labels = {
+        f"#{_rank_of[p['work_id']]} · {(p['title'] or p['work_id'])[:85]}"
+        if p["work_id"] in _rank_of
+        else (p["title"] or p["work_id"])[:90]: p
+        for p in _candidates
+    }
     _picked = st.multiselect(
         "Papers to read in full",
         list(_labels),

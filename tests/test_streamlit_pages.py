@@ -841,3 +841,92 @@ def test_what_the_authors_say_a_figure_shows_is_quoted(monkeypatch):
     captions = " ".join(c.value for c in at.caption)
     assert "As shown in Figure 2, risk declined across all cohorts." in captions
     assert "not fetched or interpreted" in captions
+
+
+# ---------------------------------------------------------------------------
+# Relevance ranking
+#
+# "Kept" as an undifferentiated pile is survivable at ten papers and useless
+# at a hundred. Ordering the kept group by the model's own confidence turns
+# it into a queue, so a reviewer who runs out of time has stopped at the
+# right end of the list.
+# ---------------------------------------------------------------------------
+
+RANKED_SESSION = {
+    **DISCOVER_SESSION,
+    "n_included": 3,
+    "n_excluded": 0,
+    "n_referred": 0,
+    "papers": [
+        {
+            "work_id": f"https://openalex.org/W{i}",
+            "title": title,
+            "year": 2021,
+            "source_url": None,
+            "study_design": _VERIFIED,
+            "sample_size": _VERIFIED,
+            "country": _VERIFIED,
+            "key_finding": _VERIFIED,
+            "gap": {"status": "not_stated"},
+            "decision": {
+                "status": "include",
+                "confidence": confidence,
+                "quote": "a quote that verified",
+                "span_verified": True,
+                "verify_note": "exact_after_normalisation",
+                "from_cache": False,
+            },
+        }
+        for i, (title, confidence) in enumerate(
+            [("Weakest match", 0.55), ("Strongest match", 0.97), ("Middling match", 0.80)]
+        )
+    ],
+}
+
+
+def _screen_ranked(monkeypatch):
+    monkeypatch.setattr(
+        api_client,
+        "discover",
+        lambda query, limit=5, criteria=None, fulltext=False: RANKED_SESSION,
+    )
+    at = AppTest.from_file(str(APP_DIR / "pages/1_Run_a_Review.py"))
+    at.run()
+    at.text_input[0].set_value("topic").run()
+    at.text_area[0].set_value("Include trials.").run()
+    [b for b in at.button if b.label == "Screen these papers"][0].click().run()
+    assert not at.exception, [str(e) for e in at.exception]
+    return at
+
+
+def test_kept_papers_are_listed_strongest_first(monkeypatch):
+    at = _screen_ranked(monkeypatch)
+    headings = [m.value for m in at.markdown if m.value.startswith("#### ")]
+    order = [h for h in headings if "match" in h]
+    assert "Strongest match" in order[0]
+    assert "Middling match" in order[1]
+    assert "Weakest match" in order[2]
+
+
+def test_each_kept_paper_shows_its_rank(monkeypatch):
+    at = _screen_ranked(monkeypatch)
+    headings = [m.value for m in at.markdown if m.value.startswith("#### ")]
+    assert any(h.startswith("#### #1 · ") and "Strongest" in h for h in headings)
+    assert any(h.startswith("#### #3 · ") and "Weakest" in h for h in headings)
+
+
+def test_the_selection_list_uses_the_same_order_as_the_cards(monkeypatch):
+    """"The top three" has to mean the same thing in both places."""
+    at = _screen_ranked(monkeypatch)
+    options = at.multiselect[0].options
+    assert options[0].startswith("#1 ·") and "Strongest" in options[0]
+    assert options[-1].startswith("#3 ·") and "Weakest" in options[-1]
+
+
+def test_the_ranking_is_described_as_a_prediction_not_a_measurement(monkeypatch):
+    """The system has read an abstract and nothing more. Presenting that
+    ordering as established relevance would overclaim."""
+    at = _screen_ranked(monkeypatch)
+    captions = " ".join(c.value for c in at.caption)
+    assert "strongest first" in captions
+    assert "a prediction from an abstract, not a measurement" in captions
