@@ -777,11 +777,23 @@ def discover_fulltext(req: FullTextRequest, conn: sqlite3.Connection = Depends(g
                 setattr(entry, name, _field_value_from_extraction(by_field[name]))
 
         verified = sum(1 for r in rows if r.span_verified)
-        entry.note = (
-            f"full text from {availability.pmcid}: {verified} of {len(rows)} fields verified, "
-            f"{len(entry.tables)} tables, {len(entry.equations)} equations, "
-            f"{len(entry.figures)} figures"
-        )
+        if full_text.is_fragment:
+            # Say this plainly. Without it, every field reads "not stated"
+            # and a reader blames the extraction for a stub Europe PMC
+            # served while flagging the record open access.
+            entry.note = (
+                f"Europe PMC returned only a fragment of this paper from "
+                f"{availability.pmcid} — {len(full_text.body):,} characters, no section "
+                f"headings, no tables or figures. It is flagged open access, but the full "
+                f"text is not actually there. Most fields will read “not stated”, and that "
+                f"is the system being honest about text it was never given."
+            )
+        else:
+            entry.note = (
+                f"full text from {availability.pmcid}: {verified} of {len(rows)} fields "
+                f"verified, {len(entry.tables)} tables, {len(entry.equations)} equations, "
+                f"{len(entry.figures)} figures"
+            )
         out.append(entry)
 
     return FullTextSessionOut(

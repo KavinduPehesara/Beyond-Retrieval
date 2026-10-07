@@ -114,6 +114,19 @@ class Section:
         return asdict(self)
 
 
+# A real research paper's body runs tens of thousands of characters. Europe
+# PMC sometimes serves a record flagged open access whose body is a fragment
+# -- an abstract-sized stub with no tables, figures or section headings --
+# and nothing in the API response distinguishes that from a complete paper.
+# Observed live on PMC7508247 (a BMJ meta-analysis): 1,058 characters, one
+# untitled section, no table-wrap or fig elements anywhere in the XML.
+#
+# This matters because the symptom is indistinguishable from the model
+# failing. Every field comes back "not stated", and a reader concludes the
+# extraction is weak when in fact it was honest about text it never saw.
+MIN_PLAUSIBLE_BODY_CHARS = 5_000
+
+
 @dataclass
 class FullText:
     """One paper's full text, parsed."""
@@ -135,6 +148,23 @@ class FullText:
         return "\n\n".join(
             f"{s.title}\n{s.text}" if s.title else s.text for s in self.sections
         ).strip()
+
+    @property
+    def is_fragment(self) -> bool:
+        """True when Europe PMC served a stub rather than the paper.
+
+        Two signals together, because either alone has honest exceptions: a
+        body far shorter than any real paper, *and* no structural furniture
+        at all -- no section headings, no tables, no figures. A short
+        letter to the editor has the first; a genuinely table-free paper
+        has part of the second. Both at once means a fragment.
+        """
+        structureless = (
+            not any(s.title for s in self.sections)
+            and not self.tables
+            and not self.figures
+        )
+        return len(self.body) < MIN_PLAUSIBLE_BODY_CHARS and structureless
 
     @property
     def limitations_text(self) -> str:

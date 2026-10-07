@@ -495,3 +495,62 @@ def test_still_not_indexed_when_neither_lookup_finds_anything():
     result = ft.find_availability(doi="10.1/x", title="Nothing", client=client)
     assert result.found is False
     assert "not indexed" in result.reason
+
+
+# --------------------------------------------------------------------------
+# Fragment detection
+#
+# Found live on PMC7508247, a BMJ meta-analysis: Europe PMC flagged the
+# record open access and served 1,058 characters -- one untitled section, no
+# table-wrap or fig elements anywhere in the XML. The model then answered
+# "not stated" to four of five fields, correctly, about text it had never
+# been shown. Without a name for that state the symptom is indistinguishable
+# from the extraction being weak.
+# --------------------------------------------------------------------------
+
+
+def _fragment_xml(chars: int = 1000) -> str:
+    return (
+        "<article><front><article-meta>"
+        "<article-id pub-id-type='pmcid'>PMC7508247</article-id>"
+        "<title-group><article-title>A meta-analysis</article-title></title-group>"
+        "</article-meta></front>"
+        f"<body><sec><p>{'word ' * (chars // 5)}</p></sec></body></article>"
+    )
+
+
+def test_a_stub_record_is_recognised_as_a_fragment():
+    parsed = ft.parse_jats(_fragment_xml())
+    assert parsed.is_fragment is True
+    assert len(parsed.body) < ft.MIN_PLAUSIBLE_BODY_CHARS
+    assert parsed.tables == [] and parsed.figures == []
+
+
+def test_a_real_paper_is_not_called_a_fragment(paper):
+    """The fixture is short but has section headings, a table and a figure
+    -- structure a stub never has. Length alone must not condemn it."""
+    assert paper.is_fragment is False
+
+
+def test_a_long_body_is_not_a_fragment_even_without_tables():
+    """Plenty of real papers have no tables. Length is the other half of
+    the test for exactly this reason."""
+    long_xml = (
+        "<article><body><sec><p>"
+        + ("sentence about the study. " * 1000)
+        + "</p></sec></body></article>"
+    )
+    parsed = ft.parse_jats(long_xml)
+    assert len(parsed.body) > ft.MIN_PLAUSIBLE_BODY_CHARS
+    assert parsed.is_fragment is False
+
+
+def test_a_short_paper_with_real_structure_is_not_a_fragment():
+    structured = (
+        "<article><body>"
+        "<sec><title>Methods</title><p>We did the thing.</p></sec>"
+        "<sec><title>Results</title><p>It worked.</p></sec>"
+        "</body></article>"
+    )
+    parsed = ft.parse_jats(structured)
+    assert parsed.is_fragment is False, "section headings mean this is a real paper"

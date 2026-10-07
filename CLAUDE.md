@@ -1329,6 +1329,50 @@ that the ablation reads the same artefacts the report does.
 
 339 tests passing (was 307): 19 for the ablation, 20 for the typology.
 
+**7 October 2026 — Europe PMC's open-access flag does not mean the full
+text is there (rule 7).** Found on the first live run of full-text
+extraction, and worth recording because the symptom looks exactly like the
+system underperforming.
+
+`PMC7508247` (Association between vitamin D supplementation and mortality,
+BMJ, doi 10.1136/bmj.m2329) is flagged `isOpenAccess = Y`. Its
+`fullTextXML` is **1,058 characters**: one untitled section, and no
+`table-wrap`, `fig` or `disp-formula` element anywhere in the document. A
+BMJ meta-analysis runs 30,000–50,000 characters with forest plots and
+summary tables. Nothing in the API response distinguishes this stub from a
+complete paper.
+
+The extraction then reported 1 of 5 fields verified, 0 tables, 0 figures —
+which reads as weak extraction and is nothing of the sort. The model was
+shown a thousand characters and said "not stated" to the four fields that
+text does not contain, which is the correct answer. The one field it did
+fill it filled correctly, with a real confidence interval quoted verbatim:
+*"the risk ratio and 95% confidence interval of cancer mortality changed
+from 0.84 (95% confidence interval 0.74 to 0.95) to 0.85 (0.74 to 0.97)."*
+
+`FullText.is_fragment` now names the state: a body under 5,000 characters
+**and** no section headings, tables or figures. Both signals together,
+because either alone has honest exceptions — a short letter has the first,
+a genuinely table-free paper has part of the second. The API says so
+plainly rather than letting a reader blame the extraction.
+
+**Two things this changes for the report.** First, the earlier estimate
+that full-text coverage is limited by domain was too generous: coverage is
+limited by domain *and* by the open-access flag overstating what is
+actually served, and the second is invisible until you parse the document.
+Second, this is a third instance of the pattern this project keeps hitting
+— a figure that looks like a model failure turning out to be an instrument
+problem (the BM25 corpus-independence drift, the 97.8% criteria echoes, and
+now this). Worth naming in the limitations section as a methodological
+point: an evaluation of an LLM pipeline measures the whole instrument, and
+attributing a number to the model before checking the plumbing is how most
+of these would have been mis-reported.
+
+`scripts/inspect_fulltext.py` exists for exactly this: it prints what
+Europe PMC actually sent — body length, sections, tables, figures, and
+which XML tags are present — so a thin record can be told from a parser bug
+without guessing.
+
 ## Next: close out week 11, run the week 12 usability check, submit ethics
 
 Immediate: minute the week 11 go/no-go decision with the supervisor using
