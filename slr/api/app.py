@@ -59,6 +59,7 @@ from slr.services import criteria as criteria_service
 from slr.services import retrieve
 from slr.services.discover import run_discover
 from slr.services.override import ModelDecision, model_decision, override_summary, record_override
+from slr.services.extract_fulltext import build_source as build_fulltext_source
 from slr.services.extract_fulltext import load_prompt_template as load_fulltext_prompt
 from slr.services.screen import load_prompt_template, persist as persist_screening, screen_record
 
@@ -794,6 +795,19 @@ def discover_fulltext(req: FullTextRequest, conn: sqlite3.Connection = Depends(g
                 f"verified, {len(entry.tables)} tables, {len(entry.equations)} equations, "
                 f"{len(entry.figures)} figures"
             )
+            # How much of the paper the model actually saw. A long paper is
+            # truncated to fit the context window, and a field marked "not
+            # stated" may simply live in the part that was cut. Saying so is
+            # the difference between an honest gap and a silent one.
+            source = build_fulltext_source(full_text)
+            if source.truncated:
+                shown = source.chars_available and len(source.text) / source.chars_available
+                entry.note += (
+                    f". The paper is {source.chars_available:,} characters and the model was "
+                    f"shown the first {len(source.text):,} ({shown:.0%}), prioritising results, "
+                    f"limitations and discussion — a field marked “not stated” may be in the "
+                    f"part that was cut"
+                )
         out.append(entry)
 
     return FullTextSessionOut(

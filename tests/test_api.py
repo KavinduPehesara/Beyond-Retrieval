@@ -526,3 +526,87 @@ def test_chart_routes_never_return_ground_truth(client, conn, runs_dir):
         "/charts/reviews/R1/recall-curve",
     ]:
         assert "label_included" not in client.get(path).text, path
+
+
+def test_fulltext_note_says_how_much_of_the_paper_was_read(client, monkeypatch):
+    """Observed on PMC10248995: a 75,211-character paper, of which the model
+    sees 24,000. A field marked "not stated" may simply be in the two thirds
+    that were cut, and a reader who is not told that will read the gap as a
+    failure of the extraction.
+    """
+    from slr.adapters import fulltext as ftmod
+    from slr.adapters.fulltext import Availability, parse_jats
+
+    long_xml = (
+        "<article><body>"
+        + "".join(
+            f"<sec><title>Section {i}</title><p>{'content sentence here. ' * 300}</p></sec>"
+            for i in range(12)
+        )
+        + "</body></article>"
+    )
+    paper = parse_jats(long_xml)
+    monkeypatch.setattr(
+        ftmod, "get_full_text",
+        lambda doi=None, title=None: (paper, Availability(found=True, pmcid="PMC1", is_open_access=True)),
+    )
+
+    class _Provider:
+        name, model = "fake", "fake-1"
+
+        def complete(self, prompt, **kw):
+            from slr.adapters.llm import Completion
+
+            payload = {
+                name: {"value": "not_stated", "evidence_span": ""}
+                for name in (
+                    "primary_outcome", "effect_size", "statistical_methods",
+                    "sample_characteristics", "limitations",
+                )
+            }
+            return Completion(text=json.dumps(payload), tokens_in=1, tokens_out=1)
+
+    monkeypatch.setattr(app_module, "build_provider", lambda *a, **k: _Provider())
+
+    body = client.post(
+        "/discover/fulltext",
+        json={"papers": [{"work_id": "W1", "title": "A long paper", "doi": "10.1/x"}]},
+    ).json()
+    note = body["papers"][0]["note"]
+    assert "the model was shown the first" in note
+    assert "may be in the part that was cut" in note
+
+
+def test_a_short_paper_does_not_claim_to_be_truncated(client, monkeypatch):
+    from slr.adapters import fulltext as ftmod
+    from slr.adapters.fulltext import Availability, parse_jats
+
+    short = parse_jats(
+        "<article><body><sec><title>Results</title><p>It worked well.</p></sec></body></article>"
+    )
+    monkeypatch.setattr(
+        ftmod, "get_full_text",
+        lambda doi=None, title=None: (short, Availability(found=True, pmcid="PMC1", is_open_access=True)),
+    )
+
+    class _Provider:
+        name, model = "fake", "fake-1"
+
+        def complete(self, prompt, **kw):
+            from slr.adapters.llm import Completion
+
+            payload = {
+                name: {"value": "not_stated", "evidence_span": ""}
+                for name in (
+                    "primary_outcome", "effect_size", "statistical_methods",
+                    "sample_characteristics", "limitations",
+                )
+            }
+            return Completion(text=json.dumps(payload), tokens_in=1, tokens_out=1)
+
+    monkeypatch.setattr(app_module, "build_provider", lambda *a, **k: _Provider())
+    body = client.post(
+        "/discover/fulltext",
+        json={"papers": [{"work_id": "W1", "title": "Short", "doi": "10.1/x"}]},
+    ).json()
+    assert "was shown the first" not in body["papers"][0]["note"]

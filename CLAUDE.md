@@ -1373,6 +1373,56 @@ Europe PMC actually sent — body length, sections, tables, figures, and
 which XML tags are present — so a thin record can be told from a parser bug
 without guessing.
 
+**7 October 2026, second entry — full-text extraction confirmed on live
+data, and a third instance of one failure pattern.**
+
+`PMC10248995` ("Guidance to best tools and practices for systematic
+reviews", *Systematic Reviews*) is the first complete paper the pipeline
+has read: 383,611 characters of JATS, 75,211 characters of body across 40
+sections, **16 tables parsed with their captions and row counts**, 1 figure
+with its caption *and* the sentence that cites it — *"we integrate them
+into a practical scheme (see Fig. 1)"* — found by the mention matcher. All
+six of the requested extraction features work on real literature, not just
+fixtures.
+
+Three honest limits surfaced in the same run, all now reported rather than
+hidden:
+
+**Truncation is severe on long papers.** 75,211 characters of body, 24,000
+sent to the model — 32%. The prompt source prioritises results,
+limitations and discussion so truncation eats the introduction first, but a
+field marked "not stated" may genuinely be in the two thirds that were cut.
+The API note now says how much of the paper the model saw and why that
+matters; `verify_note` already distinguished `not_stated_possibly_truncated`
+from a plain `not_stated`.
+
+**Journal boilerplate was quotable.** `PMC8056687` (a PRISMA editorial) had
+eight of nine body sections as Acknowledgements, Funding, Competing
+interests and similar. That text is real, so *"The authors declare that
+they have no competing interests"* would verify — a true quote backing a
+claim the paper never made. Back-matter sections are now dropped before the
+model sees them.
+
+**That is the third instance of the same failure, and it is worth naming
+as a finding in its own right.** Screening: the model quoted the eligibility
+criteria from the prompt (97.8% of all verification failures). Full text:
+it could quote a table cell as though it were prose. Full text again: it
+could quote a competing-interests statement as a limitation. Every one of
+these *passes* the span verifier, because the sentence genuinely exists.
+
+**The span verifier answers "is this sentence real?" It has never answered
+"is this sentence relevant?", and it cannot.** That is a real boundary on
+the mechanism RQ1 rests on, found empirically three times rather than
+argued, and the fix in all three cases was the same: control what the model
+is allowed to see, rather than trying to catch a bad quote afterwards.
+Week 15's discussion should state this plainly — it is a more interesting
+claim than "verification works", and it is the honest version.
+
+427 tests passing. `scripts/inspect_fulltext.py` is what made all three
+diagnosable: it prints body length, sections, tables, figures and the XML
+tags actually present, so a thin record, a parser bug and a genuinely
+table-free paper can be told apart instead of guessed at.
+
 ## Next: close out week 11, run the week 12 usability check, submit ethics
 
 Immediate: minute the week 11 go/no-go decision with the supervisor using
