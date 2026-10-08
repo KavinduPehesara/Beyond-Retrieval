@@ -1,0 +1,39 @@
+{
+  "name": "week10_full_subset",
+  "dataset": {
+    "reviews": [
+      "Radjenovic_2013",
+      "Smid_2020",
+      "van_der_Valk_2021",
+      "Nelson_2002"
+    ],
+    "max_records": null,
+    "seed": 42
+  },
+  "ranking": {
+    "strategy": "random",
+    "query": null,
+    "recall_target": 0.95,
+    "rrf_k": 60,
+    "rerank_top_k": 200
+  },
+  "screening": {
+    "enabled": true,
+    "provider": "ollama",
+    "model": "qwen2.5:7b-instruct",
+    "prompt_version": "screen_v1",
+    "temperature": 0.0,
+    "max_output_tokens": 512,
+    "max_retries": 3,
+    "seed": 42
+  },
+  "budget": {
+    "ceiling_usd": 0.0,
+    "usd_per_1m_input": 0.0,
+    "usd_per_1m_output": 0.0
+  },
+  "db_path": "data\\slr.db",
+  "runs_dir": "runs",
+  "prompts_dir": "prompts",
+  "cache_enabled": true
+}

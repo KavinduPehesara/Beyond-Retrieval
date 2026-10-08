@@ -1,0 +1,28 @@
+# Week 9 — dense retrieval alone (SPECTER2 + FAISS flat index, cosine
+# similarity), no fusion or reranking yet. First stage of the three: run and
+# compare against week09_baseline_bm25.yaml before adding fusion on top.
+#
+# No model calls (SPECTER2 runs locally via adapters/embed.py), no cost.
+# First run per review is slow (embeddings computed + cached to
+# data/embeddings/); reruns are fast, served from that cache.
+
+name: week09_dense
+
+dataset:
+  reviews:
+    - Smid_2020
+    - Nelson_2002
+    - van_der_Valk_2021
+  max_records: null
+  seed: 42
+
+ranking:
+  strategy: dense
+  recall_target: 0.95
+
+screening:
+  enabled: false
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts

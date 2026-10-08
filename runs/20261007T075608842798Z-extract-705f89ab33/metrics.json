@@ -1,0 +1,30 @@
+{
+  "config_name": "extract_demo_nelson2002",
+  "config_hash": "705f89ab33",
+  "source_run_id": "20260918T060412811907Z-2556bbe54c",
+  "review": "Nelson_2002",
+  "records": 114,
+  "aborted": false,
+  "field_verification": {
+    "study_design": {
+      "verified": 102,
+      "not_stated": 7,
+      "failed": 5
+    },
+    "sample_size": {
+      "verified": 91,
+      "not_stated": 10,
+      "failed": 13
+    },
+    "country": {
+      "verified": 22,
+      "not_stated": 90,
+      "failed": 2
+    },
+    "key_finding": {
+      "verified": 110,
+      "not_stated": 0,
+      "failed": 4
+    }
+  }
+}

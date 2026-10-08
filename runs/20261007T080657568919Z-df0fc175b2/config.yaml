@@ -1,0 +1,45 @@
+# Week 10 — prompt variant comparison, baseline (v1), Nelson_2002 only.
+#
+# Nelson_2002 chosen for this and the other week 10 experiments below: it is
+# the smallest ingested review (366 records, cheap and fast on local GPU) and
+# had the lowest verification rate of the week 8 pair (51.9% vs Smid_2020's
+# 91.7%) -- the most interesting target for testing whether prompt wording
+# changes that number.
+#
+# Same model/settings as week08_ollama.yaml, scoped to one review so the
+# three prompt variants are run under otherwise-identical conditions. This
+# config's own responses are already fully cached from that run (same model,
+# prompt_version, review, seed) -- rerunning it costs $0 and confirms the
+# baseline before comparing v2/v3 against it.
+
+name: week10_prompt_v1_nelson
+
+dataset:
+  reviews:
+    - Nelson_2002
+  max_records: null
+  seed: 42
+
+ranking:
+  strategy: random
+  recall_target: 0.95
+
+screening:
+  enabled: true
+  provider: ollama
+  model: qwen2.5:7b-instruct
+  prompt_version: screen_v1
+  temperature: 0.0
+  max_output_tokens: 512
+  max_retries: 3
+  seed: 42
+
+budget:
+  ceiling_usd: 0.00
+  usd_per_1m_input: 0.0
+  usd_per_1m_output: 0.0
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts
+cache_enabled: true
