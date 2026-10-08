@@ -40,7 +40,8 @@ def runs_dir(tmp_path):
 
 
 @pytest.fixture()
-def client(conn, runs_dir, monkeypatch):
+def client(conn, runs_dir, monkeypatch, tmp_path):
+    monkeypatch.setattr(app_module.live_review, "STORE", tmp_path / "live.sqlite3")
     monkeypatch.setattr(app_module, "RUNS_DIR", runs_dir)
     monkeypatch.setattr(app_module, "PROMPTS_DIR", app_module.PROMPTS_DIR)  # real prompts/ dir, read-only
 
@@ -61,6 +62,35 @@ def _write_run(runs_dir, name, metrics):
 
 def test_health(client):
     assert client.get("/health").json() == {"status": "ok"}
+
+
+def test_live_session_review_is_audited_and_matrix_checks_quotes(client, conn):
+    from slr.services import accounts
+    ticket, binding = accounts.issue_ticket(dict(sub="test-owner", email="owner@example.test", email_verified=True))
+    token = accounts.exchange_ticket(ticket, binding)["token"]
+    client.headers["Authorization"] = "Bearer " + token
+    payload = dict(query="asthma", criteria=None, n_found=1, n_screened=0,
+                   n_included=0, n_excluded=0, n_referred=0, n_verified_quotes=0, n_gaps=0,
+                   papers=[dict(work_id="LIVE1", title="Trial", year=2024, source_url=None,
+                                abstract="We studied asthma with regression.")])
+    result = client.post("/discover/sessions", json=payload)
+    assert result.status_code == 200
+    sid = result.json()["session_id"]
+    action = dict(work_id="LIVE1", decision="include", technique="Regression", domain="Asthma", quote="invented")
+    assert client.post(f"/discover/sessions/{sid}/review", json=action).status_code == 400
+    action["quote"] = "We studied asthma with regression."
+    assert client.post(f"/discover/sessions/{sid}/review", json=action).status_code == 200
+    saved = client.get(f"/discover/sessions/{sid}").json()
+    assert saved["coverage_matrix"]["cells"][0]["papers"] == 1
+    assert len(saved["reviewer_actions"]) == 1
+    action["decision"] = "exclude"
+    client.post(f"/discover/sessions/{sid}/review", json=action)
+    saved = client.get(f"/discover/sessions/{sid}").json()
+    assert len(saved["reviewer_actions"]) == 2
+    assert saved["coverage_matrix"]["n_coded"] == 0
+    assert conn.execute("SELECT COUNT(*) FROM human_decision").fetchone()[0] == 0
+    assert client.get("/discover/sessions/unknown").status_code == 404
+    assert client.post(f"/discover/sessions/{sid}/semantic-map").status_code == 400
 
 
 def test_list_reviews_reflects_the_corpus_and_criteria(client):
@@ -529,6 +559,7 @@ def test_chart_routes_never_return_ground_truth(client, conn, runs_dir):
 
 
 def test_fulltext_note_says_how_much_of_the_paper_was_read(client, monkeypatch):
+    project_id = _fulltext_project(client)
     """Observed on PMC10248995: a 75,211-character paper, of which the model
     sees 24,000. A field marked "not stated" may simply be in the two thirds
     that were cut, and a reader who is not told that will read the gap as a
@@ -570,7 +601,7 @@ def test_fulltext_note_says_how_much_of_the_paper_was_read(client, monkeypatch):
 
     body = client.post(
         "/discover/fulltext",
-        json={"papers": [{"work_id": "W1", "title": "A long paper", "doi": "10.1/x"}]},
+        json={"project_id": project_id, "papers": [{"work_id": "W1", "title": "A long paper", "doi": "10.1/x"}]},
     ).json()
     note = body["papers"][0]["note"]
     assert "the model was shown the first" in note
@@ -578,6 +609,7 @@ def test_fulltext_note_says_how_much_of_the_paper_was_read(client, monkeypatch):
 
 
 def test_a_short_paper_does_not_claim_to_be_truncated(client, monkeypatch):
+    project_id = _fulltext_project(client)
     from slr.adapters import fulltext as ftmod
     from slr.adapters.fulltext import Availability, parse_jats
 
@@ -607,6 +639,41 @@ def test_a_short_paper_does_not_claim_to_be_truncated(client, monkeypatch):
     monkeypatch.setattr(app_module, "build_provider", lambda *a, **k: _Provider())
     body = client.post(
         "/discover/fulltext",
-        json={"papers": [{"work_id": "W1", "title": "Short", "doi": "10.1/x"}]},
+        json={"project_id": project_id, "papers": [{"work_id": "W1", "title": "Short", "doi": "10.1/x"}]},
     ).json()
     assert "was shown the first" not in body["papers"][0]["note"]
+
+
+def test_unavailable_fulltext_returns_all_eight_source_statuses(client, monkeypatch):
+    project_id = _fulltext_project(client)
+    from slr.adapters import fulltext as ftmod
+    from slr.adapters.fulltext import Availability
+    monkeypatch.setattr(ftmod, "get_full_text", lambda **kw: (None, Availability(found=True, reason="paywalled")))
+    body = client.post("/discover/fulltext", json={"project_id": project_id, "papers": [{"work_id": "W1", "doi": "10.1/x"}]}).json()
+    assert len(body["papers"][0]["coverage"]) == 8
+    assert all(c["status"] == "source_unavailable" for c in body["papers"][0]["coverage"])
+
+
+def test_asset_route_only_serves_known_cached_files(client, monkeypatch, tmp_path):
+    from slr.adapters import fulltext_assets
+    import hashlib
+    monkeypatch.setattr(fulltext_assets, "ASSETS_DIR", tmp_path)
+    asset_id = hashlib.sha256(b"a,b\n1,2").hexdigest()
+    directory = tmp_path / "PMC123"
+    directory.mkdir()
+    (directory / asset_id).write_bytes(b"a,b\n1,2")
+    (directory / "manifest.json").write_text(json.dumps({"files": [{"asset_id": asset_id, "name": "data.csv", "media_type": "application/octet-stream"}]}))
+    response = client.get(f"/fulltext/assets/PMC123/{asset_id}")
+    assert response.status_code == 200
+    assert response.content == b"a,b\n1,2"
+    assert "attachment" in response.headers["content-disposition"]
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert client.get(f"/fulltext/assets/not-pmc/{asset_id}").status_code == 404
+    assert client.get("/fulltext/assets/PMC123/" + "0" * 64).status_code == 404
+
+
+def _fulltext_project(client):
+    from slr.services import accounts
+    ticket, binding = accounts.issue_ticket(dict(sub="fulltext-owner", email="ft@example.test", email_verified=True))
+    client.headers["Authorization"] = "Bearer " + accounts.exchange_ticket(ticket, binding)["token"]
+    return client.post("/projects", json={"name": "Full text research"}).json()["session_id"]

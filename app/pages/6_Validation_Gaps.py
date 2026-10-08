@@ -11,6 +11,8 @@ import streamlit as st
 from api_client import charts_gaps, health, list_gaps, list_reviews
 
 st.set_page_config(page_title="Validation \u00b7 Gaps", page_icon="\U0001f9e9", layout="wide")
+from research_style import apply_research_style
+apply_research_style()
 st.title("Validation \u2014 research gaps")
 st.info(
     "**This is validation evidence, not the tool.** These six systematic reviews were completed "

@@ -206,10 +206,14 @@ def connect(db_path: str | Path, *, check_same_thread: bool = True) -> sqlite3.C
     conn = sqlite3.connect(db_path, check_same_thread=check_same_thread)
     conn.row_factory = sqlite3.Row
     _check_schema_version(conn, db_path)
-    conn.executescript(SCHEMA)
-    conn.executescript(TRIGGERS)
-    conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
-    conn.commit()
+    # Existing databases must open without taking the writer lock. A live
+    # model request may be updating the cache while another page reads data.
+    conn.execute("PRAGMA foreign_keys = ON")
+    if conn.execute("PRAGMA user_version").fetchone()[0] != SCHEMA_VERSION:
+        conn.executescript(SCHEMA)
+        conn.executescript(TRIGGERS)
+        conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+        conn.commit()
     return conn
 
 

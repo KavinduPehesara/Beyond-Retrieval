@@ -42,3 +42,9 @@ asreview==1.6.3
 
 # --- testing ---
 pytest==8.3.4
+
+# Full-text supplementary-file previews (no OCR or formula execution).
+pypdf==5.1.0
+openpyxl==3.1.5
+
+google-auth[requests]==2.58.0

@@ -17,6 +17,12 @@ import streamlit as st
 from api_client import API_URL, charts_corpus, health, list_reviews
 
 st.set_page_config(page_title="Beyond Retrieval", page_icon="\U0001f4da", layout="wide")
+from research_style import apply_research_style
+apply_research_style()
+from account_view import render_welcome, render_account, render_library
+render_welcome()
+render_account()
+render_library()
 
 st.title("Beyond Retrieval")
 st.markdown("#### Find the papers that matter, and check every decision for yourself.")

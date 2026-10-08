@@ -19,6 +19,8 @@ from api_client import (
 )
 
 st.set_page_config(page_title="Validation \u00b7 Screening", page_icon="\U0001f9ea", layout="wide")
+from research_style import apply_research_style
+apply_research_style()
 st.title("Validation \u2014 screening the test reviews")
 st.info(
     "**This is validation evidence, not the tool.** These six systematic reviews were completed "

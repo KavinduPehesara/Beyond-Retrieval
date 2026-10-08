@@ -9,6 +9,8 @@ import streamlit as st
 from api_client import create_override, health, list_papers, list_reviews, override_summary, paper_detail
 
 st.set_page_config(page_title="Validation \u00b7 Decisions", page_icon="\u2696\ufe0f", layout="wide")
+from research_style import apply_research_style
+apply_research_style()
 st.title("Validation \u2014 overriding a decision")
 st.info(
     "**This is validation evidence, not the tool.** These six systematic reviews were completed "

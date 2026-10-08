@@ -1,0 +1,654 @@
+--- PAGE 1 ---
+1 
+ 
+Beyond Retrieval: An LLM-Supported Dashboard for Literature 
+Review and Research Gap Detection 
+ 
+Capstone Project Proposal 
+Pehesara Gunawardena 
+Student ID: 270684416 
+Master of Software Engineering (Level 9) 
+MSE907: Industry-based Capstone Research Project 
+ 
+Supervisor: Dr Helena Bahrami 
+Assessment 1: Research Development and Plan 
+September 2026 
+
+
+--- PAGE 2 ---
+2 
+Executive Summary 
+The number of research papers is increasing at a rate that results in two burdens: first, to 
+choose papers that satisfy specific criteria; and, second, to find what research has yet to be 
+performed. The first has 20 years of automation research and the second has virtually none. 
+The first seems to be addressed by LLMs, as several studies report 95–100% screening 
+recall. The results are debated: Khraisha et al. (2024) reported a sensitivity of 0.42 for balanced 
+data, and Hida et al. (2026) observed accuracy differences as large as 47 percentage points 
+among the models. Three gaps follow. Capability has been absent from becoming open and 
+evaluated systems, with only four of the twenty-one surveyed tools in open source, and these are 
+not extensively used yet (Bolaños et al., 2024). Cost and run-to-run variation is uncharacterised. 
+No one knows what is not in a literature. 
+The idea for this project is an open, self-running dashboard that the researcher can check 
+output of it instead of taking for granted. All decisions are verbatim quotes of the source, and all 
+decisions are automatically checked; repeated runs are tested for consistency; and all decisions 
+are made by a human. The system also identifies potential gaps by grouping together the 
+restrictions that authors mention in their papers. 
+Evaluation is based on a six-review subset of SYNERGY with inclusion rates ranging 
+from 0.8% to 21.9%, compared to four baselines. It is a reproducible contribution, and a first 
+treatment of gap discovery as a measurable task. 
+
+--- PAGE 3 ---
+3 
+Table of Contents 
+Executive Summary ...................................................................................................................... 2 
+Table of Contents .......................................................................................................................... 3 
+1. Introduction ............................................................................................................................... 5 
+2. Research Method — Systematic Literature Review .............................................................. 6 
+2.1 Search Strategy and Study Selection................................................................................. 6 
+2.2 Synthesis of Literature ....................................................................................................... 6 
+2.3 Literature Search Strategy ................................................................................................. 7 
+2.4 Inclusion and Exclusion Criteria ....................................................................................... 7 
+3. Analysis ...................................................................................................................................... 8 
+4. Gap Identification ..................................................................................................................... 9 
+5. Problem Statement.................................................................................................................. 10 
+6. Research Questions ................................................................................................................. 11 
+7. Project Objectives ................................................................................................................... 12 
+8. Methodology ............................................................................................................................ 13 
+8.1 Research design ................................................................................................................. 13 
+8.2 Data collection and evaluation corpus ............................................................................ 14 
+8.3 Tools and technologies ...................................................................................................... 15 
+8.4 Ethical and cultural considerations ................................................................................. 15 
+9. Proposed Solution ................................................................................................................... 16 
+9.1 Services............................................................................................................................... 16 
+9.2 Process flow ....................................................................................................................... 17 
+9.3 Dashboard views ............................................................................................................... 18 
+9.4 Design decisions and scope ............................................................................................... 19 
+10. Evaluation Plan ..................................................................................................................... 20 
+11. References .............................................................................................................................. 22 
+ 
+List of Figures 
+Figure 1.System architecture. ....................................................................................................... 17 
+Figure 2.Process flow; red marks the human-in-the-loop path. .................................................... 18 
+ 
+List of Tables 
+
+--- PAGE 4 ---
+4 
+Table 1.Search strings by theme. .................................................................................................... 7 
+Table 2.Inclusion and exclusion criteria. ........................................................................................ 7 
+Table 3.Trust properties and enforcing mechanisms. ................................................................... 11 
+Table 4.Objectives mapped to research questions. ....................................................................... 12 
+Table 5.Fifteen-week schedule. .................................................................................................... 13 
+Table 6.Evaluation subset from SYNERGY. ............................................................................... 14 
+Table 7.Technology choices, justified. ......................................................................................... 15 
+Table 8.Dashboard views. ............................................................................................................. 18 
+Table 9.Evaluation plan and success criteria. ............................................................................... 20 
+ 
+ 
+
+--- PAGE 5 ---
+5 
+1. Introduction 
+There is a great burden of published research, and it grows faster than any individual can 
+keep up with. The first is screening which involves making decisions about which papers in a 
+large candidate set fulfil the inclusion criteria. The second, less popular, is to detect what has not 
+yet been explored – a process that requires careful reading to notice a lack. Misidentified gaps 
+result in wasted effort and to proposals that are not novelty-proofed, and screening takes months 
+of reviewer time that would be better used in synthesis. 
+The first burden is 20 years of automated research, whereas the second burden has just 
+about zero. This project adapts to that imbalance by developing and testing a system that can 
+screen and simultaneously uncover the gaps, based on verifiable evidence for each decision; to 
+make auditable review practice available to individual researchers; and to view gap discovery as 
+a measurable engineering problem. 
+
+--- PAGE 6 ---
+6 
+2. Research Method — Systematic Literature Review 
+This evidence base is created using Kitchenham and Charters (2007) as the basis and 
+following the systematic reviews of literature.The evidence base is created using the reference 
+standard for evidence-based software engineering, Kitchenham and Charters (2007), and 
+following systematic review of literature. It is selected for two reasons: One is that this project 
+argues against the existence of research gaps, requiring that the search be documented and 
+repeatable; and two, it is a contested field, meaning that unsystematic reading would mean 
+selecting the evidence that is relevant to the claim. 
+2.1 Search Strategy and Study Selection 
+The sources searched for complementary coverage are the system's own data source 
+OpenAlex, as well as Scopus and Web of Science for curated indexing, IEEE Xplore for 
+software engineering venues, and the ACM Digital Library for software engineering venues; 
+arXiv for preprints. Selection is a 2-stage process, from the title and abstract up to Section 2.4 
+and from full text of survivors to snowballing, and number of records reported in a PRISMA 
+flow diagram. 
+2.2 Synthesis of Literature 
+Studies included are thematically synthesized, not statistically, due to the diversity of 
+study designs and the variety of study data sets and outcome measures. The studies are grouped 
+by four themes: screening automation; language model performance; retrieval and 
+representation; and identification of explicit limitations. The case for the claim is contrasted with 
+the evaluation design that underpins the claim, and with the impact reported — getting at the 
+
+--- PAGE 7 ---
+7 
+contradiction in the heart of this proposal: headline recall figures vs chance-corrected agreement 
+figures. 
+2.3 Literature Search Strategy 
+Table 1.Search strings by theme. 
+Theme Search string 
+Screening automation ("systematic review" OR "abstract screening") AND ("automation" OR "machine 
+learning" OR "active learning") 
+LLM screening 
+evidence 
+("large language model" OR "LLM") AND ("screening" OR "study selection") AND 
+("systematic review" OR "evidence synthesis") 
+Retrieval and 
+representation 
+("dense retrieval" OR "document embedding" OR "SPECTER") AND ("scientific" OR 
+"scholarly") 
+Gap and future-work 
+mining 
+("future work" OR "research gap" OR "limitations") AND ("extraction" OR "mining" 
+OR "classification") 
+ 
+Filters: 2006–2026, taking Cohen et al. (2006) as the origin of the field; English only, 
+acknowledged as a limitation; computer science and information systems. 
+2.4 Inclusion and Exclusion Criteria 
+Table 2.Inclusion and exclusion criteria. 
+Include Exclude 
+Empirical evaluation of screening automation, 
+retrieval, or future-work extraction 
+Opinion, editorial or position papers with no evaluation 
+Reports a quantitative measure (recall, precision, F1, 
+WSS, agreement) 
+Claims capability without measurement 
+Published 2006–2026, in English, full text obtainable Outside window; full text unobtainable 
+Peer-reviewed, or a preprint reporting a complete 
+evaluation 
+Preprints without evaluation; vendor documentation 
+ 
+At least 70% of the reference set is peer-reviewed; the present twenty sources are 75%. 
+
+--- PAGE 8 ---
+8 
+3. Analysis 
+There are two levels of analysis: Thematic coding of literature is carried out based on the 
+four themes mentioned above, the characteristics of the studies include the study claim, 
+evaluation design, the data used, the balance of the class and the effects that can be obtained. 
+Class balance is deliberately recorded: Khraisha et al. (2024) demonstrated that accuracy scores 
+are prone to reporting inaccuracies when the included-to-excluded ratio is skewed; and Kusa et 
+al. (2023) demonstrated that the default efficiency metric is not comparable because of the same 
+reason. 
+An evaluation harness is created as part of the system to analyse experimental data. Due 
+to the significant imbalance in the datasets, performance is reported as Recall at fixed thresholds 
+and the True Negative rate at 95% Recall, with the latter being the same measure shown in the 
+Work Saved over Sampling graph in Kusa et al. (2023) which was found to be comparable 
+across reviews. Inter run agreement (IRA) is based on Gwet's AC2 which is more robust against 
+imbalance than Cohen's kappa. 
+Interpretation is supported by a prompt sensitivity analysis, a manual error analysis of 
+fifty misclassified records and an ablation study. All analysis was performed by using committed 
+configuration files and each figure can be reproduced from the configuration files. 
+
+--- PAGE 9 ---
+9 
+4. Gap Identification 
+Review of twenty sources identified three gaps. 
+Gap 1: Demonstrated capability has not become open, evaluated systems. 
+Bolaños et al. (2024) surveyed twenty-one review tools against thirty-four features and 
+found only four open-licensed and none supporting citation snowballing. Assessment, they 
+conclude, is obstructed by "the absence of standard evaluation frameworks and established 
+benchmarks," compounded because commercial providers withhold evaluation data. A 
+researcher cannot determine the recall of the tool they rely on. 
+Gap 2: Cost and reproducibility are uncharacterised. 
+Hida et al. (2026) argue model selection should rest on operational criteria — cost, 
+transparency, reproducibility — rather than aggregate performance, then state no cost–benefit 
+analysis was performed in their own study. They also show decisions vary between identical runs 
+at temperature zero, with agreement between 0.55 and 1.00. 
+Gap 3: Identification of absent research is unaddressed. 
+None of the thirty-four features assessed by Bolaños et al. (2024) concerns gap 
+identification or future-work extraction. Hu and Wan (2015) and Zhang et al. (2023) show 
+authors’ statements about unresolved problems can be extracted and classified, Zhang et al. 
+reaching macro F1 of 90.73%, but this has never been connected to review tooling. Their 
+weakest category is problem, at F1 43.64% — the class corresponding to an unresolved gap. 
+
+--- PAGE 10 ---
+10 
+5. Problem Statement 
+The three gaps come together on one problem. The candidate sets are very large, and the 
+researchers have to sift through them manually in order to find the desired research.There is no 
+instrument that shows what a literature does not contain and very large candidate sets, which 
+have to be screened by the researchers manually. There are 169,288 papers in a public dataset 
+constructed from 26 real systematic reviews, and only 1.67% were kept in the final set, about 
+fifty-nine papers that were irrelevant. To identify something that is not studied is even more 
+difficult and more expensive, as it takes months to get it wrong on a question that has already 
+been answered. 
+While it seems like language models solve the first half, the results are contained within 
+published research, not something that a researcher can use and check. Tools such as Elicit and 
+Consensus are closed, so their accuracy is unknown. All are designed to discover papers which 
+are present; none indicate what is missing. 
+The problem is that screening decisions based on a language model can be neither 
+checked by the researcher relying on the model, nor can a literature be transformed into a 
+statement of what has not been studied. One research question below is addressed per each half. 
+
+--- PAGE 11 ---
+11 
+6. Research Questions 
+RQ1 (Primary) — Trustworthiness of AI-supported screening. 
+Can an LLM-supported literature review tool produce screening decisions that a 
+researcher can independently verify and rely on? 
+Trust is treated as four measurable properties rather than an attitude to be surveyed. 
+Whether the academic community accepts AI-assisted review is decided by institutions over 
+years; whether a system exhibits the properties justifying trust can be measured now. Table 3 
+gives each property, its instrument, and the mechanism enforcing it. 
+Table 3.Trust properties and enforcing mechanisms. 
+Property Meaning Instrument Enforcing mechanism 
+Verifiable The reasoning can be 
+checked, not just 
+accepted 
+Proportion of evidence spans 
+verified verbatim by substring 
+match 
+A response is rejected unless its 
+quote is found in the source, so 
+an unverifiable decision never 
+enters the result set 
+Accurate Reproduces the 
+judgements competent 
+reviewers made 
+Recall and chance-corrected 
+agreement against SYNERGY 
+The harness measures every 
+configuration before it is 
+adopted 
+Reproducible The same question gives 
+the same answer 
+Gwet AC2 across five repeated 
+runs and three prompt variants 
+Caching keyed on model, 
+prompt version and record; fixed 
+seeds 
+Overridable A human remains 
+accountable 
+Reviewer override rate The system proposes, the 
+reviewer disposes; overrides 
+kept as labelled data 
+ 
+RQ2 (Secondary) — Fast, accurate knowledge discovery. 
+How much reviewing effort, time and monetary cost does the system remove at a fixed 
+level of recall, and can it surface the research gaps authors state in their own papers? 
+The word accurate is deliberate: speed is meaningless where a missed paper costs far 
+more than a false positive, so every efficiency measure is reported at 95% recall. 
+
+--- PAGE 12 ---
+12 
+7. Project Objectives 
+Each objective states the research question it serves; one serving neither would not be 
+undertaken. Objectives are tiered against a capacity of roughly twelve hours per week across the 
+nine remaining weeks. Core objectives must be delivered for the evaluation to be complete; the 
+contingent one depends on an approval outside the author’s control; stretch objectives can be 
+dropped without invalidating any result. 
+Table 4.Objectives mapped to research questions. 
+# Objective Success condition Serves Tier 
+1 Ingestion and indexing over 
+OpenAlex, capturing year, venue, 
+publisher, topic, country, language 
+End-to-end retrieval over the 
+subset by week 8 
+RQ2 Core 
+2 Hybrid retrieval with cross-encoder 
+reranking 
+Beats a lexical baseline on at least 
+three reviews 
+RQ2 Core 
+3 LLM screening returning decision, 
+confidence and verbatim evidence 
+span 
+Verification enforced on every 
+response; rate reported 
+RQ1 Core 
+4 Validation workflow: reviewer 
+confirms, corrects or overrides each 
+decision 
+Agreement and override rate 
+reported 
+RQ1 Core 
+5 Evaluation harness computing recall, 
+TNR@95%, verification rate, cost, 
+agreement 
+A stored configuration reproduces 
+an identical metrics file 
+RQ1, RQ2 Core 
+6 Four baselines — random, BM25, 
+dense, ASReview — with ablation 
+and error analysis 
+Baselines reported with class 
+balance; fifty errors categorised 
+RQ2 Core 
+7 Reproducibility across five repeated 
+runs and three prompt variants 
+Run-to-run variance quantified, not 
+assumed zero 
+RQ1 Core 
+8 Descriptive statistics over topic, year, 
+publisher, country, language 
+Distributions reported, including 
+coverage bias 
+RQ2 Core 
+9 Gap discovery: extract, classify and 
+cluster stated limitations and future 
+work 
+Coverage matrix produced; 
+precision of thirty samples 
+recorded 
+RQ2 Core 
+10 Dashboard: screening, validation, 
+semantic map, gap heatmap, statistics 
+Five core panels operational on the 
+subset 
+RQ1, RQ2 Core 
+11 Usability evaluation with 5–8 
+postgraduate researchers using SUS 
+SUS and task data reported. 
+Fallback if approval is delayed: 
+structured walkthrough. 
+RQ2 Contingent 
+
+--- PAGE 13 ---
+13 
+8. Methodology 
+8.1 Research design 
+The project is undertaken using the Design Science Research, as the contribution is an 
+artefact, not a theory that is tested through observation, but against a set of criteria. The five 
+activities outlined below correspond directly to the project: problem identification (Section 2), 
+objectives (Section 7), design and development, demonstration on a benchmark corpus, and 
+evaluation (Section 10). It is better than an experimental design because artefact and evaluation 
+are interwoven and better than action research because there is no organisational intervention. 
+Progress is made over a week at a time, with weeks 1-6 finished. There are two 
+intentional sequencing decisions. In week 7 a thin end-to-end implementation is constructed, 
+without any optimisation done so far, and in week 8 an evaluation harness is added that yields a 
+reportable number, hence any optimisation in later weeks will yield a reportable number. Gap 
+discovery is a decision point not a deadline: If it does not satisfy the criteria in Section 10, the 
+remainder of the effort goes into prior-art retrieval which also addresses RQ2. 
+Table 5.Fifteen-week schedule. 
+Week Deliverable Exit test 
+1–6 Literature review, proposal, 
+architecture, scope lock 
+Complete 
+7–8 Walking skeleton, then the evaluation 
+harness and first two baselines 
+A stored configuration reproduces an identical metrics file 
+9–10 Retrieval and screening quality: 
+reranking, prompt variants, repeated 
+runs, model tiers 
+Every property in Table 3 has a number attached 
+11 Gap discovery; go / no-go checkpoint Thirty gap statements rated, precision recorded, decision 
+minuted 
+12–
+13 
+Dashboard panels; usability evaluation 
+and hardening 
+Someone other than the author completes a query unassisted 
+14–
+15 
+Final runs, analysis, report and 
+submission 
+Every figure traces to a run directory and commit hash 
+
+--- PAGE 14 ---
+14 
+8.2 Data collection and evaluation corpus 
+Bibliographic data is provided by the OpenAlex API, an open API that provides abstract, 
+citations, institutional metadata. The label sets are provided by the SYNERGY project, which 
+was published by the ASReview project: 206,928 records and 26 labelled reviews. 
+The full benchmark requires approximately twenty-five US dollars to screen and the 
+design requires about twenty passes. This is beyond budget and would require giving up the 
+repeated-run measurement RQ1 relies on. Evaluation thus takes the six-reviewed set in Table 6, 
+for which the inclusion rates vary between 0.8% and 21.9% (Khraisha et al. 2024 demonstrated 
+that accuracy rises with prevalence rates that span this range, but a larger corpus would not have 
+done so quite as much). 
+Table 6.Evaluation subset from SYNERGY. 
+SYNERGY review Domain Records Included Selected because 
+Radjenović_2013 Software engineering 5,935 48 (0.8%) Own discipline; lowest 
+prevalence 
+Smid_2020 Computer science 2,627 27 (1.0%) Own discipline 
+van_der_Waal_2022 Medicine 1,970 33 (1.7%) Matches benchmark-
+wide rate 
+Menon_2022 Medicine 975 74 (7.6%) Moderate prevalence 
+van_der_Valk_2021 Medicine, psychology 725 89 (12.3%) High prevalence 
+Nelson_2002 Medicine 366 80 (21.9%) Near balanced; where 
+published figures inflate 
+Total — 12,598 351 (2.8%) — 
+ 
+The corpus is specified as a limitation: findings describe six reviews and are not 
+generalised. Research questions are independent of usability data which is dependent on ethics 
+approval obtained in week 7. 
+ 
+ 
+
+--- PAGE 15 ---
+15 
+8.3 Tools and technologies 
+Table 7.Technology choices, justified. 
+Component Choice Why 
+Service layer FastAPI Keeps the interface a thin client over a documented 
+contract, so the harness calls the same services and the 
+demonstrated system cannot diverge from the measured one 
+Interface Streamlit A working dashboard in days not weeks; replaceable 
+without touching the services 
+Storage SQLite and FAISS No server process; the artefact is portable and reproducible 
+from one folder 
+Embeddings SPECTER2 Trained on citation-informed scientific documents, the 
+document type being ranked 
+Reranking MiniLM cross-encoder Runs locally on the available GPU; applied to the top 200 
+only 
+Screening Hosted LLM behind a 
+provider abstraction 
+Model tiers compared by configuration, which makes the 
+cost–accuracy trade-off measurable 
+Baseline ASReview, run as an 
+external tool 
+The reference implementation removes an implementation 
+risk and a claim to defend 
+ 
+8.4 Ethical and cultural considerations 
+Designing four considerations. Provenance: Since citations made can be verified as 
+legitimate, one study determined that 19.9% of generated citations were actually fabricated, and 
+every claim has a verbatim span that can be matched with the source. Indexing bias: OpenAlex 
+covers the geography of the research landscape but is not evenly distributed across languages and 
+regions. Recommendations (automated bias): All decisions are recommendations with evidence 
+(that is visible) and can be turned off. Responsible use: Data is used from public data sources 
+according to their terms, and ethical approval is secured before contacting the participants. 
+
+--- PAGE 16 ---
+16 
+9. Proposed Solution 
+The solution is a locally runnable dashboard, a layered modular monolith, that takes a 
+research question and inclusion criteria and returns a screened, evidenced and mapped body of 
+literature with candidate research gaps. 
+9.1 Services 
+There are 6 services in the background that are documented via an API (Figure 1). 
+Normalises OpenAlex records and ingests them. Document embeddings and a lexical index are 
+computed by indexing. Retrieval is the combination and reordering of rankings and reordering 
+using a cross-encoder. Screening uses a language model to apply the inclusion criteria and 
+returns a decision, the confidence score and the supporting sentence, while also caching all 
+responses and tracking the cost of each of these responses. Gap analysis generates statements of 
+what is missing or what needs to be done, categorizes them based on the categories listed by 
+Zhang et al. (2023), and visualizes a coverage matrix where the sparse cells represent possible 
+gaps. 
+
+--- PAGE 17 ---
+17 
+ 
+Figure 1.System architecture. 
+9.2 Process flow 
+Figure 2 traces one query from research question to validated results. The path is 
+deliberately not fully automatic: a decision is accepted only when its quote is found verbatim in 
+the source, and anything else routes to a human reviewer whose correction is stored as labelled 
+data. 
+
+
+--- PAGE 18 ---
+18 
+ 
+Figure 2.Process flow; red marks the human-in-the-loop path. 
+9.3 Dashboard views 
+Table 8.Dashboard views. 
+View Purpose Serves Tier 
+Screening queue Each record with relevance score, decision, and the 
+sentence the decision rests on 
+RQ1 Core 
+Validation AI decision beside the reviewer’s; records overrides and 
+reports agreement 
+RQ1 Core 
+Semantic map Papers in two dimensions, so the shape of a field is visible 
+at a glance 
+RQ2 Core 
+Gap heatmap Technique against domain; sparse cells are candidate 
+gaps, with source sentences on click 
+RQ2 Core 
+Statistics, PRISMA, 
+cost 
+Volume by year, topic and publisher; language and 
+country coverage; token cost 
+RQ2 Core 
+ 
+
+
+--- PAGE 19 ---
+19 
+9.4 Design decisions and scope 
+Only abstracts are used for screening, and removing the abstracts would cost 5.55 
+percentage points of accuracy, while removing the titles and keywords would have no effect. 
+Future-work statements are found in conclusions, hence the asymmetric depth: abstracts in the 
+full corpus, open access full text only in the subset. The evaluation harness uses services directly, 
+and does not go through the interface at all, thus each result is repeatable from a configuration 
+file. 
+The principle of scope is that a smaller system that is well evaluated is better than a larger 
+system that is not. So core scope is objectives 1-10, no model training or deployment 
+infrastructure. Graph views and non-English screening are stretch and droppable without causing 
+any loss of results. 
+
+--- PAGE 20 ---
+20 
+10. Evaluation Plan 
+The purpose is to have the criteria for success determined prior to implementation, and 
+the result cannot be compared to a target that would be set after results have been obtained. 
+These are the first four of the trust properties in Table 3. Evaluation is performed on the subset in 
+Table 6 which is compared to four baselines: random, BM25, dense embeddings without 
+reranking, and ASReview. 
+Table 9.Evaluation plan and success criteria. 
+Criterion Metric / method Success criterion 
+Accuracy (RQ1) Recall against human decisions 
+recorded in SYNERGY 
+≥ 95% recall, the threshold used 
+throughout this literature 
+Agreement and override 
+(RQ1) 
+Gwet AC2 and prevalence-adjusted 
+kappa; reviewer override rate 
+Substantial agreement with class balance 
+stated; override rate quantified 
+Verifiability (RQ1) Proportion of evidence spans verified 
+verbatim 
+≥ 99% of accepted decisions carry a 
+verifiable span 
+Reproducibility (RQ1) Inter-run agreement across five runs; 
+three prompt variants 
+Variance quantified rather than assumed 
+zero 
+Effort saved (RQ2) True negative rate at 95% recall, against 
+four baselines 
+Outperforms lexical and random; 
+compared against active learning 
+Time and cost (RQ2) Wall-clock time and token cost per 
+1,000 records 
+Characterised for two model tiers, giving 
+an accuracy–cost trade-off 
+Gap extraction (RQ2) Classification performance against 
+annotated future-work sentences 
+Comparable to published work; problem-
+class weakness reported 
+Gap validity (RQ2) Rating of thirty sampled gap statements 
+at the week 11 checkpoint 
+Precision recorded; researcher ratings if 
+approval permits 
+Components and failures Ablation disabling each stage in turn; 
+error analysis of fifty misclassified 
+records 
+Change attributed to each component; 
+typology of failure modes 
+Usability (contingent) Task completion and System Usability 
+Scale 
+SUS above 68, or a reported heuristic 
+evaluation 
+ 
+At submission each objective in Table 4 is reported met or not met against its success 
+condition, and each research question answered from the criteria above. A negative result 
+
+--- PAGE 21 ---
+21 
+remains a finding: if low-cost models cannot reach acceptable recall, that answers RQ1 as 
+legitimately as a positive result. 
+
+--- PAGE 22 ---
+22 
+11. References 
+ASReview LAB v2. (2025). ASReview LAB v.2: Open-source text screening with multiple 
+agents and a crowd of experts. Patterns. https://doi.org/10.1016/j.patter.2025.101370 
+Bolaños, F., Salatino, A., Osborne, F., & Motta, E. (2024). Artificial intelligence for literature 
+reviews: Opportunities and challenges. Artificial Intelligence Review, 57(10), Article 259. 
+https://doi.org/10.1007/s10462-024-10902-3 
+Citation Fabrication Study. (2025). Influence of topic familiarity and prompt specificity on 
+citation fabrication in mental health research using large language models: Experimental 
+study. JMIR. 
+Cohan, A., Feldman, S., Beltagy, I., Downey, D., & Weld, D. S. (2020). SPECTER: Document-
+level representation learning using citation-informed transformers. Proceedings of the 
+58th Annual Meeting of the Association for Computational Linguistics, 2270–2282. 
+Cohen, A. M., Hersh, W. R., Peterson, K., & Yen, P. Y. (2006). Reducing workload in 
+systematic review preparation using automated citation classification. Journal of the 
+American Medical Informatics Association, 13(2), 206–219. 
+https://doi.org/10.1197/jamia.M1929 
+Environmental Evidence. (2025). Testing the utility of GPT for title and abstract screening in 
+environmental systematic evidence synthesis. Environmental Evidence. 
+https://doi.org/10.1186/s13750-025-00360-x 
+FutureGen. (2025). FutureGen: An LLM-RAG approach to generate the future work of scientific 
+articles. arXiv preprint arXiv:2503.16561. 
+Hida, G. S., Ribeiro, D. M., & Yahata, E. (2026). Beyond accuracy: LLM variability in evidence 
+screening for software engineering SLRs. arXiv preprint arXiv:2604.27006. 
+
+--- PAGE 23 ---
+23 
+Hu, Y., & Wan, X. (2015). Mining and analyzing the future works in scientific articles. arXiv 
+preprint arXiv:1507.02140. 
+Khraisha, Q., Put, S., Kappenberg, J., Warraitch, A., & Hadfield, K. (2024). Can large language 
+models replace humans in systematic reviews? Evaluating GPT-4’s efficacy in screening 
+and extracting data from peer-reviewed and grey literature in multiple languages. 
+Research Synthesis Methods, 15(4), 616–626. https://doi.org/10.1002/jrsm.1715 
+Kim, et al. (2025). Evaluating large language models for title/abstract screening: A systematic 
+review and meta-analysis. Journal of Medical Artificial Intelligence. 
+Kitchenham, B., & Charters, S. (2007). Guidelines for performing systematic literature reviews 
+in software engineering (EBSE Technical Report EBSE-2007-01). Keele University and 
+Durham University. 
+Kusa, W., Lipani, A., Knoth, P., & Hanbury, A. (2023). An analysis of work saved over 
+sampling in the evaluation of automated citation screening in systematic literature 
+reviews. Intelligent Systems with Applications, 18, 200193. 
+https://doi.org/10.1016/j.iswa.2023.200193 
+Priem, J., Piwowar, H., & Orr, R. (2022). OpenAlex: A fully-open index of scholarly works, 
+authors, venues, institutions, and concepts. arXiv preprint arXiv:2205.01833. 
+Rubinstein, et al. (2025). Using GPT-4 for title and abstract screening in a literature review of 
+public policies: A feasibility study. Cochrane Evidence Synthesis and Methods. 
+https://doi.org/10.1002/cesm.70031 
+Scientometrics. (2025). Reference coverage analysis of OpenAlex compared to Web of Science 
+and Scopus. Scientometrics. https://doi.org/10.1007/s11192-025-05293-3 
+
+--- PAGE 24 ---
+24 
+Singh, A., D’Arcy, M., Cohan, A., Downey, D., & Feldman, S. (2023). SciRepEval: A multi-
+format benchmark for scientific document representations. Proceedings of the 2023 
+Conference on Empirical Methods in Natural Language Processing. 
+van de Schoot, R., de Bruin, J., Schram, R., et al. (2021). An open source machine learning 
+framework for efficient and transparent systematic reviews. Nature Machine Intelligence, 
+3, 125–133. https://doi.org/10.1038/s42256-020-00287-7 
+Zhang, C., Xiang, Y., Hao, W., Li, Z., Qian, Y., & Wang, Y. (2023). Automatic recognition and 
+classification of future work sentences from academic articles in a specific domain. 
+Journal of Informetrics, 17(1), 101373. https://doi.org/10.1016/j.joi.2022.101373 
+Zheng, et al. (2025). Understanding discrepancies in the coverage of OpenAlex: The case of 
+China. Journal of the Association for Information Science and Technology. 
+https://doi.org/10.1002/asi.70013 
+ 

@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from slr.adapters.llm import BudgetExceeded, CacheMismatch, Meter, build_provider
 from slr.api.deps import DB_PATH, EMBEDDINGS_DIR, PROMPTS_DIR, RUNS_DIR, get_conn
@@ -58,7 +59,12 @@ from slr.eval.metrics import load_labels
 from slr.services import criteria as criteria_service
 from slr.services import retrieve
 from slr.services.discover import run_discover
+from slr.services.fulltext_categories import enrich_fulltext, unavailable_categories
+from slr.adapters import fulltext_assets
 from slr.services.override import ModelDecision, model_decision, override_summary, record_override
+from slr.api.schemas import LiveReviewerAction, ProjectName
+from slr.services import live_review
+from slr.api.auth import router as auth_router, current_account, optional_account
 from slr.services.extract_fulltext import build_source as build_fulltext_source
 from slr.services.extract_fulltext import load_prompt_template as load_fulltext_prompt
 from slr.services.screen import load_prompt_template, persist as persist_screening, screen_record
@@ -79,6 +85,30 @@ app = FastAPI(title="Beyond Retrieval API")
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
 )
+
+
+app.include_router(auth_router)
+
+
+@app.get("/fulltext/assets/{pmcid}/{asset_id}")
+def fulltext_asset(pmcid: str, asset_id: str):
+    """Serve only a known cached file, never a caller-supplied URL or path."""
+    import re
+    if not fulltext_assets.valid_pmcid(pmcid) or not re.fullmatch(r"[0-9a-f]{64}", asset_id):
+        raise HTTPException(404, "Unknown asset")
+    directory = fulltext_assets.ASSETS_DIR / pmcid
+    try:
+        manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
+        asset = next(a for a in manifest["files"] if a.get("asset_id") == asset_id)
+    except (OSError, ValueError, KeyError, StopIteration):
+        raise HTTPException(404, "Unknown asset")
+    path = directory / asset_id
+    if not path.is_file():
+        raise HTTPException(404, "Asset no longer cached")
+    image = asset.get("media_type", "").startswith("image/")
+    return FileResponse(path, media_type=asset.get("media_type", "application/octet-stream"),
+                        filename=asset["name"], content_disposition_type="inline" if image else "attachment",
+                        headers={"X-Content-Type-Options": "nosniff"})
 
 
 @app.get("/health")
@@ -342,6 +372,92 @@ def create_override(req: OverrideRequest, conn: sqlite3.Connection = Depends(get
     )
 
 
+@app.post("/projects")
+def create_project(req: ProjectName, account=Depends(current_account)):
+    name = req.name.strip()
+    if not name:
+        raise HTTPException(400, "Enter a project name")
+    return live_review.create_session(dict(project_name=name, query="", papers=[], criteria=None), account["id"])
+
+
+@app.post("/projects/{session_id}/import")
+def import_project(session_id: str, payload: DiscoverSessionOut, account=Depends(current_account)):
+    try:
+        return live_review.save_search(session_id, account["id"], payload.model_dump())
+    except KeyError as exc:
+        raise HTTPException(404, "Project not found") from exc
+
+
+@app.patch("/projects/{session_id}")
+def rename_project(session_id: str, req: ProjectName, account=Depends(current_account)):
+    if not req.name.strip():
+        raise HTTPException(400, "Enter a project name")
+    try:
+        return live_review.update_project(session_id, account["id"], project_name=req.name.strip())
+    except KeyError as exc:
+        raise HTTPException(404, "Project not found") from exc
+
+
+@app.delete("/projects/{session_id}")
+def remove_project(session_id: str, account=Depends(current_account)):
+    try:
+        live_review.remove_project(session_id, account["id"])
+        return {"removed": True}
+    except KeyError as exc:
+        raise HTTPException(404, "Project not found") from exc
+
+
+@app.post("/discover/sessions")
+def register_live_session(req: DiscoverSessionOut, account=Depends(current_account)):
+    if len(req.papers) > 50:
+        raise HTTPException(400, "At most 50 papers per live session")
+    return live_review.create_session(req.model_dump(), account["id"])
+
+
+@app.get("/discover/sessions")
+def my_live_sessions(account=Depends(current_account)):
+    return live_review.list_sessions(account["id"])
+
+
+@app.get("/discover/sessions/{session_id}")
+def get_live_session(session_id: str, account=Depends(current_account)):
+    try:
+        live_review.require_owner(session_id, account["id"])
+        session = live_review.read_session(session_id)
+        session["coverage_matrix"] = live_review.coverage(session)
+        return session
+    except KeyError as exc:
+        raise HTTPException(404, str(exc)) from exc
+
+
+@app.post("/discover/sessions/{session_id}/review")
+def review_live_paper(session_id: str, req: LiveReviewerAction, account=Depends(current_account)):
+    action = req.model_dump()
+    work_id = action.pop("work_id")
+    for field in ("technique", "domain", "quote", "rationale"):
+        action[field] = action[field].strip()
+    try:
+        live_review.require_owner(session_id, account["id"])
+        return live_review.record_action(session_id, work_id, action)
+    except KeyError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+
+@app.post("/discover/sessions/{session_id}/semantic-map")
+def map_live_session(session_id: str, account=Depends(current_account)):
+    try:
+        live_review.require_owner(session_id, account["id"])
+        return live_review.semantic_map(session_id)
+    except KeyError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(503, "SPECTER2 unavailable. Check local model installation and server logs.") from exc
+
+
 @app.get("/reviews/{review}/overrides", response_model=OverrideSummaryOut)
 def get_override_summary(review: str, run_id: str, conn: sqlite3.Connection = Depends(get_conn)):
     s = override_summary(conn, run_id, review)
@@ -450,7 +566,18 @@ def _gap_value_from_extraction(g) -> GapValue:
 
 
 @app.post("/discover", response_model=DiscoverSessionOut)
-def discover(req: DiscoverRequest, conn: sqlite3.Connection = Depends(get_conn)):
+def discover(req: DiscoverRequest, conn: sqlite3.Connection = Depends(get_conn), account=Depends(optional_account)):
+    if req.fulltext and not account:
+        raise HTTPException(401, "Sign in to retrieve full text")
+    if req.fulltext and not req.project_id:
+        raise HTTPException(400, "Choose a named research project first")
+    if req.project_id:
+        if not account:
+            raise HTTPException(401, "Sign in to save research")
+        try:
+            live_review.require_owner(req.project_id, account["id"])
+        except KeyError as exc:
+            raise HTTPException(404, "Project not found") from exc
     """One ad-hoc review over live literature: search, screen, extract, gaps.
 
     This is the product path rather than the evaluation path, and the
@@ -511,6 +638,7 @@ def discover(req: DiscoverRequest, conn: sqlite3.Connection = Depends(get_conn))
             )
         entry = DiscoverPaperOut(
             work_id=paper.work_id,
+            abstract=paper.abstract,
             title=paper.title,
             year=paper.year,
             source_url=paper.source_url,
@@ -526,6 +654,10 @@ def discover(req: DiscoverRequest, conn: sqlite3.Connection = Depends(get_conn))
             entry.gap = _gap_value_from_extraction(paper.gap)
 
         entry.fulltext_note = paper.fulltext_note
+        if paper.fulltext_details:
+            for name, value in paper.fulltext_details.items():
+                if name != "source_url":
+                    setattr(entry, name, value)
         if paper.fulltext is not None:
             by_field = {f.field_name: f for f in paper.fulltext}
             for name in (
@@ -549,7 +681,7 @@ def discover(req: DiscoverRequest, conn: sqlite3.Connection = Depends(get_conn))
         out.append(entry)
 
     screened = [p for p in out if p.decision]
-    return DiscoverSessionOut(
+    session = DiscoverSessionOut(
         query=req.query,
         criteria=req.criteria,
         n_found=len(out),
@@ -568,6 +700,8 @@ def discover(req: DiscoverRequest, conn: sqlite3.Connection = Depends(get_conn))
         n_gaps=sum(1 for p in out if p.gap and p.gap.status == "gap_stated"),
         papers=out,
     )
+    from slr.services.live_review import create_session
+    return live_review.save_search(req.project_id, account["id"], session.model_dump()) if req.project_id else session.model_dump()
 
 
 # --------------------------------------------------------------------------
@@ -705,7 +839,7 @@ def charts_performance(
 
 
 @app.post("/discover/fulltext", response_model=FullTextSessionOut)
-def discover_fulltext(req: FullTextRequest, conn: sqlite3.Connection = Depends(get_conn)):
+def discover_fulltext(req: FullTextRequest, conn: sqlite3.Connection = Depends(get_conn), account=Depends(current_account)):
     """Stage two: read the full text of papers the reviewer chose.
 
     Screening on abstracts is stage one (`POST /discover`); this is what a
@@ -719,6 +853,12 @@ def discover_fulltext(req: FullTextRequest, conn: sqlite3.Connection = Depends(g
     never how often it was right -- the validation pages are where that
     question is answered.
     """
+    if not req.project_id:
+        raise HTTPException(400, "Create or choose a named research project first")
+    try:
+        live_review.require_owner(req.project_id, account["id"])
+    except KeyError as exc:
+        raise HTTPException(404, "Project not found") from exc
     from slr.adapters.fulltext import get_full_text
     from slr.services.discover import DISCOVER_REVIEW
     from slr.services.extract_fulltext import extract_fulltext_record
@@ -730,19 +870,23 @@ def discover_fulltext(req: FullTextRequest, conn: sqlite3.Connection = Depends(g
     out: list[FullTextPaperOut] = []
     for target in req.papers:
         entry = FullTextPaperOut(work_id=target.work_id, title=target.title)
+        entry.coverage = unavailable_categories("Full text has not been retrieved.")
         try:
             full_text, availability = get_full_text(doi=target.doi, title=target.title)
         except ValueError as exc:  # no doi and no title
             entry.note = str(exc)
+            entry.coverage = unavailable_categories(entry.note)
             out.append(entry)
             continue
         except httpx.HTTPError as exc:
             entry.note = f"Europe PMC request failed: {exc}"
+            entry.coverage = unavailable_categories(entry.note)
             out.append(entry)
             continue
 
         if full_text is None:
             entry.note = availability.reason or "no full text available"
+            entry.coverage = unavailable_categories(entry.note)
             out.append(entry)
             continue
 
@@ -750,6 +894,10 @@ def discover_fulltext(req: FullTextRequest, conn: sqlite3.Connection = Depends(g
         entry.tables = [TableOut(**t.as_dict()) for t in full_text.tables]
         entry.equations = list(full_text.equations)
         entry.figures = [FigureOut(**f.as_dict()) for f in full_text.figures]
+        enriched = enrich_fulltext(full_text, include_assets=req.include_assets)
+        entry.figures = [FigureOut(**f) for f in enriched.pop("figures")]
+        for name, value in enriched.items():
+            setattr(entry, name, value)
 
         try:
             rows = extract_fulltext_record(
@@ -810,8 +958,11 @@ def discover_fulltext(req: FullTextRequest, conn: sqlite3.Connection = Depends(g
                 )
         out.append(entry)
 
-    return FullTextSessionOut(
+    result = FullTextSessionOut(
         n_requested=len(req.papers),
         n_with_full_text=sum(1 for p in out if p.found),
         papers=out,
     )
+
+    live_review.save_fulltext(req.project_id, account["id"], result.model_dump())
+    return result

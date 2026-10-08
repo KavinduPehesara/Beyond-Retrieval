@@ -15,6 +15,30 @@ import streamlit as st
 API_URL = os.environ.get("SLR_API_URL", "http://127.0.0.1:8000")
 
 
+def save_live_session(session):
+    r = _client().post("/discover/sessions", json=session, headers=auth_headers())
+    r.raise_for_status()
+    return r.json()
+
+
+def read_live_session(session_id):
+    r = _client().get(f"/discover/sessions/{session_id}", headers=auth_headers())
+    r.raise_for_status()
+    return r.json()
+
+
+def review_live_paper(session_id, action):
+    r = _client().post(f"/discover/sessions/{session_id}/review", json=action, headers=auth_headers())
+    r.raise_for_status()
+    return r.json()
+
+
+def map_live_session(session_id):
+    r = _client().post(f"/discover/sessions/{session_id}/semantic-map", timeout=600, headers=auth_headers())
+    r.raise_for_status()
+    return r.json()
+
+
 @st.cache_resource
 def _client() -> httpx.Client:
     return httpx.Client(base_url=API_URL, timeout=120.0)
@@ -114,12 +138,15 @@ def discover(
     includes are extracted; omitted, nothing is screened.
     """
     payload: dict = {"query": query, "limit": limit}
+    if st.session_state.get("active_project"):
+        payload["project_id"] = st.session_state["active_project"]
     if criteria:
         payload["criteria"] = criteria
     if fulltext:
         payload["fulltext"] = True
     r = _client().post(
         "/discover",
+        headers=auth_headers(),
         json=payload,
         # Live OpenAlex search, then up to three model calls per result
         # (screen, extract, gap) on local hardware.
@@ -202,10 +229,22 @@ def discover_fulltext(papers: list[dict]) -> dict:
     """
     r = _client().post(
         "/discover/fulltext",
-        json={"papers": papers},
+        json={"papers": papers, "include_assets": True, "project_id": st.session_state.get("active_project")},
+        headers=auth_headers(),
         # A Europe PMC lookup, a document fetch and a long model call per
         # paper, on local inference.
         timeout=1800.0,
     )
     r.raise_for_status()
     return r.json()
+
+
+def auth_headers():
+    token = st.session_state.get("google_account", {}).get("token")
+    return {"Authorization": "Bearer " + token} if token else {}
+
+
+def account_request(method, path, **kwargs):
+    response = _client().request(method, path, headers=auth_headers(), **kwargs)
+    response.raise_for_status()
+    return response.json()

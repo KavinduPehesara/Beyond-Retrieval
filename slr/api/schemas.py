@@ -5,6 +5,7 @@ Field names match what the services already produce (``span_verified``,
 """
 
 from __future__ import annotations
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -126,6 +127,7 @@ class GapStatementOut(BaseModel):
 
 
 class DiscoverRequest(BaseModel):
+    project_id: str | None = Field(default=None, max_length=100)
     query: str = Field(min_length=1)
     limit: int = Field(default=5, ge=1, le=10)
     # Optional. Given, every result is screened against it and only verified
@@ -146,6 +148,8 @@ class FullTextRequest(BaseModel):
     """
 
     papers: list["FullTextTarget"] = Field(min_length=1, max_length=10)
+    include_assets: bool = False
+    project_id: str | None = Field(default=None, max_length=100)
 
 
 class FullTextTarget(BaseModel):
@@ -160,6 +164,8 @@ class TableOut(BaseModel):
     label: str | None = None
     caption: str | None = None
     rows: list[list[str]] = Field(default_factory=list)
+    footnotes: list[str] = Field(default_factory=list)
+    cell_spans: list[list[dict]] = Field(default_factory=list)
 
 
 class FigureOut(BaseModel):
@@ -176,6 +182,10 @@ class FigureOut(BaseModel):
     label: str | None = None
     caption: str | None = None
     mentions: list[str] = Field(default_factory=list)
+    asset_refs: list[str] = Field(default_factory=list)
+    kind: str = "figure"
+    images: list[dict] = Field(default_factory=list)
+    analysis_status: str = "needs_human_review"
 
 
 class ScreenDecisionOut(BaseModel):
@@ -196,6 +206,7 @@ class ScreenDecisionOut(BaseModel):
 
 class DiscoverPaperOut(BaseModel):
     work_id: str
+    abstract: str = ""
     title: str | None
     year: int | None
     source_url: str | None
@@ -226,6 +237,20 @@ class DiscoverPaperOut(BaseModel):
     # Why there is no full text, when there isn't. "paywalled" and "not
     # indexed" are facts about the paper, not failures.
     fulltext_note: str = ""
+    coverage: list[dict] = Field(default_factory=list)
+    evidence: dict[str, list[dict]] = Field(default_factory=dict)
+    supplements: list[dict] = Field(default_factory=list)
+    equation_details: list[dict] = Field(default_factory=list)
+    assets_note: str = ""
+
+
+class LiveReviewerAction(BaseModel):
+    work_id: str = Field(min_length=1, max_length=500)
+    decision: Literal["include", "exclude", "pending"]
+    rationale: str = Field(default="", max_length=4000)
+    technique: str = Field(default="", max_length=120)
+    domain: str = Field(default="", max_length=120)
+    quote: str = Field(default="", max_length=12000)
 
 
 class DiscoverSessionOut(BaseModel):
@@ -236,6 +261,7 @@ class DiscoverSessionOut(BaseModel):
     recall or accuracy here, only what was found and what verified.
     """
 
+    session_id: str | None = None
     query: str
     criteria: str | None
     n_found: int
@@ -265,9 +291,19 @@ class FullTextPaperOut(BaseModel):
     # not-indexed are facts about the paper, not failures of the system.
     note: str = ""
     found: bool = False
+    coverage: list[dict] = Field(default_factory=list)
+    evidence: dict[str, list[dict]] = Field(default_factory=dict)
+    supplements: list[dict] = Field(default_factory=list)
+    equation_details: list[dict] = Field(default_factory=list)
+    source_url: str | None = None
+    assets_note: str = ""
 
 
 class FullTextSessionOut(BaseModel):
     n_requested: int
     n_with_full_text: int
     papers: list[FullTextPaperOut]
+
+
+class ProjectName(BaseModel):
+    name: str = Field(min_length=1, max_length=120)

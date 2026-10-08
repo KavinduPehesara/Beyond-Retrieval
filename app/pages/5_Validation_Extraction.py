@@ -18,6 +18,8 @@ from api_client import (
 )
 
 st.set_page_config(page_title="Validation \u00b7 Extraction", page_icon="\U0001f4c4", layout="wide")
+from research_style import apply_research_style
+apply_research_style()
 st.title("Validation \u2014 extracted data")
 st.info(
     "**This is validation evidence, not the tool.** These six systematic reviews were completed "

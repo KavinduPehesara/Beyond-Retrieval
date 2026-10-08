@@ -298,6 +298,7 @@ def _patched(monkeypatch):
 
 def _run(path):
     at = AppTest.from_file(str(APP_DIR / path))
+    at.session_state["guest_access"] = True
     at.run()
     assert not at.exception, [str(e) for e in at.exception]
     return at
@@ -730,7 +731,13 @@ def _run_with_fulltext(monkeypatch, result=None):
     monkeypatch.setattr(
         api_client, "discover_fulltext", lambda papers: result or FULLTEXT_RESULT
     )
+    import account_view
+    monkeypatch.setattr(account_view, "render_account", lambda: None)
+    monkeypatch.setattr(account_view, "render_library", lambda: None)
+    monkeypatch.setattr(api_client, "read_live_session", lambda sid: {"fulltext": result or FULLTEXT_RESULT})
     at = AppTest.from_file(str(APP_DIR / "pages/1_Run_a_Review.py"))
+    at.session_state["google_account"] = {"name":"Test", "token":"test"}
+    at.session_state["active_project"] = "test-project"
     at.run()
     at.text_input[0].set_value("hormone therapy").run()
     at.text_area[0].set_value("Include randomised trials.").run()
@@ -806,6 +813,30 @@ def test_figures_say_the_image_was_not_read(monkeypatch):
     captions = " ".join(c.value for c in at.caption)
     assert "not fetched or interpreted" in captions
     assert "would need image analysis" in captions
+
+
+def test_eight_category_view_keeps_empty_categories_and_source_passages_visible():
+    from slr.adapters.fulltext import parse_jats
+    from slr.services.fulltext_categories import enrich_fulltext
+    paper = parse_jats('<article><body><sec><title>Methods</title><p>We recruited adults and used a regression model.</p></sec><sec><title>Limitations</title><p>We did not measure diet in the cohort.</p></sec></body></article>')
+    view = {"work_id": "eight-category-test", "tables": [], "equations": [], **enrich_fulltext(paper)}
+    at = AppTest.from_string("import streamlit as st\nfrom fulltext_view import render_categories\nrender_categories(st.session_state['paper'])")
+    at.session_state["paper"] = view
+    at.run()
+    assert not at.exception
+    assert len(at.subheader) == 8
+    assert not at.dataframe
+    assert len(at.get("popover")) == 1
+    source_text = " ".join(t.value for t in at.text)
+    assert "We did not measure diet in the cohort." in source_text
+    assert "We recruited adults and used a regression model." in source_text
+
+
+def test_table_grid_preserves_headers_merged_cell_positions_and_all_values():
+    from fulltext_view import _grid
+    table = {"rows": [["Treatment"], ["A", "4.5"], ["6.9"]],
+             "cell_spans": [[{"colspan": "2"}], [{"rowspan": "2"}, {}], [{}]]}
+    assert _grid(table) == [["Treatment", ""], ["A", "4.5"], ["", "6.9"]]
 
 
 def test_a_paper_with_no_full_text_says_why(monkeypatch):
