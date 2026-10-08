@@ -90,6 +90,8 @@ class Table:
     caption: str | None
     # Rows of cells, header row first when the XML marks one.
     rows: list[list[str]] = field(default_factory=list)
+    footnotes: list[str] = field(default_factory=list)
+    cell_spans: list[list[dict]] = field(default_factory=list)
 
     def as_text(self) -> str:
         """Flattened for a prompt or for span verification."""
@@ -123,6 +125,8 @@ class Figure:
     label: str | None
     caption: str | None
     mentions: list[str] = field(default_factory=list)
+    asset_refs: list[str] = field(default_factory=list)
+    kind: str = "figure"
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -162,6 +166,8 @@ class FullText:
     tables: list[Table] = field(default_factory=list)
     figures: list[Figure] = field(default_factory=list)
     equations: list[str] = field(default_factory=list)
+    equation_details: list[dict] = field(default_factory=list)
+    supplements: list[dict] = field(default_factory=list)
 
     @property
     def body(self) -> str:
@@ -212,6 +218,8 @@ class FullText:
             "tables": [t.as_dict() for t in self.tables],
             "figures": [f.as_dict() for f in self.figures],
             "equations": self.equations,
+            "equation_details": self.equation_details,
+            "supplements": self.supplements,
             "n_sections": len(self.sections),
             "n_tables": len(self.tables),
             "n_figures": len(self.figures),
@@ -240,14 +248,21 @@ def _text_of(element: ET.Element | None) -> str:
 
 def _parse_table(wrap: ET.Element) -> Table:
     rows: list[list[str]] = []
+    spans: list[list[dict]] = []
     for row in wrap.iter("tr"):
         cells = [_text_of(cell) for cell in row if cell.tag in ("td", "th")]
         if cells:
             rows.append(cells)
+            spans.append([
+                {"rowspan": cell.get("rowspan", "1"), "colspan": cell.get("colspan", "1")}
+                for cell in row if cell.tag in ("td", "th")
+            ])
     return Table(
         label=_text_of(wrap.find("label")) or None,
         caption=_text_of(wrap.find("caption")) or None,
         rows=rows,
+        footnotes=[_text_of(n) for n in wrap.findall("table-wrap-foot") if _text_of(n)],
+        cell_spans=spans,
     )
 
 
@@ -374,18 +389,39 @@ def parse_jats(xml: str) -> FullText:
     figures = []
     for element in root.iter("fig"):
         label = _text_of(element.find("label")) or None
+        caption = _text_of(element.find("caption")) or None
         figures.append(
             Figure(
                 label=label,
-                caption=_text_of(element.find("caption")) or None,
+                caption=caption,
                 mentions=find_figure_mentions(body_text, label),
+                asset_refs=[n.get("{http://www.w3.org/1999/xlink}href") or n.get("href")
+                            for n in element.iter("graphic")
+                            if n.get("{http://www.w3.org/1999/xlink}href") or n.get("href")],
+                kind="heat_map" if re.search(r"heat[ -]?map", caption or "", re.I) else "figure",
             )
         )
     equations = []
+    equation_details = []
     for formula in list(root.iter("disp-formula")) + list(root.iter("inline-formula")):
-        text = _text_of(formula)
+        # Prefer a single representation; alternatives often repeat the same formula.
+        latex = next((n.text for n in formula.iter() if n.tag.split("}")[-1] == "tex-math"), None)
+        mathml = next((n for n in formula.iter() if n.tag.split("}")[-1] == "math"), None)
+        text = latex or (_text_of(mathml) if mathml is not None else _text_of(formula))
         if text:
             equations.append(text)
+            equation_details.append({"label": _text_of(formula.find("label")), "text": text,
+                                     "latex": latex, "mathml": ET.tostring(mathml, encoding="unicode") if mathml is not None else None})
+
+    supplements = []
+    for node in root.iter():
+        if node.tag not in ("supplementary-material", "supplement", "media"):
+            continue
+        for linked in node.iter():
+            ref = linked.get("{http://www.w3.org/1999/xlink}href") or linked.get("href")
+            if ref and not any(s["asset_ref"] == ref for s in supplements):
+                supplements.append({"label": _text_of(node.find("label")) or ref,
+                                    "caption": _text_of(node.find("caption")), "asset_ref": ref})
 
     return FullText(
         pmcid=pmcid,
@@ -396,6 +432,8 @@ def parse_jats(xml: str) -> FullText:
         tables=tables,
         figures=figures,
         equations=equations,
+        equation_details=equation_details,
+        supplements=supplements,
     )
 
 
