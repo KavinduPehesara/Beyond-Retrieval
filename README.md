@@ -159,6 +159,60 @@ Each run writes `runs/<timestamp>-<config-hash>/`:
 
 ---
 
+## Live research workspace
+
+Live searches are saved separately in `data/live_reviews.sqlite3`, outside the
+benchmark corpus. Sign in, create a named project and use **My research projects**
+to reopen results. Each paper's **Researcher review** panel records an include,
+exclude or pending decision, a rationale, and optional technique/domain coding.
+Edits append to the audit trail; original model outputs remain unchanged.
+Researcher include/exclude decisions control the full-text selection list.
+Changing a decision does not automatically rerun abstract extraction.
+
+The optional **Semantic map** uses SPECTER2 proximity embeddings of titles and
+abstracts, normalized and projected with PCA. It requires at least three
+abstracts and a working local embedding model; the first build can be slow.
+Maps are cached per saved session. Distances are exploratory and do not measure
+relevance, quality or research absence.
+
+The **Gap coverage matrix** counts reviewer-coded technique/domain combinations.
+Both labels require a source quote matching the stored abstract. Select a cell
+to inspect its papers and verified author-stated gap quotes. Excluded papers
+are omitted; pending coded papers remain provisional. Categories are assigned
+by the reviewer, not automatically inferred. Empty cells only describe this
+small retrieved set and cannot establish that research is missing. Export the
+saved review, current decisions, matrix and append-only audit trail as JSON.
+
+## Full-text source coverage
+
+After **Read these in full**, each paper has eight source categories: data
+tables, heat maps, graphs/charts, statistical results, methods,
+equations/models, supplementary files, and limitations. Every category
+reports what was retrieved or why it is unavailable. Table CSV and source
+evidence JSON downloads retain provenance; footnotes and merged-cell
+positions are preserved. Equation LaTeX is rendered where supplied, with
+original MathML available to download.
+
+Additional methods, statistics, model and limitations passages are selected
+by headings/keywords from the complete retrieved prose, independently of
+the capped model prompt. They are exact source passages for human review,
+not a claim of complete semantic extraction. The five existing model fields
+still require a source-matching quote; their historical prompt and results
+are unchanged.
+
+Figure images and supplementary files come from Europe PMC's
+[public asset archive](https://europepmc.org/RestfulWebService).
+Images are displayed when available; heat-map classification uses captions.
+Pixel interpretation, chart digitization and OCR are not implemented.
+Supplement previews support text, CSV/TSV, XML/JSON, DOCX, XLSX and text-based
+PDF. Unsupported files remain downloadable. Source restrictions, empty
+files and missing assets are reported explicitly. Downloads and previews
+are bounded and cached under the gitignored `data/fulltext_assets/`.
+
+The HTTP API requests assets only with `include_assets: true` on
+`POST /discover/fulltext`; the dashboard enables this by default. No paid
+model or external vision service is used.
+
 ## Evaluation corpus
 
 Six reviews from the SYNERGY benchmark, chosen so inclusion rates span 0.8% to
@@ -236,3 +290,14 @@ Code in this repository is released under the MIT License. See `LICENSE`.
 - Khraisha, Q., et al. (2024). Can large language models replace humans in systematic reviews? *Research Synthesis Methods, 15*(4), 616–626.
 - Kusa, W., Lipani, A., Knoth, P., & Hanbury, A. (2023). An analysis of work saved over sampling in the evaluation of automated citation screening. *Intelligent Systems with Applications, 18*, 200193.
 - Zhang, C., et al. (2023). Automatic recognition and classification of future work sentences. *Journal of Informetrics, 17*(1), 101373.
+
+### Google accounts
+
+Saved live reviews now belong to the signed-in Google account. Review IDs are no longer shown in the page; reopen reviews from **My research projects**. Guest searches remain available without saving. Configure Google OAuth using [the setup guide](docs/google-sign-in.md).
+
+
+### Named research projects
+
+The home page starts with Google login or **Skip and continue to home**. Guests can search and screen abstracts. Sign in and create a named project before saving research or retrieving full text. The API enforces account ownership and the full-text login requirement.
+
+Create, open, rename and remove projects from **My research projects**. Search results, criteria, reviewer decisions, full-text results and coverage evidence are saved locally in the account-owned project. Additional full-text requests retain papers retrieved earlier. Re-running a search preserves the previous results and full text in downloadable search-history snapshots. Remove archives the project locally and hides it from the library; it does not permanently erase it. Only submitted searches and saved reviewer decisions are persisted, not unsubmitted form edits or unsaved paper selections.

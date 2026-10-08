@@ -71,6 +71,30 @@ def reconstruct_abstract(inverted_index: dict[str, list[int]] | None) -> str | N
     return " ".join(positions[i] for i in range(max(positions) + 1))
 
 
+def _duplicate_keys(work: dict) -> list[tuple]:
+    """The identities a record would collide on, if it is a duplicate.
+
+    OpenAlex indexes one article more than once: a preprint beside its
+    published version, or two records for the same paper. Observed live --
+    "Guidance to best tools and practices for systematic reviews" came back
+    four times in five results, and its two records even pointed at
+    different PMC ids, so the full-text stage read one paper twice and got
+    two different answers.
+
+    DOI is the strong key. Title alone is not: a correction notice carries
+    the title of the paper it corrects, and that is a different document, so
+    the title key includes the year to keep the two apart.
+    """
+    keys: list[tuple] = []
+    doi = (work.get("doi") or "").strip().casefold()
+    if doi:
+        keys.append(("doi", doi.removeprefix("https://doi.org/").removeprefix("doi:")))
+    title = " ".join((work.get("title") or "").split()).casefold()
+    if title:
+        keys.append(("title", title, work.get("publication_year")))
+    return keys
+
+
 def search_openalex(
     query: str,
     *,
@@ -112,10 +136,15 @@ def search_openalex(
             client.close()
 
     results: list[dict] = []
+    seen: set[tuple] = set()
     for w in payload.get("results", []):
         abstract = reconstruct_abstract(w.get("abstract_inverted_index"))
         if not abstract or len(abstract) < MIN_ABSTRACT_CHARS:
             continue
+        keys = _duplicate_keys(w)
+        if any(key in seen for key in keys):
+            continue
+        seen.update(keys)
         loc = w.get("primary_location") or {}
         results.append(
             {
@@ -152,6 +181,7 @@ class DiscoverPaper:
     fields: list[FieldExtraction] | None
     gap: GapExtraction | None
     decision: Decision | None = None
+    abstract: str = ""
 
     # Full text, when it was asked for and Europe PMC had it. ``fulltext``
     # is the five model-extracted fields, each with a verified quote;
@@ -164,6 +194,7 @@ class DiscoverPaper:
     equations: list[str] | None = None
     figures: list[dict] | None = None
     fulltext_note: str = ""
+    fulltext_details: dict | None = None
 
     @property
     def included(self) -> bool:
@@ -311,6 +342,9 @@ def run_discover(
             )
 
         results.append(paper)
+    abstracts = {row["work_id"]: row.get("abstract") or "" for row in rows}
+    for paper in results:
+        paper.abstract = abstracts.get(paper.work_id, "")
     return results
 
 
@@ -347,11 +381,16 @@ def _attach_full_text(
 
     if full_text is None:
         paper.fulltext_note = availability.reason or "no full text available"
+        from slr.services.fulltext_categories import unavailable_categories
+        paper.fulltext_details = {"coverage": unavailable_categories(paper.fulltext_note)}
         return
 
     paper.tables = [t.as_dict() for t in full_text.tables]
     paper.equations = list(full_text.equations)
     paper.figures = [f.as_dict() for f in full_text.figures]
+    from slr.services.fulltext_categories import enrich_fulltext
+    paper.fulltext_details = enrich_fulltext(full_text)
+    paper.figures = paper.fulltext_details.pop("figures")
 
     try:
         paper.fulltext = extract_fulltext_record(

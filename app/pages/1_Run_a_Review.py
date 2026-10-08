@@ -20,9 +20,15 @@ from __future__ import annotations
 
 import httpx
 import streamlit as st
-from api_client import discover, discover_fulltext, health
+from api_client import discover, discover_fulltext, health, read_live_session
+from fulltext_view import render_categories
+from live_workspace import render_workspace, render_reviewer, eligible_for_fulltext
 
 st.set_page_config(page_title="Run a Review", page_icon="\U0001f50d", layout="wide")
+from research_style import apply_research_style
+apply_research_style()
+from account_view import render_account, render_library
+render_account()
 
 st.title("Run a review")
 st.caption(
@@ -69,6 +75,12 @@ with st.form("review_form"):
 
 if submitted and not topic.strip():
     st.warning("Type a topic to search for.")
+    st.stop()
+
+render_library()
+
+if submitted and st.session_state.get("google_account") and not st.session_state.get("active_project"):
+    st.warning("Create or open a named research project above before starting your research.")
     st.stop()
 
 if submitted:
@@ -177,6 +189,22 @@ DECISION_BADGE = {
 }
 
 
+def _value_repeats_quote(value: str | None, quote: str | None) -> bool:
+    """True when the extracted value is just the quoted sentence again.
+
+    Asked for a sample size, the model sometimes answers with the whole
+    sentence it quoted rather than the number inside it. Nothing in that is
+    false, but printing the sentence as a value and again as its own
+    evidence claims a precision the answer does not have. Shown once, as a
+    quote, it says exactly as much and claims no more.
+    """
+
+    def flat(text: str | None) -> str:
+        return " ".join((text or "").split()).casefold().strip(" .“”\"'")
+
+    return bool(value) and flat(value) == flat(quote)
+
+
 FULLTEXT_FIELDS = [
     ("primary_outcome", "Main result"),
     ("effect_size", "Effect size"),
@@ -195,6 +223,9 @@ def _render_full_text(paper: dict) -> None:
     came out of the publisher's own file with no model involved, so they
     carry no verification badge -- there is nothing to verify.
     """
+    if paper.get("coverage"):
+        render_categories(paper)
+        return
     note = paper.get("fulltext_note") or ""
     has_fields = any(paper.get(name) for name, _ in FULLTEXT_FIELDS)
     tables = paper.get("tables") or []
@@ -215,7 +246,10 @@ def _render_full_text(paper: dict) -> None:
             if not value:
                 continue
             if value["status"] == "verified":
-                st.markdown(f"**{label}:** {value['value']}")
+                if _value_repeats_quote(value["value"], value["quote"]):
+                    st.markdown(f"**{label}:** stated only as a sentence, not as a value")
+                else:
+                    st.markdown(f"**{label}:** {value['value']}")
                 st.caption(f"“{value['quote']}”")
             elif value["status"] == "not_stated":
                 st.markdown(f"**{label}:** the paper doesn't state this")
@@ -264,8 +298,14 @@ def _render_full_text(paper: dict) -> None:
                 mentions = figure.get("mentions") or []
                 for mention in mentions:
                     st.caption(f"“{mention}”")
-                if not mentions:
-                    st.caption("The body text never refers to this figure.")
+                if not mentions and figure.get("label"):
+                    st.caption("No sentence in the body cites this figure by name.")
+                elif not mentions:
+                    st.caption(
+                        "This figure has no label in the publisher's file, so sentences citing "
+                        "it cannot be matched — a gap in the source, not evidence that the "
+                        "authors never mention it."
+                    )
 
 
 def _order(paper: dict) -> tuple:
@@ -318,6 +358,8 @@ if len(_kept_ids) > 1:
         "right."
     )
 
+_reviewer_latest = render_workspace(session)
+
 for paper in _ranked:
     decision = paper.get("decision")
     with st.container(border=True):
@@ -337,6 +379,11 @@ for paper in _ranked:
         if paper["source_url"]:
             bits.append(f"[view paper]({paper['source_url']})")
         st.caption(" · ".join(bits))
+        _human = _reviewer_latest.get(paper["work_id"], {})
+        if _human.get("decision") in ("include", "exclude"):
+            st.markdown(f"**Researcher decision: {_human['decision'].title()}**")
+            if _human.get("rationale"):
+                st.text(_human["rationale"])
 
         if decision:
             with st.expander("Why — and how to check it", expanded=bool(decision["span_verified"])):
@@ -369,8 +416,12 @@ for paper in _ranked:
                     "can still back the wrong call — which is why you, not the system, decide."
                 )
 
+        render_reviewer(paper, session, _reviewer_latest)
+
         if paper.get("study_design") is None:
-            if decision and not decision["span_verified"]:
+            if _human.get("decision") == "include":
+                st.caption("Included by the researcher. Abstract extraction was not run after the model's original decision; you can select this paper for full-text review below.")
+            elif decision and not decision["span_verified"]:
                 st.caption("Not extracted — the screening decision was referred to you first.")
             elif decision:
                 st.caption("Not extracted — this paper doesn't meet your criteria.")
@@ -382,7 +433,10 @@ for paper in _ranked:
             with col:
                 st.markdown(f"**{FIELD_LABEL[field]}**")
                 if f["status"] == "verified":
-                    st.write(f["value"])
+                    if _value_repeats_quote(f["value"], f["quote"]):
+                        st.caption("Stated only as a sentence, not as a value:")
+                    else:
+                        st.write(f["value"])
                     st.caption(f"“{f['quote']}”")
                 elif f["status"] == "not_stated":
                     st.caption("The abstract doesn't say")
@@ -415,8 +469,7 @@ st.subheader("Read the full paper")
 _candidates = [
     p
     for p in papers
-    if not p.get("decision")
-    or (p["decision"]["status"] == "include" and p["decision"]["span_verified"])
+    if eligible_for_fulltext(p, _reviewer_latest)
 ]
 
 if not _candidates:
@@ -446,7 +499,14 @@ else:
         max_selections=5,
         help="Each one is a lookup, a download and a model call, so start with two or three.",
     )
-    if st.button("Read these in full", disabled=not _picked, type="primary"):
+    if not st.session_state.get("google_account"):
+        st.info("Sign in with Google to retrieve full text, then create or open a named research project.")
+    elif not st.session_state.get("active_project"):
+        st.info("Give this research a project name above to save your full-text results.")
+    if st.button("Read these in full", disabled=not _picked or not st.session_state.get("google_account") or not st.session_state.get("active_project"), type="primary"):
+        if not st.session_state.get("google_account") or not st.session_state.get("active_project"):
+            st.warning("Sign in and choose a named project first.")
+            st.stop()
         _targets = [
             {
                 "work_id": _labels[label]["work_id"],
@@ -457,7 +517,8 @@ else:
         ]
         with st.spinner(f"Fetching and reading {len(_targets)} paper(s)..."):
             try:
-                st.session_state["fulltext"] = discover_fulltext(_targets)
+                discover_fulltext(_targets)
+                st.session_state["fulltext"] = read_live_session(st.session_state["active_project"]).get("fulltext")
             except httpx.HTTPStatusError as exc:
                 st.error(f"Request failed: {exc.response.text}")
             except httpx.HTTPError:
@@ -473,11 +534,13 @@ if _ft:
             f"None of the {_asked} selected papers had open-access full text in Europe PMC. "
             "That is a coverage limit, not a failure — each paper's reason is below."
         )
-    for _paper in _ft["papers"]:
+    for _paper_index, _paper in enumerate(_ft["papers"]):
         with st.container(border=True):
             st.markdown(f"#### {_paper['title'] or _paper['work_id']}")
             _render_full_text(
                 {
+                    **_paper,
+                    "fulltext_ui_key": f"stage2-{_paper_index}-{_paper['work_id']}",
                     **{name: _paper.get(name) for name, _ in FULLTEXT_FIELDS},
                     "tables": _paper.get("tables"),
                     "equations": _paper.get("equations"),

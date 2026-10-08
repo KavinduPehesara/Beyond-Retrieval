@@ -96,6 +96,70 @@ def test_search_openalex_rejects_an_empty_query():
         search_openalex("   ")
 
 
+# --------------------------------------------------------------------------
+# Duplicate records — observed live 7 October 2026
+# --------------------------------------------------------------------------
+
+
+def _record(work_id, title, *, doi=None, year=2023):
+    return {
+        "id": work_id,
+        "title": title,
+        "doi": doi,
+        "abstract_inverted_index": {f"word{i}": [i] for i in range(60)},
+        "publication_year": year,
+        "primary_location": None,
+    }
+
+
+def _client(results):
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"results": results})
+
+    return httpx.Client(transport=httpx.MockTransport(handler))
+
+
+def test_one_article_indexed_twice_is_returned_once():
+    """Live search returned the same paper four times in five results.
+
+    Both records carried the same DOI and pointed at different PMC ids, so
+    the paper was screened four times and read in full twice, with different
+    answers.
+    """
+    client = _client([
+        _record("https://openalex.org/W1", "Guidance to best tools", doi="https://doi.org/10.1/abc"),
+        _record("https://openalex.org/W2", "Guidance to best tools", doi="https://doi.org/10.1/ABC"),
+        _record("https://openalex.org/W3", "A different paper", doi="https://doi.org/10.1/xyz"),
+    ])
+    results = search_openalex("guidance", limit=5, client=client)
+
+    assert [r["work_id"] for r in results] == [
+        "https://openalex.org/W1",
+        "https://openalex.org/W3",
+    ]
+
+
+def test_records_without_a_doi_deduplicate_on_title_and_year():
+    client = _client([
+        _record("https://openalex.org/W1", "Same  Title"),
+        _record("https://openalex.org/W2", "same title"),
+    ])
+    assert len(search_openalex("anything", limit=5, client=client)) == 1
+
+
+def test_a_correction_notice_is_not_merged_with_the_paper_it_corrects():
+    """Corrections carry the title of the paper they correct, in a later year.
+
+    They are a different document — the live vitamin D search returned both,
+    and dropping one would hide a published correction from the reviewer.
+    """
+    client = _client([
+        _record("https://openalex.org/W1", "Vitamin D and mortality", doi="https://doi.org/10.1/a", year=2019),
+        _record("https://openalex.org/W2", "Vitamin D and mortality", doi="https://doi.org/10.1/b", year=2020),
+    ])
+    assert len(search_openalex("vitamin d", limit=5, client=client)) == 2
+
+
 class _FakeProvider:
     name = "fake"
     model = "fake-1"
