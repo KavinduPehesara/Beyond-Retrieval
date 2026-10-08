@@ -98,3 +98,11 @@ desktop.ini
 # ---------------------------------------------------------------
 .ipynb_checkpoints/
 notebooks/scratch/
+
+# ---------------------------------------------------------------
+# Tooling and interface config.
+# .streamlit/config.toml is theme only and IS committed; secrets.toml
+# is where Streamlit puts credentials and must never be.
+# ---------------------------------------------------------------
+.claude/
+.streamlit/secrets.toml
