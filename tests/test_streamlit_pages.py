@@ -291,7 +291,7 @@ def _patched(monkeypatch):
         "human_decision": decision, "changed": True,
     })
     monkeypatch.setattr(
-        api_client, "discover", lambda query, limit=5, criteria=None, fulltext=False: DISCOVER_SESSION
+        api_client, "discover", lambda query, limit=5, criteria=None, fulltext=False, expand=False: DISCOVER_SESSION
     )
     monkeypatch.setattr(api_client, "discover_fulltext", lambda papers: FULLTEXT_RESULT)
 
@@ -456,7 +456,7 @@ def test_run_a_review_without_criteria_does_not_invent_decisions(monkeypatch):
         {**DISCOVER_SESSION["papers"][0], "decision": None},
     ]
     monkeypatch.setattr(
-        api_client, "discover", lambda query, limit=5, criteria=None, fulltext=False: no_screening
+        api_client, "discover", lambda query, limit=5, criteria=None, fulltext=False, expand=False: no_screening
     )
     at = _run_a_review(criteria="")
     assert any("No criteria given" in i.value for i in at.info)
@@ -484,7 +484,7 @@ def test_run_a_review_points_at_the_validation_pages_for_accuracy():
 def test_run_a_review_surfaces_a_cache_mismatch_as_a_guard_not_a_crash(monkeypatch):
     import httpx
 
-    def boom(query, limit=5, criteria=None, fulltext=False):
+    def boom(query, limit=5, criteria=None, fulltext=False, **kwargs):
         request = httpx.Request("POST", "http://test/discover")
         response = httpx.Response(409, text="CacheMismatch", request=request)
         raise httpx.HTTPStatusError("conflict", request=request, response=response)
@@ -919,7 +919,7 @@ def _screen_ranked(monkeypatch):
     monkeypatch.setattr(
         api_client,
         "discover",
-        lambda query, limit=5, criteria=None, fulltext=False: RANKED_SESSION,
+        lambda query, limit=5, criteria=None, fulltext=False, expand=False: RANKED_SESSION,
     )
     at = AppTest.from_file(str(APP_DIR / "pages/1_Run_a_Review.py"))
     at.run()

@@ -66,6 +66,16 @@ with st.form("review_form"):
         ),
     )
     limit = st.slider("Papers to check", min_value=1, max_value=10, value=5)
+    expand_query = st.checkbox(
+        "Let the model add search terms",
+        value=False,
+        help=(
+            "Asks the model for synonyms and technical equivalents of your words, and "
+            "searches with those as well. Measured over the six test reviews it helped on "
+            "three and hurt on three, so it is off unless you ask for it. The terms it "
+            "added are always shown."
+        ),
+    )
     st.caption(
         "This first pass reads titles and abstracts only, which is how the first stage of "
         "a systematic review works. Once you've seen what came back, you pick the papers "
@@ -96,6 +106,7 @@ if submitted:
                 topic,
                 limit=limit,
                 criteria=criteria.strip() or None,
+                expand=expand_query,
             )
             # A new screening run invalidates any full text from the last one.
             st.session_state.pop("fulltext", None)
@@ -171,6 +182,18 @@ else:
         "No criteria given, so nothing was screened — every paper was extracted and gap-checked "
         "instead. Add criteria above to get keep/drop decisions."
     )
+
+# What the model added to the search, if it was asked. Shown rather than
+# applied quietly: these are the model's words, not the researcher's, and a
+# term that pulled the search into the wrong field should be visible.
+_expansion = session.get("expansion")
+if _expansion and _expansion.get("terms"):
+    st.caption(
+        "Searched with your words plus terms the model suggested: "
+        + ", ".join(f"*{term}*" for term in _expansion["terms"])
+    )
+elif _expansion:
+    st.caption("The model suggested no extra search terms, so your query was searched as typed.")
 
 st.divider()
 

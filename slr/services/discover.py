@@ -102,6 +102,8 @@ def search_openalex(
     fetch_multiplier: int = 4,
     timeout: float = 15.0,
     client: httpx.Client | None = None,
+    per_page: int | None = None,
+    pages: int = 1,
 ) -> list[dict]:
     """Search OpenAlex, return up to ``limit`` records that actually have an
     abstract available. Fetches more than requested since roughly half of
@@ -116,7 +118,7 @@ def search_openalex(
 
     params = {
         "search": query,
-        "per-page": min(limit * fetch_multiplier, 50),
+        "per-page": per_page or min(limit * fetch_multiplier, 50),
         # doi is requested so a caller can look the paper up in Europe PMC
         # for full text; without it only a fuzzy title match is possible.
         "select": "id,doi,title,abstract_inverted_index,publication_year,primary_location",
@@ -127,17 +129,28 @@ def search_openalex(
 
     owns_client = client is None
     client = client or httpx.Client()
+    records: list[dict] = []
     try:
-        resp = client.get(OPENALEX_WORKS_URL, params=params, timeout=timeout)
-        resp.raise_for_status()
-        payload = resp.json()
+        # One page by default, which is every interactive search. Deeper
+        # paging exists for the expansion experiment, where the question is
+        # whether a known-included paper appears anywhere in a large
+        # candidate set, not just in the first handful.
+        for page in range(1, max(1, pages) + 1):
+            resp = client.get(
+                OPENALEX_WORKS_URL, params={**params, "page": page}, timeout=timeout
+            )
+            resp.raise_for_status()
+            batch = resp.json().get("results", [])
+            records.extend(batch)
+            if len(batch) < params["per-page"]:
+                break
     finally:
         if owns_client:
             client.close()
 
     results: list[dict] = []
     seen: set[tuple] = set()
-    for w in payload.get("results", []):
+    for w in records:
         abstract = reconstruct_abstract(w.get("abstract_inverted_index"))
         if not abstract or len(abstract) < MIN_ABSTRACT_CHARS:
             continue

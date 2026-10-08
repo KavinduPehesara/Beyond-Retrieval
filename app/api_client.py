@@ -131,13 +131,14 @@ def discover(
     limit: int = 5,
     criteria: str | None = None,
     fulltext: bool = False,
+    expand: bool = False,
 ) -> dict:
     """One ad-hoc review session. Returns the session summary, not a bare list.
 
     ``criteria`` given, every result is screened against it and only verified
     includes are extracted; omitted, nothing is screened.
     """
-    payload: dict = {"query": query, "limit": limit}
+    payload: dict = {"query": query, "limit": limit, "expand": expand}
     if st.session_state.get("active_project"):
         payload["project_id"] = st.session_state["active_project"]
     if criteria:

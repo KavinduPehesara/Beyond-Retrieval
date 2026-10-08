@@ -284,6 +284,56 @@ def test_discover_rejects_a_limit_over_the_cap(client):
     assert resp.status_code == 422
 
 
+def _record_search_query(monkeypatch, seen: dict):
+    """Record the query the search actually received, and return nothing."""
+
+    def fake_run_discover(conn, query, **kwargs):
+        seen["query"] = query
+        return []
+
+    monkeypatch.setattr(app_module, "run_discover", fake_run_discover)
+
+
+def test_expansion_is_off_unless_asked_for(client, monkeypatch):
+    seen: dict = {}
+    _record_search_query(monkeypatch, seen)
+
+    def fail(*a, **kw):
+        raise AssertionError("the model must not be asked for terms unless expand is true")
+
+    monkeypatch.setattr(app_module, "expand_query", fail)
+
+    body = client.post("/discover", json={"query": "vitamin D and mortality"}).json()
+    assert seen["query"] == "vitamin D and mortality"
+    assert body["expansion"] is None
+
+
+def test_expanded_query_is_what_gets_searched_and_is_reported(client, monkeypatch):
+    from slr.services.expand import Expansion
+
+    seen: dict = {}
+    _record_search_query(monkeypatch, seen)
+    monkeypatch.setattr(
+        app_module,
+        "expand_query",
+        lambda question, **kw: Expansion(
+            question=question,
+            terms=["cholecalciferol"],
+            query=question + " cholecalciferol",
+            note="expanded",
+        ),
+    )
+
+    body = client.post(
+        "/discover", json={"query": "vitamin D and mortality", "expand": True}
+    ).json()
+    assert seen["query"] == "vitamin D and mortality cholecalciferol"
+    assert body["expansion"]["terms"] == ["cholecalciferol"]
+    assert body["expansion"]["note"] == "expanded"
+    # The session still reports what the researcher typed, not the rewrite.
+    assert body["query"] == "vitamin D and mortality"
+
+
 def test_discover_returns_papers_with_extraction_and_gap_results(client, monkeypatch):
     from slr.services.extract import FieldExtraction
     from slr.services.gap import GapExtraction

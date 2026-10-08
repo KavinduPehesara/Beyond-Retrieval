@@ -34,6 +34,7 @@ from slr.api.schemas import (
     DiscoverPaperOut,
     DiscoverRequest,
     DiscoverSessionOut,
+    ExpansionOut,
     FieldValue,
     FigureOut,
     FullTextPaperOut,
@@ -65,6 +66,7 @@ from slr.services.override import ModelDecision, model_decision, override_summar
 from slr.api.schemas import LiveReviewerAction, ProjectName
 from slr.services import live_review
 from slr.api.auth import router as auth_router, current_account, optional_account
+from slr.services.expand import expand_query
 from slr.services.extract_fulltext import build_source as build_fulltext_source
 from slr.services.extract_fulltext import load_prompt_template as load_fulltext_prompt
 from slr.services.screen import load_prompt_template, persist as persist_screening, screen_record
@@ -600,10 +602,21 @@ def discover(req: DiscoverRequest, conn: sqlite3.Connection = Depends(get_conn),
     )
     meter = Meter(ceiling_usd=0.0, usd_per_1m_input=0.0, usd_per_1m_output=0.0)
 
+    expansion = None
+    if req.expand:
+        expansion = expand_query(
+            req.query,
+            provider=provider,
+            template=load_prompt_template(PROMPTS_DIR / "expand_v1.txt"),
+            meter=meter,
+            conn=conn,
+            seed=42,
+        )
+
     try:
         results = run_discover(
             conn,
-            req.query,
+            expansion.query if expansion else req.query,
             provider=provider,
             extract_template=extract_template,
             gap_template=gap_template,
@@ -699,6 +712,11 @@ def discover(req: DiscoverRequest, conn: sqlite3.Connection = Depends(get_conn),
         n_verified_quotes=sum(1 for p in screened if p.decision.span_verified),
         n_gaps=sum(1 for p in out if p.gap and p.gap.status == "gap_stated"),
         papers=out,
+        expansion=(
+            ExpansionOut(terms=expansion.terms, query=expansion.query, note=expansion.note)
+            if expansion
+            else None
+        ),
     )
     from slr.services.live_review import create_session
     return live_review.save_search(req.project_id, account["id"], session.model_dump()) if req.project_id else session.model_dump()

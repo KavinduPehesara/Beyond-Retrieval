@@ -137,6 +137,23 @@ class DiscoverRequest(BaseModel):
     # Look each paper up in Europe PMC and read its body, not just the
     # abstract. Slower, and most papers won't have open-access full text.
     fulltext: bool = False
+    # Ask the model for extra search terms before searching. Off by default:
+    # measured over the six reviews it helps on three and hurts on three, so
+    # it is offered, not applied.
+    expand: bool = False
+
+
+class ExpansionOut(BaseModel):
+    """The search terms the model added, and what was actually searched.
+
+    Shown rather than applied silently: the terms are the model's claim
+    about vocabulary, and a reviewer who can see them can tell when one has
+    pulled the search into the wrong field.
+    """
+
+    terms: list[str]
+    query: str
+    note: str
 
 
 class FullTextRequest(BaseModel):
@@ -272,6 +289,8 @@ class DiscoverSessionOut(BaseModel):
     n_verified_quotes: int
     n_gaps: int
     papers: list[DiscoverPaperOut]
+    # None unless the caller asked for expansion.
+    expansion: ExpansionOut | None = None
 
 
 class FullTextPaperOut(BaseModel):
