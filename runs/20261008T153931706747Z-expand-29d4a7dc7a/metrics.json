@@ -1,0 +1,361 @@
+{
+  "results_schema": 2,
+  "config": {
+    "reviews": [
+      "Menon_2022",
+      "Nelson_2002",
+      "Radjenovic_2013",
+      "Smid_2020",
+      "van_der_Valk_2021",
+      "van_der_Waal_2022"
+    ],
+    "recall_target": 0.95,
+    "provider": "ollama",
+    "model": "qwen2.5:7b-instruct",
+    "seed": 42,
+    "prompt_version": "expand_v1"
+  },
+  "config_hash": "29d4a7dc7a",
+  "totals": {
+    "reviews_improved_from_criteria": 1,
+    "reviews_worsened_from_criteria": 5,
+    "reviews_improved_from_title": 4,
+    "reviews_worsened_from_title": 2,
+    "mean_delta_from_criteria": 0.0171,
+    "mean_delta_from_title": 0.0373
+  },
+  "per_review": [
+    {
+      "review": "Menon_2022",
+      "n_records": 975,
+      "n_included_truth": 74,
+      "criteria_status": "published",
+      "title": "The methodological rigour of systematic reviews in environmental health",
+      "criteria_terms": [
+        "environmental health outcomes",
+        "systematic evaluation",
+        "ecological risk factors",
+        "public health reviews"
+      ],
+      "title_terms": [
+        "meta-analysis",
+        "quality assessment",
+        "bias evaluation",
+        "randomized controlled trial",
+        "epidemiology",
+        "exposure assessment"
+      ],
+      "expansion_notes": {
+        "criteria": "expanded",
+        "title": "expanded"
+      },
+      "arms": {
+        "criteria": {
+          "query": "To be eligible for inclusion in the SR sample, documents had to fulfil the following criteria:\n\n1. identify explicitly as a “systematic review” in their title;\n2. assess the effect of a non-acute, non-communicable, environmental exposure on a health outcome;\n3. include studies in people or mammalian models;\n4. be available in HTML format;\n5. be published between 1 January 2019 and 30 June 2020.\n\nWe excluded umbrella reviews and review protocols, SRs of the wrong population (e.g. plants), and SRs of the following exposures: pathogens; poisons; smoking and tobacco related products, except for exposure to second-hand smoke (to prevent our sample being dominated by studies of direct tobacco exposure); social, psychological, or behavioural risk factors; housing conditions; SRs of exposure only (e.g. biomonitoring); and protocols for SRs. We did include diet and addiction as exposures, as these are considered by some researchers as being environmental exposures. SRs had to be available in HTML format to allow copy-pasting of manuscripts into a uniform format stripped of visual cues, and allow easy removal of identifying information, as per our blinding strategy.",
+          "n_terms": 180,
+          "cutoff": 812,
+          "tnr_at_recall": 0.17758046614872364,
+          "wss_at_recall": 0.11717948717948715
+        },
+        "criteria_expanded": {
+          "query": "To be eligible for inclusion in the SR sample, documents had to fulfil the following criteria:\n\n1. identify explicitly as a “systematic review” in their title;\n2. assess the effect of a non-acute, non-communicable, environmental exposure on a health outcome;\n3. include studies in people or mammalian models;\n4. be available in HTML format;\n5. be published between 1 January 2019 and 30 June 2020.\n\nWe excluded umbrella reviews and review protocols, SRs of the wrong population (e.g. plants), and SRs of the following exposures: pathogens; poisons; smoking and tobacco related products, except for exposure to second-hand smoke (to prevent our sample being dominated by studies of direct tobacco exposure); social, psychological, or behavioural risk factors; housing conditions; SRs of exposure only (e.g. biomonitoring); and protocols for SRs. We did include diet and addiction as exposures, as these are considered by some researchers as being environmental exposures. SRs had to be available in HTML format to allow copy-pasting of manuscripts into a uniform format stripped of visual cues, and allow easy removal of identifying information, as per our blinding strategy. environmental health outcomes systematic evaluation ecological risk factors public health reviews",
+          "n_terms": 191,
+          "cutoff": 834,
+          "tnr_at_recall": 0.15316315205327413,
+          "wss_at_recall": 0.09461538461538457
+        },
+        "title": {
+          "query": "The methodological rigour of systematic reviews in environmental health",
+          "n_terms": 9,
+          "cutoff": 872,
+          "tnr_at_recall": 0.11098779134295228,
+          "wss_at_recall": 0.05564102564102559
+        },
+        "title_expanded": {
+          "query": "The methodological rigour of systematic reviews in environmental health meta-analysis quality assessment bias evaluation randomized controlled trial epidemiology exposure assessment",
+          "n_terms": 20,
+          "cutoff": 770,
+          "tnr_at_recall": 0.2241953385127636,
+          "wss_at_recall": 0.16025641025641021
+        }
+      }
+    },
+    {
+      "review": "Nelson_2002",
+      "n_records": 366,
+      "n_included_truth": 80,
+      "criteria_status": "published",
+      "title": "Postmenopausal Hormone Replacement Therapy",
+      "criteria_terms": [
+        "meta-analysis criteria",
+        "HRT user comparison",
+        "population selection",
+        "clinical outcome studies",
+        "exclusion criteria development"
+      ],
+      "title_terms": [
+        "HRT",
+        "estrogen therapy",
+        "menopause treatment",
+        "postmenopausal women",
+        "endocrine therapy",
+        "reproductive health"
+      ],
+      "expansion_notes": {
+        "criteria": "expanded",
+        "title": "expanded"
+      },
+      "arms": {
+        "criteria": {
+          "query": "We used only published data in meta-analyses.\n\nInclusion and exclusion criteria were developed by the investigators for each topic. In general, studies were included if they contained a comparison group of HRT nonusers and reported data relating to HRT use and clinical outcomes of interest. Studies were excluded if the population was selected according to prior events or presence of conditions associated with higher risks for targeted outcomes.\n\nAll relevant English-language studies were identified",
+          "n_terms": 74,
+          "cutoff": 351,
+          "tnr_at_recall": 0.038461538461538464,
+          "wss_at_recall": -0.009016393442622998
+        },
+        "criteria_expanded": {
+          "query": "We used only published data in meta-analyses.\n\nInclusion and exclusion criteria were developed by the investigators for each topic. In general, studies were included if they contained a comparison group of HRT nonusers and reported data relating to HRT use and clinical outcomes of interest. Studies were excluded if the population was selected according to prior events or presence of conditions associated with higher risks for targeted outcomes.\n\nAll relevant English-language studies were identified meta-analysis criteria HRT user comparison population selection clinical outcome studies exclusion criteria development",
+          "n_terms": 87,
+          "cutoff": 352,
+          "tnr_at_recall": 0.03496503496503497,
+          "wss_at_recall": -0.011748633879781464
+        },
+        "title": {
+          "query": "Postmenopausal Hormone Replacement Therapy",
+          "n_terms": 4,
+          "cutoff": 282,
+          "tnr_at_recall": 0.27972027972027974,
+          "wss_at_recall": 0.17950819672131144
+        },
+        "title_expanded": {
+          "query": "Postmenopausal Hormone Replacement Therapy HRT estrogen therapy menopause treatment postmenopausal women endocrine therapy reproductive health",
+          "n_terms": 15,
+          "cutoff": 294,
+          "tnr_at_recall": 0.23776223776223776,
+          "wss_at_recall": 0.1467213114754098
+        }
+      }
+    },
+    {
+      "review": "Radjenovic_2013",
+      "n_records": 5935,
+      "n_included_truth": 48,
+      "criteria_status": "published",
+      "title": "Software fault prediction metrics: A systematic literature review",
+      "criteria_terms": [
+        "software defect prediction",
+        "metrics evaluation",
+        "predictive modeling techniques"
+      ],
+      "title_terms": [
+        "software defect prediction",
+        "metrics evaluation",
+        "systematic review methodology",
+        "fault detection indicators",
+        "code quality assessment"
+      ],
+      "expansion_notes": {
+        "criteria": "expanded",
+        "title": "expanded"
+      },
+      "arms": {
+        "criteria": {
+          "query": "The search was not limited by the year of publication. Journal papers and conference proceedings were included. The search was limited to English.\n\nDuring the systematic review, we included empirical studies validating and assessing software metrics in the area of software fault prediction. For the selection of primary studies, the following inclusion and exclusion criteria were used.\n\nInclusion criteria:\n• Empirical studies (academic and industry) using large and small scale data sets AND.\n• Studies comparing software metrics performance in the area of software fault prediction.\n\nExclusion criteria:\n- Studies without an empirical validation or including experimental results of software metrics in fault prediction OR.\n - Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.\n - Studies discussing modeling techniques (e.g. Naive Bayes, Random Forest) and not software metrics.\n - Studies discussing and comparing prediction techniques were excluded from the review, Studies proposing new software metrics and not empirically validating them were also excluded",
+          "n_terms": 160,
+          "cutoff": 3565,
+          "tnr_at_recall": 0.4022422286393749,
+          "wss_at_recall": 0.34932603201347934
+        },
+        "criteria_expanded": {
+          "query": "The search was not limited by the year of publication. Journal papers and conference proceedings were included. The search was limited to English.\n\nDuring the systematic review, we included empirical studies validating and assessing software metrics in the area of software fault prediction. For the selection of primary studies, the following inclusion and exclusion criteria were used.\n\nInclusion criteria:\n• Empirical studies (academic and industry) using large and small scale data sets AND.\n• Studies comparing software metrics performance in the area of software fault prediction.\n\nExclusion criteria:\n- Studies without an empirical validation or including experimental results of software metrics in fault prediction OR.\n - Studies discussing software metrics in a context other than software fault prediction (e.g. maintainability) OR.\n - Studies discussing modeling techniques (e.g. Naive Bayes, Random Forest) and not software metrics.\n - Studies discussing and comparing prediction techniques were excluded from the review, Studies proposing new software metrics and not empirically validating them were also excluded software defect prediction metrics evaluation predictive modeling techniques",
+          "n_terms": 168,
+          "cutoff": 2393,
+          "tnr_at_recall": 0.6013249532869034,
+          "wss_at_recall": 0.5467986520640269
+        },
+        "title": {
+          "query": "Software fault prediction metrics: A systematic literature review",
+          "n_terms": 8,
+          "cutoff": 2840,
+          "tnr_at_recall": 0.5253949379989808,
+          "wss_at_recall": 0.4714827295703453
+        },
+        "title_expanded": {
+          "query": "Software fault prediction metrics: A systematic literature review software defect prediction metrics evaluation systematic review methodology fault detection indicators code quality assessment",
+          "n_terms": 22,
+          "cutoff": 2126,
+          "tnr_at_recall": 0.6466791234924409,
+          "wss_at_recall": 0.5917860151642796
+        }
+      }
+    },
+    {
+      "review": "Smid_2020",
+      "n_records": 2627,
+      "n_included_truth": 27,
+      "criteria_status": "published",
+      "title": "Bayesian Versus Frequentist Estimation for Structural Equation Models in Small Sample Contexts: A Systematic Review",
+      "criteria_terms": [
+        "Bayesian vs frequentist",
+        "SEM small sample",
+        "structural equation modeling",
+        "latent variable models",
+        "Bayesian inference",
+        "frequentist inference"
+      ],
+      "title_terms": [
+        "Bayesian vs Frequentist",
+        "Small Sample Methods",
+        "Structural Equation Modeling Techniques",
+        "Bayesian Inference",
+        "Frequentist Inference",
+        "Bayesian vs Frequentist Comparison",
+        "Small Sample Performance"
+      ],
+      "expansion_notes": {
+        "criteria": "expanded",
+        "title": "expanded"
+      },
+      "arms": {
+        "criteria": {
+          "query": "We included papers in which a simulation study was used to investigate and compare the performance of Bayesian estimation to frequentist methods in structural equation models with a small sample size. We only included peer-reviewed papers in the field of social sciences. Non-English references were excluded, as well as books, book chapters, conference talks and software manuals. We used the following definitions of the inclusion criteria:\n\n- Simulation study. Multiple replicated datasets were analyzed, and results were summarized for all simulated data sets.\n- Bayesian estimation was compared to frequentist estimation methods. The performance of Bayesian and frequentist estimation was investigated for the exact same model, so that the results can be compared across the two estimation methods.\n- Structural equation models. Models of interest fall under the umbrella of structural equation models including mediation, CFA, latent growth, multilevel, and mixture models. Network analysis, machine learning,\nmeta-analysis and item response theory were excluded.\n- Small sample size. The original authors stated that at least one of the sample sizes in the simulation study represent a small sample size for their specific model. Small sample conditions must have been reported explicitly; aggregated results including small sample conditions were excluded.",
+          "n_terms": 198,
+          "cutoff": 1273,
+          "tnr_at_recall": 0.5203846153846153,
+          "wss_at_recall": 0.46541682527598016
+        },
+        "criteria_expanded": {
+          "query": "We included papers in which a simulation study was used to investigate and compare the performance of Bayesian estimation to frequentist methods in structural equation models with a small sample size. We only included peer-reviewed papers in the field of social sciences. Non-English references were excluded, as well as books, book chapters, conference talks and software manuals. We used the following definitions of the inclusion criteria:\n\n- Simulation study. Multiple replicated datasets were analyzed, and results were summarized for all simulated data sets.\n- Bayesian estimation was compared to frequentist estimation methods. The performance of Bayesian and frequentist estimation was investigated for the exact same model, so that the results can be compared across the two estimation methods.\n- Structural equation models. Models of interest fall under the umbrella of structural equation models including mediation, CFA, latent growth, multilevel, and mixture models. Network analysis, machine learning,\nmeta-analysis and item response theory were excluded.\n- Small sample size. The original authors stated that at least one of the sample sizes in the simulation study represent a small sample size for their specific model. Small sample conditions must have been reported explicitly; aggregated results including small sample conditions were excluded. Bayesian vs frequentist SEM small sample structural equation modeling latent variable models Bayesian inference frequentist inference",
+          "n_terms": 214,
+          "cutoff": 1369,
+          "tnr_at_recall": 0.48346153846153844,
+          "wss_at_recall": 0.42887323943661965
+        },
+        "title": {
+          "query": "Bayesian Versus Frequentist Estimation for Structural Equation Models in Small Sample Contexts: A Systematic Review",
+          "n_terms": 15,
+          "cutoff": 1414,
+          "tnr_at_recall": 0.46615384615384614,
+          "wss_at_recall": 0.41174343357441945
+        },
+        "title_expanded": {
+          "query": "Bayesian Versus Frequentist Estimation for Structural Equation Models in Small Sample Contexts: A Systematic Review Bayesian vs Frequentist Small Sample Methods Structural Equation Modeling Techniques Bayesian Inference Frequentist Inference Bayesian vs Frequentist Comparison Small Sample Performance",
+          "n_terms": 36,
+          "cutoff": 1407,
+          "tnr_at_recall": 0.46884615384615386,
+          "wss_at_recall": 0.4144080700418728
+        }
+      }
+    },
+    {
+      "review": "van_der_Valk_2021",
+      "n_records": 725,
+      "n_included_truth": 89,
+      "criteria_status": "published",
+      "title": "Cross‐sectional relation of long‐term glucocorticoids in hair with anthropometric measurements and their possible determinants: A systematic review and meta‐analysis",
+      "criteria_terms": [
+        "cross-sectional study",
+        "BMI measurement",
+        "hair analysis",
+        "simultaneous sampling",
+        "adolescent health"
+      ],
+      "title_terms": [
+        "corticosteroids hair",
+        "anthropometry determinants",
+        "longitudinal hair cortisol",
+        "meta-analysis biomarkers",
+        "stress hormones hair"
+      ],
+      "expansion_notes": {
+        "criteria": "expanded",
+        "title": "expanded"
+      },
+      "arms": {
+        "criteria": {
+          "query": "We included studies that reported cross-sectional associations between HairGC and measurements of obesity. We excluded case reports, animal studies, review articles, non-English or nonpeer reviewed studies, and studies in which hair sampling and weight measurements were not performed simultaneously (Figure 1). Pediatric studies that only included children younger than age 2 years were also excluded because BMI-based definitions of obesity are not available for this age group",
+          "n_terms": 67,
+          "cutoff": 690,
+          "tnr_at_recall": 0.04874213836477988,
+          "wss_at_recall": -0.0017241379310345278
+        },
+        "criteria_expanded": {
+          "query": "We included studies that reported cross-sectional associations between HairGC and measurements of obesity. We excluded case reports, animal studies, review articles, non-English or nonpeer reviewed studies, and studies in which hair sampling and weight measurements were not performed simultaneously (Figure 1). Pediatric studies that only included children younger than age 2 years were also excluded because BMI-based definitions of obesity are not available for this age group cross-sectional study BMI measurement hair analysis simultaneous sampling adolescent health",
+          "n_terms": 77,
+          "cutoff": 699,
+          "tnr_at_recall": 0.03459119496855346,
+          "wss_at_recall": -0.014137931034482805
+        },
+        "title": {
+          "query": "Cross‐sectional relation of long‐term glucocorticoids in hair with anthropometric measurements and their possible determinants: A systematic review and meta‐analysis",
+          "n_terms": 19,
+          "cutoff": 599,
+          "tnr_at_recall": 0.1918238993710692,
+          "wss_at_recall": 0.12379310344827582
+        },
+        "title_expanded": {
+          "query": "Cross‐sectional relation of long‐term glucocorticoids in hair with anthropometric measurements and their possible determinants: A systematic review and meta‐analysis corticosteroids hair anthropometry determinants longitudinal hair cortisol meta-analysis biomarkers stress hormones hair",
+          "n_terms": 31,
+          "cutoff": 645,
+          "tnr_at_recall": 0.11949685534591195,
+          "wss_at_recall": 0.06034482758620685
+        }
+      }
+    },
+    {
+      "review": "van_der_Waal_2022",
+      "n_records": 1970,
+      "n_included_truth": 33,
+      "criteria_status": "published",
+      "title": "A meta-analysis on the role older adults with cancer favour in treatment decision making",
+      "criteria_terms": [
+        "adult oncology",
+        "patient preference scales",
+        "healthcare systems comparison"
+      ],
+      "title_terms": [
+        "elderly cancer patients",
+        "senior treatment preferences",
+        "aging population",
+        "patient autonomy",
+        "decision-making capacity",
+        "quality of life",
+        "supportive care"
+      ],
+      "expansion_notes": {
+        "criteria": "expanded",
+        "title": "expanded"
+      },
+      "arms": {
+        "criteria": {
+          "query": "Language was limited to English and date range was set from January 2008 until June 2021.\n\nStudies included in this review were performed among adults (defined as eighteen years and older) with cancer treated in research centres that are part of a western healthcare system (including: European Union, United Kingdom, United States of America, Canada, Japan, Australia, and New Zealand). Japan was included, as previous studies have shown that the Japanese healthcare system is comparable to the western health care system [9,10]. We excluded conference abstracts, non-original research, studies on paediatric population (defined as younger than eighteen years old), as well as studies addressing specific ethnographic subgroups within western healthcare systems. For meta analysis purposes, studies were filtered on reporting data from the Control Preference Scale (CPS), which is a questionnaire to assess the patients’ preference for their role in treatment decision making (Table 1)",
+          "n_terms": 145,
+          "cutoff": 1588,
+          "tnr_at_recall": 0.19669592152813628,
+          "wss_at_recall": 0.14390862944162433
+        },
+        "criteria_expanded": {
+          "query": "Language was limited to English and date range was set from January 2008 until June 2021.\n\nStudies included in this review were performed among adults (defined as eighteen years and older) with cancer treated in research centres that are part of a western healthcare system (including: European Union, United Kingdom, United States of America, Canada, Japan, Australia, and New Zealand). Japan was included, as previous studies have shown that the Japanese healthcare system is comparable to the western health care system [9,10]. We excluded conference abstracts, non-original research, studies on paediatric population (defined as younger than eighteen years old), as well as studies addressing specific ethnographic subgroups within western healthcare systems. For meta analysis purposes, studies were filtered on reporting data from the Control Preference Scale (CPS), which is a questionnaire to assess the patients’ preference for their role in treatment decision making (Table 1) adult oncology patient preference scales healthcare systems comparison",
+          "n_terms": 153,
+          "cutoff": 1622,
+          "tnr_at_recall": 0.17914300464636035,
+          "wss_at_recall": 0.12664974619289335
+        },
+        "title": {
+          "query": "A meta-analysis on the role older adults with cancer favour in treatment decision making",
+          "n_terms": 14,
+          "cutoff": 1452,
+          "tnr_at_recall": 0.26690758905524004,
+          "wss_at_recall": 0.21294416243654818
+        },
+        "title_expanded": {
+          "query": "A meta-analysis on the role older adults with cancer favour in treatment decision making elderly cancer patients senior treatment preferences aging population patient autonomy decision-making capacity quality of life supportive care",
+          "n_terms": 31,
+          "cutoff": 1257,
+          "tnr_at_recall": 0.36757872999483737,
+          "wss_at_recall": 0.31192893401015226
+        }
+      }
+    }
+  ]
+}

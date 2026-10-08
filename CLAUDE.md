@@ -1423,6 +1423,60 @@ diagnosable: it prints body length, sections, tables, figures and the XML
 tags actually present, so a thin record, a parser bug and a genuinely
 table-free paper can be told apart instead of guessed at.
 
+**9 October 2026 — query expansion built and measured, and it is not a
+win.** The proposal's Figure 2 promised "LLM turns the question into search
+terms"; the artefact searched with whatever the user typed. `expand.py` now
+asks the model for synonyms and technical equivalents, filters out search
+syntax, phrases longer than six words, duplicates and anything the question
+already says, and appends what is left. A failure of any kind returns the
+question unchanged: expansion improves a search, it is never a precondition
+for one.
+
+**It is the one model stage with nothing to verify, and that is honest.**
+Everywhere else the model makes a claim about a source and the claim is
+withheld unless its quote is found there. Here it proposes words to search
+with — there is no source to check them against. The check is empirical
+instead: TNR@95 over each review's own corpus, with and without the terms.
+
+| Review | criteria | +terms | title | +terms |
+|---|---|---|---|---|
+| Menon_2022 | 0.178 | 0.153 | 0.111 | **0.224** |
+| Nelson_2002 | 0.038 | 0.035 | 0.280 | 0.238 |
+| Radjenovic_2013 | 0.402 | **0.601** | 0.525 | **0.647** |
+| Smid_2020 | 0.520 | 0.483 | 0.466 | 0.469 |
+| van_der_Valk_2021 | 0.049 | 0.035 | 0.192 | 0.119 |
+| van_der_Waal_2022 | 0.197 | 0.179 | 0.267 | **0.368** |
+
+From a short question it helps on three reviews and hurts on three (mean
++0.037); from the full criteria text it helps on one and hurts on four. The
+one large gain is Radjenovic_2013, the software-engineering review, where
+"software defect prediction" and "metrics evaluation" are the field's own
+words for what the criteria describe. On the medical reviews the terms
+broaden into neighbouring topics and cost more than they find. **So it ships
+off by default, as an offer with its terms shown** — n=6 makes this an
+observation, not a finding, and a feature that helps half the time must not
+be applied silently.
+
+**A second result, which matters more for the product.** The obvious
+experiment — search OpenAlex with and without the terms and count known
+includes retrieved — cannot be run at any budget here. Searching with each
+review's own title and taking the top 100 results with abstracts returned
+**0 of 80** known includes for Nelson_2002, **0 of 48** for
+Radjenovic_2013 and **1 of 27** for Smid_2020. Relevance ranking over 250
+million works does not reproduce a systematic review's candidate set. Run a
+Review is a screening demonstration over live literature, not a way to
+rebuild a systematic review's search, and week 15 should say so plainly.
+
+**A third, free observation.** The BM25 baseline queries with the full
+criteria text, and on four of six reviews the review's own *title* ranks
+better (Nelson_2002 0.038 -> 0.280, van_der_Valk_2021 0.049 -> 0.192). The
+lexical baseline the dense arms were compared against may be understated by
+its own query, which would narrow week 9's margins. Worth a sentence in
+limitations, and worth re-running baseline_bm25 with a short query before
+anyone cites those margins as a result.
+
+`runs/20261008T153931706747Z-expand-29d4a7dc7a`, 496 tests passing.
+
 ## Next: close out week 11, run the week 12 usability check, submit ethics
 
 Immediate: minute the week 11 go/no-go decision with the supervisor using

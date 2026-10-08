@@ -1,0 +1,144 @@
+{
+  "results_schema": 1,
+  "config": {
+    "reviews": [
+      "Menon_2022",
+      "Nelson_2002",
+      "Radjenovic_2013",
+      "Smid_2020",
+      "van_der_Valk_2021",
+      "van_der_Waal_2022"
+    ],
+    "limit": 100,
+    "per_page": 100,
+    "pages": 1,
+    "provider": "ollama",
+    "model": "qwen2.5:7b-instruct",
+    "seed": 42,
+    "prompt_version": "expand_v1"
+  },
+  "config_hash": "1b48b4b015",
+  "totals": {
+    "includes_found_baseline": 0,
+    "includes_found_expanded": 0,
+    "includes_gained": 0,
+    "includes_lost": 0
+  },
+  "per_review": [
+    {
+      "review": "Menon_2022",
+      "n_included_truth": 74,
+      "criteria_status": "published",
+      "terms": [
+        "environmental health outcomes",
+        "systematic evaluation",
+        "ecological risk factors",
+        "public health reviews"
+      ],
+      "expansion_note": "expanded",
+      "candidate_budget": 100,
+      "n_candidates_baseline": 0,
+      "n_candidates_expanded": 0,
+      "includes_found_baseline": 0,
+      "includes_found_expanded": 0,
+      "includes_gained": [],
+      "includes_lost": []
+    },
+    {
+      "review": "Nelson_2002",
+      "n_included_truth": 80,
+      "criteria_status": "published",
+      "terms": [
+        "meta-analysis criteria",
+        "hormone replacement therapy",
+        "population selection",
+        "published data sources"
+      ],
+      "expansion_note": "expanded",
+      "candidate_budget": 100,
+      "n_candidates_baseline": 0,
+      "n_candidates_expanded": 0,
+      "includes_found_baseline": 0,
+      "includes_found_expanded": 0,
+      "includes_gained": [],
+      "includes_lost": []
+    },
+    {
+      "review": "Radjenovic_2013",
+      "n_included_truth": 48,
+      "criteria_status": "published",
+      "terms": [
+        "software defect prediction",
+        "metrics evaluation",
+        "predictive modeling techniques"
+      ],
+      "expansion_note": "expanded",
+      "candidate_budget": 100,
+      "n_candidates_baseline": 11,
+      "n_candidates_expanded": 4,
+      "includes_found_baseline": 0,
+      "includes_found_expanded": 0,
+      "includes_gained": [],
+      "includes_lost": []
+    },
+    {
+      "review": "Smid_2020",
+      "n_included_truth": 27,
+      "criteria_status": "published",
+      "terms": [
+        "Bayesian vs frequentist",
+        "SEM small sample",
+        "structural equation modeling",
+        "latent variable models",
+        "Bayesian inference",
+        "frequentist inference"
+      ],
+      "expansion_note": "expanded",
+      "candidate_budget": 100,
+      "n_candidates_baseline": 0,
+      "n_candidates_expanded": 0,
+      "includes_found_baseline": 0,
+      "includes_found_expanded": 0,
+      "includes_gained": [],
+      "includes_lost": []
+    },
+    {
+      "review": "van_der_Valk_2021",
+      "n_included_truth": 89,
+      "criteria_status": "published",
+      "terms": [
+        "cross-sectional study",
+        "BMI measurement",
+        "hair analysis",
+        "simultaneous sampling",
+        "adolescent health"
+      ],
+      "expansion_note": "expanded",
+      "candidate_budget": 100,
+      "n_candidates_baseline": 1,
+      "n_candidates_expanded": 1,
+      "includes_found_baseline": 0,
+      "includes_found_expanded": 0,
+      "includes_gained": [],
+      "includes_lost": []
+    },
+    {
+      "review": "van_der_Waal_2022",
+      "n_included_truth": 33,
+      "criteria_status": "published",
+      "terms": [
+        "adult oncology",
+        "patient preference scales",
+        "healthcare systems comparison"
+      ],
+      "expansion_note": "expanded",
+      "candidate_budget": 100,
+      "n_candidates_baseline": 0,
+      "n_candidates_expanded": 0,
+      "includes_found_baseline": 0,
+      "includes_found_expanded": 0,
+      "includes_gained": [],
+      "includes_lost": []
+    }
+  ]
+}

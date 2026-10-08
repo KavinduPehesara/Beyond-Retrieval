@@ -1,0 +1,12 @@
+{
+  "run_id": "20261008T153931706747Z-expand-29d4a7dc7a",
+  "git_sha": "34175755cabc0de381b2415551ff6860218e71f1",
+  "git_dirty": true,
+  "started_at": "2026-10-08T15:39:31.706747+00:00",
+  "finished_at": "2026-10-08T15:39:50.922760+00:00",
+  "duration_s": 19.22,
+  "python": "3.13.5",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "calls": 12,
+  "cached_calls": 0
+}
