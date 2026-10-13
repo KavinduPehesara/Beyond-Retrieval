@@ -727,3 +727,54 @@ def _fulltext_project(client):
     ticket, binding = accounts.issue_ticket(dict(sub="fulltext-owner", email="ft@example.test", email_verified=True))
     client.headers["Authorization"] = "Bearer " + accounts.exchange_ticket(ticket, binding)["token"]
     return client.post("/projects", json={"name": "Full text research"}).json()["session_id"]
+
+
+# --------------------------------------------------------------------------
+# A retrieval strategy the install or the cache can't actually serve.
+# Found walking the dashboard through its own interface: a dense query over a
+# review with no cached vectors reached the page as a bare "500 Internal
+# Server Error". True, and useless -- the caller could say nothing about why.
+# --------------------------------------------------------------------------
+
+
+def test_reviews_report_whether_specter2_vectors_are_cached(client, monkeypatch, tmp_path):
+    """Three of the six reviews were never embedded -- week 9 only needed three
+    to clear its exit test. A caller has to be able to tell, or a dense query
+    silently turns into minutes of CPU inside one request."""
+    monkeypatch.setattr(app_module, "EMBEDDINGS_DIR", tmp_path)
+    assert client.get("/reviews").json()[0]["embeddings_cached"] is False
+
+    (tmp_path / "R1__specter2.npz").write_bytes(b"not really an npz, but it exists")
+    assert client.get("/reviews").json()[0]["embeddings_cached"] is True
+
+
+def test_query_names_the_missing_package_instead_of_returning_a_bare_500(client, monkeypatch):
+    """SPECTER2 needs `adapters`, dense search needs `faiss`. Both are install
+    states, not bugs. The response has to name the missing piece."""
+
+    def explode(*_args, **_kwargs):
+        raise ImportError("No module named 'adapters'", name="adapters")
+
+    monkeypatch.setattr(app_module.retrieve, "rank", explode)
+    response = client.post("/query", json={"review": "R1", "strategy": "dense", "top_n": 3})
+    assert response.status_code == 503
+    detail = response.json()["detail"]
+    assert "adapters" in detail
+    assert "bm25" in detail  # and says what does work
+
+
+def test_query_explains_any_other_ranking_failure(client, monkeypatch):
+    def explode(*_args, **_kwargs):
+        raise RuntimeError("CUDA out of memory")
+
+    monkeypatch.setattr(app_module.retrieve, "rank", explode)
+    response = client.post("/query", json={"review": "R1", "strategy": "rerank", "top_n": 3})
+    assert response.status_code == 503
+    detail = response.json()["detail"]
+    assert "RuntimeError" in detail and "CUDA out of memory" in detail
+
+
+def test_a_bad_strategy_name_is_still_a_400_not_a_503(client):
+    """The broad handler must not swallow the cheap validation that precedes it."""
+    response = client.post("/query", json={"review": "R1", "strategy": "nonsense", "top_n": 3})
+    assert response.status_code == 400

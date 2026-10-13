@@ -22,6 +22,10 @@ class ReviewSummary(BaseModel):
     screen_run: str | None
     extract_run: str | None
     gap_run: str | None
+    # Whether SPECTER2 vectors are already on disk for this review. False means a
+    # dense/hybrid/rerank query has to embed the whole review first -- minutes of
+    # CPU inside one request. The caller is told rather than left to wait and guess.
+    embeddings_cached: bool
 
 
 class PaperSummary(BaseModel):

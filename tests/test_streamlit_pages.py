@@ -27,11 +27,21 @@ REVIEWS = [
         "review": "Nelson_2002", "domain": "Medicine", "n_records": 366, "n_included": 80,
         "prevalence": 0.219, "criteria_status": "published",
         "screen_run": "run-screen-1", "extract_run": "run-extract-1", "gap_run": "run-gap-1",
+        "embeddings_cached": True,
     },
     {
         "review": "Smid_2020", "domain": "Computer science", "n_records": 2627, "n_included": 27,
         "prevalence": 0.010, "criteria_status": "published",
         "screen_run": None, "extract_run": None, "gap_run": None,
+        "embeddings_cached": True,
+    },
+    # Never embedded -- week 9 only needed three reviews to clear its exit test,
+    # so three of the six really are in this state.
+    {
+        "review": "Radjenovic_2013", "domain": "Software engineering", "n_records": 5935,
+        "n_included": 48, "prevalence": 0.008, "criteria_status": "published",
+        "screen_run": None, "extract_run": None, "gap_run": None,
+        "embeddings_cached": False,
     },
 ]
 
@@ -361,6 +371,50 @@ def test_search_and_screen_ranks_and_screens():
     screen.click().run()
     assert not at.exception
     assert any(s.value.lower() == "decisions" for s in at.subheader)
+
+
+def test_search_and_screen_warns_before_a_cold_embedding_run():
+    """A dense query over a review with no cached vectors embeds every record
+    first, on CPU, inside one request. The page has to say so before the click,
+    not leave the user watching a spinner."""
+    at = _run("pages/3_Validation_Screening.py")
+    at.selectbox[0].set_value("Radjenovic_2013")
+    at.selectbox[1].set_value("dense")
+    at.run()
+    warnings = [w.value for w in at.warning]
+    assert any("no cached SPECTER2 vectors" in w for w in warnings), warnings
+    assert any("5,935" in w for w in warnings), "the warning should say how big the job is"
+    assert any("bm25" in w for w in warnings), "the warning should name what does work"
+
+    # ...and stays quiet where the vectors are already on disk.
+    at.selectbox[0].set_value("Nelson_2002")
+    at.run()
+    assert not [w for w in at.warning if "no cached SPECTER2 vectors" in w.value]
+
+    # ...and for a strategy that needs no vectors at all.
+    at.selectbox[0].set_value("Radjenovic_2013")
+    at.selectbox[1].set_value("bm25")
+    at.run()
+    assert not [w for w in at.warning if "no cached SPECTER2 vectors" in w.value]
+
+
+def test_a_failed_rank_is_surfaced_not_raised_as_a_traceback(monkeypatch):
+    """Unwrapped, query_rank reached the page as a raw httpx traceback reading
+    only "500 Internal Server Error". Every other client call on every other
+    page is guarded; this one was not."""
+    import httpx
+
+    def explode(*_args, **_kwargs):
+        request = httpx.Request("POST", "http://testserver/query")
+        response = httpx.Response(503, json={"detail": "'dense' needs faiss, which isn't installed here."}, request=request)
+        raise httpx.HTTPStatusError("Server error '503'", request=request, response=response)
+
+    monkeypatch.setattr(api_client, "query_rank", explode)
+    at = _run("pages/3_Validation_Screening.py")
+    [b for b in at.button if b.label == "Rank"][0].click().run()
+    assert not at.exception, "the failure must not reach the page as a traceback"
+    errors = [e.value for e in at.error]
+    assert any("faiss" in e for e in errors), errors  # the API's own sentence, not the status line
 
 
 def test_results_and_override_shows_the_selected_record_and_can_submit():

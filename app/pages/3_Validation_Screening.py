@@ -6,6 +6,7 @@ a query unassisted" exit test runs on.
 
 from __future__ import annotations
 
+import httpx
 import plots
 import streamlit as st
 from api_client import (
@@ -37,6 +38,18 @@ if not health():
 reviews = list_reviews()
 review_names = [r["review"] for r in reviews]
 
+DENSE_FAMILY = ("dense", "hybrid", "rerank")  # the ones that need SPECTER2 vectors
+
+
+def _detail(exc: httpx.HTTPStatusError) -> str:
+    """The API's own explanation, not the status line. Every route raises
+    HTTPException with a sentence in ``detail``; showing the raw body instead
+    would bury it in JSON."""
+    try:
+        return exc.response.json().get("detail") or exc.response.text
+    except Exception:
+        return exc.response.text or str(exc)
+
 STRATEGY_HELP = {
     "bm25": "Lexical match against your query text. Fast, no model needed.",
     "dense": "SPECTER2 embedding similarity. Finds conceptual matches BM25 misses.",
@@ -52,6 +65,21 @@ with st.form("query_form"):
     with c2:
         strategy = st.selectbox("Strategy", list(STRATEGY_HELP), index=0)
     st.caption(STRATEGY_HELP[strategy])
+
+    # Week 9 only needed three reviews to clear its exit test, so not every review
+    # has SPECTER2 vectors on disk. Without them the first dense-family query
+    # embeds the whole review on CPU inside one request -- minutes on the larger
+    # ones. Say so before the click, not after the wait.
+    if strategy in DENSE_FAMILY:
+        _meta = next((r for r in reviews if r["review"] == review), {})
+        if not _meta.get("embeddings_cached", True):
+            st.warning(
+                f"**{review}** has no cached SPECTER2 vectors "
+                f"({_meta.get('n_records', '?'):,} records). The first "
+                f"`{strategy}` query embeds the whole review on CPU before it can "
+                "rank anything, which takes minutes and may time out. `bm25` "
+                "answers immediately and needs no model."
+            )
 
     default_query = ""
     if strategy != "random":
@@ -71,9 +99,20 @@ with st.form("query_form"):
 
 if ranked:
     with st.spinner(f"Ranking {review} by {strategy}..."):
-        st.session_state["ranked"] = query_rank(review, strategy, query_text or None, top_n)
-        st.session_state["ranked_review"] = review
-        st.session_state["screened"] = {}
+        # Guarded the same way the live-screen call below is. Unwrapped, a failing
+        # rank reached the page as a raw httpx traceback saying only "500
+        # Internal Server Error" -- true, and useless to a researcher.
+        try:
+            st.session_state["ranked"] = query_rank(review, strategy, query_text or None, top_n)
+            st.session_state["ranked_review"] = review
+            st.session_state["screened"] = {}
+        except httpx.HTTPStatusError as exc:
+            st.error(f"Ranking failed: {_detail(exc)}")
+        except httpx.HTTPError:
+            st.error(
+                f"The API didn't answer in time. A `{strategy}` query over a review "
+                "with no cached vectors has to embed every record first -- try `bm25`."
+            )
 
 results = st.session_state.get("ranked")
 if results and st.session_state.get("ranked_review") == review:

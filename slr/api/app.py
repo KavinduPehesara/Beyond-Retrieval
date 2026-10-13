@@ -123,6 +123,26 @@ def health():
 # --------------------------------------------------------------------------
 
 
+def embeddings_cached(review: str) -> bool:
+    """Are this review's SPECTER2 vectors already on disk?
+
+    A ``dense``/``hybrid``/``rerank`` query over a review with no cached vectors
+    embeds every record first, on CPU, inside the request that asked for it --
+    minutes for the larger reviews. Week 9 only needed three reviews to clear its
+    exit test, so three of the six have never been embedded. Reporting the state
+    lets a caller warn instead of appearing to hang, the same reason
+    ``FullText.is_fragment`` exists rather than letting a reader blame extraction.
+
+    Imported lazily and by name: ``dense_retrieve`` pulls in faiss, and a missing
+    faiss must not take down a route that only needs a filename.
+    """
+    try:
+        from slr.services.dense_retrieve import embedding_cache_path
+    except Exception:  # pragma: no cover - faiss absent
+        return (EMBEDDINGS_DIR / f"{review}__specter2.npz").exists()
+    return embedding_cache_path(review, EMBEDDINGS_DIR).exists()
+
+
 @app.get("/reviews", response_model=list[ReviewSummary])
 def list_reviews(conn: sqlite3.Connection = Depends(get_conn)):
     reviews = [r["review"] for r in conn.execute("SELECT DISTINCT review FROM work ORDER BY review")]
@@ -143,6 +163,7 @@ def list_reviews(conn: sqlite3.Connection = Depends(get_conn)):
                 screen_run=latest_screen_run(RUNS_DIR, review),
                 extract_run=latest_extract_run(RUNS_DIR, review),
                 gap_run=latest_gap_run(RUNS_DIR, review),
+                embeddings_cached=embeddings_cached(review),
             )
         )
     return out
@@ -488,6 +509,20 @@ def query(req: QueryRequest, conn: sqlite3.Connection = Depends(get_conn)):
         rows = retrieve.rank(conn, req.strategy, req.review, seed=42, query=query_text, limit=req.top_n)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
+    except ImportError as exc:
+        # SPECTER2 needs `adapters`, dense search needs `faiss`. Both are real
+        # install states, not bugs -- name the missing piece rather than
+        # returning a bare 500 the caller can say nothing useful about.
+        raise HTTPException(
+            503,
+            f"{req.strategy!r} needs a package that isn't installed here ({exc.name}). "
+            "Install the pinned requirements, or use 'bm25' or 'random', which need neither.",
+        ) from exc
+    except Exception as exc:  # noqa: BLE001 - the message is the point
+        raise HTTPException(
+            503,
+            f"{req.strategy!r} ranking of {req.review!r} failed: {type(exc).__name__}: {exc}",
+        ) from exc
     return [RankedPaper(rank=i + 1, work_id=r["work_id"], title=r["title"], year=r["year"]) for i, r in enumerate(rows)]
 
 
