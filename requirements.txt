@@ -22,6 +22,13 @@ pandas==2.2.3
 numpy==2.5.3
 
 # --- LLM provider ---
+# WARNING (18 Oct 2026): this version is YANKED from PyPI -- "Pillow
+# vulnerability issues CVE-2026-54058 etc". Every 0.x below 0.7.0 is gone from
+# the index; latest is 2.31.0. Deliberately NOT bumped here: the API surface
+# changed across two major versions and the Gemini path is verified working at
+# this pin, which is not something to break in the final week on an untested
+# upgrade. See the 18 October note in CLAUDE.md. A fresh clone installs this
+# with a yank warning.
 google-genai==0.3.0
 
 # --- retrieval (week 9; installed now so the environment is pinned once) ---

@@ -85,7 +85,7 @@ class ScreeningConfig(BaseModel):
             "ranking metrics over the full review."
         ),
     )
-    provider: Literal["gemini", "mock", "ollama"] = "mock"
+    provider: Literal["gemini", "mock", "ollama", "openai"] = "mock"
     # gemini-2.0-flash was shut down on 1 June 2026. 2.5 Flash-Lite is the
     # cheapest model still served; check the deprecations page before a run.
     model: str = "gemini-2.5-flash-lite"
@@ -185,7 +185,7 @@ class ExtractConfig(BaseModel):
         ..., description="Screening run to read verified-include decisions from."
     )
     review: str = Field(..., description="SYNERGY review name, e.g. 'Nelson_2002'.")
-    provider: Literal["gemini", "mock", "ollama"] = "mock"
+    provider: Literal["gemini", "mock", "ollama", "openai"] = "mock"
     model: str = "mock-1"
     prompt_version: str = "extract_v1"
     temperature: float = 0.0

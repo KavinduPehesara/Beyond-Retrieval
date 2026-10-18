@@ -345,6 +345,134 @@ class OllamaProvider:
         )
 
 
+class OpenAIProvider:
+    """OpenAI, in strict structured-output mode.
+
+    The third provider, added in week 14 because the supervisor asked that gap
+    discovery be cross-checked by a second AI. Two models from one family share
+    a training lineage and correlate in their errors, so agreement between them
+    would read higher than independence warrants; a different vendor is the
+    stronger second rater, and the point of the exercise is the agreement
+    figure.
+
+    Structured output via ``response_format: json_schema`` with
+    ``strict: true`` — the API refuses to emit anything off-schema, the same
+    guarantee Gemini's ``response_schema`` and Ollama's ``format`` give. Parse
+    failures therefore stay comparable across all three providers instead of
+    being confounded by one having weaker JSON discipline.
+
+    Two things this does NOT do, both deliberate:
+
+    * It does not reach for a reasoning model. Reasoning tokens are billed as
+      output and are invisible in the response, so a run's cost could be a
+      multiple of its estimate with nothing in the artefact explaining why.
+      ``reasoning_effort`` is sent as "minimal" when the model accepts it.
+    * It does not retry a refusal. A refusal is a real answer about the input,
+      not a transport failure, and burning three attempts on one would spend
+      money to arrive at the same place.
+    """
+
+    name = "openai"
+
+    RESPONSE_SCHEMA = GeminiProvider.RESPONSE_SCHEMA
+
+    def __init__(
+        self,
+        model: str,
+        api_key: str | None = None,
+        max_retries: int = 3,
+        base_url: str = "https://api.openai.com/v1",
+    ) -> None:
+        self.model = model
+        self.max_retries = max_retries
+        key = api_key or os.getenv("OPENAI_API_KEY")
+        if not key:
+            raise ProviderError(
+                "OPENAI_API_KEY is not set. Copy .env.example to .env and add "
+                "your key from https://platform.openai.com/api-keys — note that "
+                "OpenAI has no free tier, so the account needs a prepaid "
+                "balance. Or set provider: mock in the config to run without one."
+            )
+        try:
+            import httpx
+        except ImportError as exc:  # pragma: no cover
+            raise ProviderError(
+                "httpx is not installed. pip install -r requirements.txt"
+            ) from exc
+        self._client = httpx.Client(
+            base_url=base_url,
+            timeout=120.0,
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        )
+
+    @staticmethod
+    def _strict(schema: dict) -> dict:
+        """OpenAI's strict mode requires every property to be listed in
+        ``required`` and ``additionalProperties`` to be false. The project's
+        schemas already require every field, so this only adds what the API
+        insists on seeing rather than changing what is asked for."""
+        out = dict(schema)
+        out["additionalProperties"] = False
+        if "properties" in out:
+            out["required"] = list(out["properties"])
+        return out
+
+    def complete(
+        self,
+        prompt: str,
+        *,
+        temperature: float = 0.0,
+        max_tokens: int = 512,
+        seed: int | None = None,
+        response_schema: dict | None = None,
+    ) -> Completion:
+        schema = self._strict(response_schema or self.RESPONSE_SCHEMA)
+        payload: dict = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": temperature,
+            "max_completion_tokens": max_tokens,
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {"name": "slr_response", "strict": True, "schema": schema},
+            },
+        }
+        if seed is not None:
+            # Best effort on the provider's side, not a guarantee — which is
+            # why run-to-run agreement is measured rather than assumed.
+            payload["seed"] = seed
+
+        @retry(
+            stop=stop_after_attempt(self.max_retries),
+            wait=wait_exponential(multiplier=1, min=2, max=20),
+            retry=retry_if_exception_type(Exception),
+            reraise=True,
+        )
+        def _call():
+            response = self._client.post("/chat/completions", json=payload)
+            response.raise_for_status()
+            return response.json()
+
+        started = time.perf_counter()
+        try:
+            data = _call()
+        except Exception as exc:
+            raise ProviderError(f"OpenAI call failed after retries: {exc}") from exc
+        latency_ms = int((time.perf_counter() - started) * 1000)
+
+        choice = (data.get("choices") or [{}])[0]
+        message = choice.get("message") or {}
+        if message.get("refusal"):
+            raise ProviderError(f"OpenAI refused the request: {message['refusal'][:200]}")
+        usage = data.get("usage") or {}
+        return Completion(
+            text=message.get("content") or "",
+            tokens_in=usage.get("prompt_tokens", 0) or 0,
+            tokens_out=usage.get("completion_tokens", 0) or 0,
+            latency_ms=latency_ms,
+        )
+
+
 # --------------------------------------------------------------------------
 # Caching and budget wrapper
 # --------------------------------------------------------------------------
@@ -446,4 +574,8 @@ def build_provider(provider: str, model: str, api_key: str | None = None, max_re
         return GeminiProvider(model=model, api_key=api_key, max_retries=max_retries)
     if provider == "ollama":
         return OllamaProvider(model=model, max_retries=max_retries)
-    raise ValueError(f"Unknown provider: {provider!r}. Use 'mock', 'gemini' or 'ollama'.")
+    if provider == "openai":
+        return OpenAIProvider(model=model, api_key=api_key, max_retries=max_retries)
+    raise ValueError(
+        f"Unknown provider: {provider!r}. Use 'mock', 'gemini', 'ollama' or 'openai'."
+    )

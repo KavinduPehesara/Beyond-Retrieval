@@ -1,0 +1,29 @@
+# Week 14 -- the 5-record first pass. Run this BEFORE any full arm.
+#
+# The project's budget rules say max_records while debugging; 5 is enough to
+# prove the key works, the schema holds and the price is what was assumed,
+# for about $0.001. If the real token counts differ from the estimate, this
+# is where that is discovered -- not 428 records in.
+
+name: gap_gemini_smoke
+
+source_run_id: 20260918T060412811907Z-2556bbe54c
+review: Nelson_2002
+max_records: 5
+
+provider: gemini
+model: gemini-3.5-flash-lite
+prompt_version: gap_v1
+temperature: 0.0
+max_output_tokens: 512
+max_retries: 3
+seed: 42
+
+ceiling_usd: 0.10
+usd_per_1m_input: 0.3
+usd_per_1m_output: 2.5
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts
+cache_enabled: true

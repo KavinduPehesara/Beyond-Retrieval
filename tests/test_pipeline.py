@@ -18,6 +18,8 @@ from slr.adapters.llm import (
     Meter,
     MockProvider,
     OllamaProvider,
+    OpenAIProvider,
+    ProviderError,
     build_provider,
     cache_key,
 )
@@ -267,6 +269,85 @@ def test_build_provider_dispatches_ollama():
     assert provider.model == "qwen2.5:7b-instruct"
 
 
+def test_build_provider_dispatches_openai(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-not-a-real-key")
+    provider = build_provider("openai", "gpt-5-nano")
+    assert isinstance(provider, OpenAIProvider)
+    assert provider.name == "openai"
+    assert provider.model == "gpt-5-nano"
+
+
+def test_openai_provider_says_what_is_missing_rather_than_failing_obscurely(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    with pytest.raises(ProviderError) as excinfo:
+        OpenAIProvider("gpt-5-nano")
+    message = str(excinfo.value)
+    assert "OPENAI_API_KEY" in message
+    assert "no free tier" in message  # the thing that actually trips people up
+
+
+def test_openai_strict_schema_closes_the_object(monkeypatch):
+    """Strict structured output needs additionalProperties false and every
+    property required, or the API rejects the schema outright."""
+    loose = {"type": "object", "properties": {"a": {"type": "string"}, "b": {"type": "number"}},
+             "required": ["a"]}
+    strict = OpenAIProvider._strict(loose)
+    assert strict["additionalProperties"] is False
+    assert sorted(strict["required"]) == ["a", "b"]
+    assert loose["required"] == ["a"], "must not mutate the caller's schema"
+
+
+def test_openai_sends_the_schema_and_reports_real_token_counts(monkeypatch):
+    """The contract every provider shares: constrained JSON out, true usage back."""
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-not-a-real-key")
+    provider = OpenAIProvider("gpt-5-nano")
+    sent = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {
+                "choices": [{"message": {"content": '{"gap_stated":"not_stated"}'}}],
+                "usage": {"prompt_tokens": 811, "completion_tokens": 57},
+            }
+
+    def fake_post(path, json=None):
+        sent["path"] = path
+        sent["payload"] = json
+        return FakeResponse()
+
+    monkeypatch.setattr(provider._client, "post", fake_post)
+    schema = {"type": "object", "properties": {"gap_stated": {"type": "string"}}}
+    completion = provider.complete("is there a gap?", max_tokens=128, seed=42, response_schema=schema)
+
+    assert completion.text == '{"gap_stated":"not_stated"}'
+    assert (completion.tokens_in, completion.tokens_out) == (811, 57)
+    fmt = sent["payload"]["response_format"]
+    assert fmt["type"] == "json_schema"
+    assert fmt["json_schema"]["strict"] is True
+    assert fmt["json_schema"]["schema"]["properties"] == schema["properties"]
+    assert sent["payload"]["seed"] == 42
+
+
+def test_openai_refusal_is_an_error_not_an_empty_answer(monkeypatch):
+    """A refusal returned as empty text would be scored as a real response."""
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-not-a-real-key")
+    provider = OpenAIProvider("gpt-5-nano")
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"choices": [{"message": {"refusal": "I cannot help with that."}}], "usage": {}}
+
+    monkeypatch.setattr(provider._client, "post", lambda path, json=None: FakeResponse())
+    with pytest.raises(ProviderError, match="refused"):
+        provider.complete("anything")
+
+
 def test_build_provider_rejects_unknown_name():
     with pytest.raises(ValueError):
         build_provider("not-a-provider", "some-model")
@@ -304,3 +385,15 @@ def test_on_completion_is_not_called_on_a_provider_error(conn, monkeypatch):
     decision = screen_record(row, **kwargs)
     assert decision.decision == "error"
     assert seen == []
+
+
+def test_three_models_over_one_record_get_three_cache_entries():
+    """The week-14 multi-model gap arms depend on this. If two providers shared
+    a cache key, the second model's run would silently serve the first model's
+    answers and the agreement figure would be 1.0 by construction -- a perfect
+    result that measured nothing."""
+    keys = {
+        cache_key(model, "gap_v1", "Nelson_2002", "W123")
+        for model in ("qwen2.5:7b-instruct", "gemini-3.5-flash-lite", "gpt-5-nano")
+    }
+    assert len(keys) == 3

@@ -1477,6 +1477,84 @@ anyone cites those margins as a result.
 
 `runs/20261008T153931706747Z-expand-29d4a7dc7a`, 496 tests passing.
 
+**18 October 2026 — a second and third AI for gap discovery, built and
+costed; not yet run.** The supervisor asked that gap detection be
+cross-checked by two AIs, naming Gemini and ChatGPT. Her reason lands on the
+sharpest limitation this project records about gap discovery: all 74 precision
+ratings and all 52 recall labels were made by one person, once, with no second
+rater and therefore no inter-rater agreement at all.
+
+**What a second model buys, and what it does not.** It gives a second
+independent rater and an agreement coefficient. It does **not** establish
+correctness: two models can agree on a wrong answer, and models with
+overlapping training data correlate in their errors, so agreement reads higher
+than true independence warrants. That is the supervisor's own point about
+verified quotes — traceability is not correctness — one level up. The
+human-rated reference set stays the only thing establishing precision, and
+`slr/eval/gap_consensus.py` reports agreement separately from precision, with
+the caveat written into the artefact rather than left to a reader to remember
+(the same device as `PolicyResult.comparable` in the ablation).
+
+`OpenAIProvider` added as the third provider behind the same `Provider`
+protocol — strict `json_schema` structured output, so parse-failure rates stay
+comparable across all three providers instead of being confounded by one having
+weaker JSON discipline. Two deliberate omissions: it does not reach for a
+reasoning model (reasoning tokens bill as output and are invisible in the
+response, so cost could be a multiple of its estimate with nothing in the
+artefact explaining why), and it does not retry a refusal (a refusal is an
+answer about the input, not a transport failure). No new pinned dependency — it
+reuses `httpx`. `cache_key` already includes the model, so the three arms
+cannot collide; `test_three_models_over_one_record_get_three_cache_entries`
+asserts it, because if they did collide the second arm would silently replay
+the first and agreement would be 1.0 by construction.
+
+**Costed from this project's own prompts and cached responses, not estimated
+from a blog.** 428 verified-include records currently in the database (the gap
+arms run over the same 418 the existing runs used, from the same
+`source_run_id`, so the arms stay comparable): 344,634 input tokens, mean 805
+per record; output median 57 and mean 113 tokens, measured over 791 real
+cached responses.
+
+| Model | $/1M in | $/1M out | One full pass |
+|---|---|---|---|
+| gemini-3.5-flash-lite | 0.30 | 2.50 | $0.16–0.23 |
+| gpt-5-mini | 0.25 | 2.00 | $0.14–0.18 |
+| gpt-5-nano | 0.05 | 0.40 | $0.03–0.04 |
+
+Twelve configs written (`configs/gap_{gemini,openai}_*.yaml`), **$0.262 total
+estimated** for both arms across all six reviews, each with `ceiling_usd` at
+roughly 6x its estimate so a surprise aborts rather than arriving as a bill.
+Two 5-record smoke configs exist to be run first, per the project's own
+`max_records` debugging rule. For context, extending two paid arms to
+*screening* instead would be a different order of magnitude — 11.6M input
+tokens per pass, $5.38 on Gemini and $4.42 on gpt-5-mini — so that is a
+conversation to have before anyone assumes "two AIs" covers screening too.
+
+**Not run from here.** Every LLM and research API is unreachable from the
+environment this was built in (only PyPI resolves), so these runs happen on the
+author's machine like every other run in this project. `OPENAI_API_KEY` is not
+yet set; `GEMINI_API_KEY` is. Commands are in `docs/two-ai-gap-runbook.md`.
+
+**18 October 2026, second entry — the pinned Gemini SDK is a yanked release
+(rule 7).** `google-genai==0.3.0` is **yanked from PyPI**: *"Pillow
+vulnerability issues CVE-2026-54058 etc"*. Every 0.x below 0.7.0 is gone from
+the index and the latest is 2.31.0, so the pin is two major versions behind a
+package that has been withdrawn for a security issue. Found incidentally while
+installing it to test the Gemini path.
+
+Deliberately **not** bumped. The API surface changed across two major versions,
+the Gemini path is verified working at this pin, and an untested SDK upgrade in
+the final week is a worse risk than a documented one. But two consequences have
+to be stated rather than left implicit: a fresh clone installs a yanked package
+carrying a known CVE, which means **week 13's fresh-clone exit test no longer
+passes cleanly** on a reading where "runs" includes "installs supported
+dependencies"; and this is the fifth instance of the pattern this project keeps
+finding — an instrument problem that would read as a product failure if nobody
+looked (after the BM25 corpus drift, the 97.8% criteria echoes, the Europe PMC
+stubs, and the dashboard offering dense retrieval on reviews with no cached
+vectors). Week 15's limitations section should name the pattern, not just the
+five instances.
+
 ## Next: close out week 11, run the week 12 usability check, submit ethics
 
 Immediate: minute the week 11 go/no-go decision with the supervisor using

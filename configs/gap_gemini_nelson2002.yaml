@@ -1,0 +1,42 @@
+# Week 14 -- gap discovery, second/third AI arm. Nelson_2002.
+#
+# The supervisor asked that gap detection be cross-checked by two AIs. The
+# existing arm is qwen2.5:7b-instruct (local, $0); this is the gemini arm over
+# the SAME 125 verified-include records from the SAME source run, so the only
+# thing that differs between arms is the model.
+#
+# Google AI Studio. Price verified 2 October 2026; re-check
+# ai.google.dev/gemini-api/docs/pricing before running -- it has moved once already.
+#
+# Estimated cost: $0.066 (125 records, ~805 input + ~113 output tokens each,
+# measured from this project's own prompts and cached responses on 16 Oct).
+# ceiling_usd is set to $0.39 -- roughly 6x the estimate, so a surprise
+# (reasoning tokens billed as output, a price change) ABORTS the run rather
+# than arriving as a bill. The ceiling aborts; it does not warn.
+#
+# Before running:
+#   1. GEMINI_API_KEY in .env (gitignored -- verify: git check-ignore -v .env)
+#   2. Commit, then run with --require-clean.
+
+name: gap_gemini_nelson2002
+
+source_run_id: 20260918T060412811907Z-2556bbe54c
+review: Nelson_2002
+max_records: null
+
+provider: gemini
+model: gemini-3.5-flash-lite
+prompt_version: gap_v1
+temperature: 0.0
+max_output_tokens: 512
+max_retries: 3
+seed: 42
+
+ceiling_usd: 0.39
+usd_per_1m_input: 0.3
+usd_per_1m_output: 2.5
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts
+cache_enabled: true
