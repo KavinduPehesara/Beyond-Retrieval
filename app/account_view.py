@@ -56,7 +56,8 @@ def restore_sign_in():
         pass
 
 
-def render_account():
+def render_account(slot=None):
+    """The account control. ``slot`` is the top bar's right-hand corner."""
     restore_sign_in()
     ticket = st.query_params.get("login_ticket")
     if ticket:
@@ -71,11 +72,12 @@ def render_account():
         del st.query_params["login_ticket"]
         st.rerun()
     account = st.session_state.get("google_account")
+    slot = slot or st.container()
     if not account:
-        if st.button("Sign in"):
+        if slot.button("Sign in", type="primary"):
             sign_in_dialog()
         return
-    with st.popover(account["name"], use_container_width=False):
+    with slot.popover(account["name"], icon=":material/account_circle:", use_container_width=False):
         st.caption(account["email"])
         if st.button("Sign out"):
             try:

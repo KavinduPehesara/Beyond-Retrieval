@@ -3,13 +3,23 @@ import streamlit as st
 
 
 def apply_research_style():
+    """Theme the page and draw the top bar; return the bar's account slot.
+
+    One row: the wordmark on the left, then the Light/Dark switch and the
+    account control (Sign in, or the name with Sign out) together at the
+    top right, where people look for them.
+    """
     # A permanent session value survives Streamlit's page-widget cleanup.
     mode = st.session_state.get("research_mode", "Light")
-    _, appearance = st.columns([3, 1])
-    with appearance:
+    brand, appearance, account = st.columns([4.6, 1.5, 2.1], vertical_alignment="center")
+    with brand:
+        st.markdown('<div class="research-wordmark">BEYOND RETRIEVAL / RESEARCH WORKSPACE</div>',
+                    unsafe_allow_html=True)
+    with appearance.container(key="br-appearance"):
         selected = st.radio("Appearance", ("Light", "Dark"),
                             index=0 if mode == "Light" else 1,
-                            key="research_mode_picker", horizontal=True)
+                            key="research_mode_picker", horizontal=True,
+                            label_visibility="collapsed")
     st.session_state["research_mode"] = selected
     css = """
 <style>
@@ -43,7 +53,7 @@ input::placeholder, textarea::placeholder { color: #758079 !important; opacity: 
 button[kind="primary"], [data-testid="stBaseButton-primaryFormSubmit"] {
     background: #28665f !important; border-color: #28665f !important; color: white !important;
 }
-button[kind="primary"] p { color: white !important; }
+button[kind="primary"] p, [data-testid="stBaseButton-primaryFormSubmit"] p { color: white !important; }
 button[kind="secondary"], [data-testid="stPopoverButton"], [data-testid="stBaseButton-secondaryFormSubmit"] {
     background: #fff !important; border-color: #cdd8cf !important; color: #28554b !important; border-radius: 5px;
 }
@@ -57,8 +67,13 @@ a { color: #28665f; text-underline-offset: 3px; }
 [data-testid="stPopoverBody"] { background: #fff; color: #233331; }
 .research-wordmark { font-size: .72rem; font-weight: 600; letter-spacing: .16em; color: #547569; margin-bottom: .4rem; }
 @media (max-width: 700px) { .block-container { padding: 2rem 1.2rem; } h1 { font-size: 2.1rem !important; } }
+/* Top bar: switch and account pinned to the right edge of their columns. */
+.st-key-br-account > div, .st-key-br-appearance > div { width: 100% !important; display: flex; justify-content: flex-end; }
+.st-key-br-account .stButton, .st-key-br-account [data-testid="stPopover"] { width: auto !important; }
+.st-key-br-appearance [role="radiogroup"] { justify-content: flex-end; }
+.st-key-br-account button p { white-space: nowrap; }
+.research-wordmark { margin-bottom: 0; }
 </style>
-<div class="research-wordmark">BEYOND RETRIEVAL / RESEARCH WORKSPACE</div>
 """
     if selected == "Dark":
         palette = {
@@ -76,3 +91,4 @@ a { color: #28665f; text-underline-offset: 3px; }
         for light, dark in palette.items():
             css = css.replace(light, dark)
     st.markdown(css, unsafe_allow_html=True)
+    return account.container(key="br-account")
