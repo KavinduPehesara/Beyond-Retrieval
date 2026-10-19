@@ -1,0 +1,59 @@
+# Week 14 -- full-text extraction as a reportable run.
+#
+# The supervisor asked that full text stay a small demonstration rather than
+# core, because there is no reliable ground truth across the corpus. Agreed --
+# and a demonstration still has to leave an artefact, or rule 2 means no
+# full-text figure can be reported at all. This config is that demonstration:
+# a handful of named papers, run end to end, writing runs/<ts>-fulltext-<hash>/.
+#
+# The four papers below are the ones already diagnosed in CLAUDE.md, chosen so
+# the run exercises every outcome rather than only the happy path:
+#
+#   10.1186/s13643-023-02255-9   PMC10248995, the complete paper: 75k chars of
+#                                body, 40 sections, 16 tables, 1 figure with
+#                                its citing sentence. The case that works.
+#   10.1136/bmj.m2329            PMC7508247, flagged open access and serves a
+#                                1,058-character stub. Exercises is_fragment.
+#   10.1186/s13643-021-01671-z   PMC8056687, the PRISMA editorial whose body is
+#                                mostly Acknowledgements and Competing
+#                                interests. Exercises the back-matter drop.
+#   10.1038/s41586-020-2649-2    Not in Europe PMC's open-access holdings.
+#                                Exercises an honest "no full text, and here
+#                                is why" rather than a silent empty result.
+#
+# review stays "_fulltext" -- never a real review name, so these records
+# cannot be mistaken for evaluation-corpus data. config.py rejects any other
+# value that collides with SUBSET.
+#
+# Before running:
+#   1. Ollama running locally, qwen2.5:7b-instruct pulled. $0, no API key,
+#      but it does need the local GPU and the network for Europe PMC.
+#   2. Commit, then run with --require-clean.
+
+name: fulltext_demo
+
+targets:
+  - 10.1186/s13643-023-02255-9
+  - 10.1136/bmj.m2329
+  - 10.1186/s13643-021-01671-z
+  - 10.1038/s41586-020-2649-2
+
+review: _fulltext
+
+provider: ollama
+model: qwen2.5:7b-instruct
+prompt_version: extract_fulltext_v1
+temperature: 0.0
+max_output_tokens: 1024
+max_retries: 3
+seed: 42
+max_prompt_chars: 24000
+
+ceiling_usd: 0.00
+usd_per_1m_input: 0.0
+usd_per_1m_output: 0.0
+
+db_path: data/slr.db
+runs_dir: runs
+prompts_dir: prompts
+cache_enabled: true

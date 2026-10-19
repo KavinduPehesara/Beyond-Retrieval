@@ -1,0 +1,26 @@
+{
+  "cache_enabled": true,
+  "ceiling_usd": 0.0,
+  "db_path": "data\\slr.db",
+  "max_output_tokens": 1024,
+  "max_prompt_chars": 24000,
+  "max_records": null,
+  "max_retries": 3,
+  "model": "qwen2.5:7b-instruct",
+  "name": "fulltext_demo",
+  "prompt_version": "extract_fulltext_v1",
+  "prompts_dir": "prompts",
+  "provider": "ollama",
+  "review": "_fulltext",
+  "runs_dir": "runs",
+  "seed": 42,
+  "targets": [
+    "10.1186/s13643-023-02255-9",
+    "10.1136/bmj.m2329",
+    "10.1186/s13643-021-01671-z",
+    "10.1038/s41586-020-2649-2"
+  ],
+  "temperature": 0.0,
+  "usd_per_1m_input": 0.0,
+  "usd_per_1m_output": 0.0
+}

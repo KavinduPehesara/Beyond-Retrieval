@@ -1,0 +1,44 @@
+{
+  "aborted": false,
+  "availability": {
+    "fragment": 1,
+    "full": 3
+  },
+  "config_hash": "49ee59577e",
+  "config_name": "fulltext_demo",
+  "field_status": {
+    "effect_size": {
+      "not_stated": 1,
+      "unverified": 2,
+      "verified": 1
+    },
+    "limitations": {
+      "not_stated": 2,
+      "unverified": 1,
+      "verified": 1
+    },
+    "primary_outcome": {
+      "not_stated": 2,
+      "unverified": 1,
+      "verified": 1
+    },
+    "sample_characteristics": {
+      "not_stated": 2,
+      "unverified": 2
+    },
+    "statistical_methods": {
+      "not_stated": 2,
+      "unverified": 2
+    }
+  },
+  "note": "paywalled / not_indexed / no_pmc are facts about Europe PMC's holdings, not extraction failures. 'fragment' means a paper flagged open access returned only a stub. A field marked not_stated may be in the portion of a long paper that was truncated away -- see truncation.median_share_shown.",
+  "review": "_fulltext",
+  "targets": 4,
+  "truncation": {
+    "max_prompt_chars": 24000,
+    "median_share_shown": 1.0,
+    "papers_read": 4,
+    "papers_truncated": 1
+  },
+  "usable_share": 0.75
+}
