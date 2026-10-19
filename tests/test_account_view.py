@@ -76,3 +76,42 @@ def test_a_signed_out_visitor_gets_a_sign_in_button(monkeypatch):
     next(b for b in at.button if b.label == "Sign in").click().run()
     assert not at.exception
     assert any("Continue with Google" in m.value for m in at.markdown)
+
+
+def test_a_reload_signs_back_in_from_the_browser_session_cookie(monkeypatch):
+    import account_view
+    calls = []
+
+    def fake_request(method, path, **kw):
+        calls.append((method, path, kw.get("json")))
+        if path == "/auth/resume":
+            return {"name": "Researcher", "email": "r@example.org", "token": "fresh"}
+        return [] if path == "/discover/sessions" else {"configured": True}
+
+    monkeypatch.setattr(account_view, "account_request", fake_request)
+    monkeypatch.setattr(account_view, "_cookie", lambda name: "browser-secret" if name == "br_session" else "")
+    at = AppTest.from_string("from account_view import render_account, render_welcome\nrender_account()\nrender_welcome()")
+    at.run()
+    assert not at.exception
+    assert ("POST", "/auth/resume", {"session": "browser-secret"}) in calls
+    assert at.session_state["google_account"]["token"] == "fresh"
+    assert not any(b.label == "Continue as a guest" for b in at.button), "no welcome dialog for someone signed in"
+    at.run()
+    assert sum(1 for c in calls if c[1] == "/auth/resume") == 1, "tried once per page session"
+
+
+def test_an_ended_browser_session_leaves_a_guest(monkeypatch):
+    import account_view, httpx
+
+    def fake_request(method, path, **kw):
+        if path == "/auth/resume":
+            raise httpx.HTTPStatusError("401", request=httpx.Request("POST", "http://x"), response=httpx.Response(401))
+        return {"configured": True}
+
+    monkeypatch.setattr(account_view, "account_request", fake_request)
+    monkeypatch.setattr(account_view, "_cookie", lambda name: "old" if name == "br_session" else "")
+    at = AppTest.from_string("from account_view import render_account\nrender_account()")
+    at.run()
+    assert not at.exception
+    assert "google_account" not in at.session_state
+    assert any(b.label == "Sign in" for b in at.button)

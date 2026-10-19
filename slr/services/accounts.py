@@ -8,12 +8,18 @@ from slr.services import live_review
 def digest(value):
     return hashlib.sha256(value.encode()).hexdigest()
 
+#: The browser deletes the session cookie when it closes; this caps how long
+#: a browser that is never closed stays signed in.
+SESSION_SECONDS = 7 * 86400
+
+
 def connect():
     conn = live_review._connect()
     conn.execute("CREATE TABLE IF NOT EXISTS google_accounts (id TEXT PRIMARY KEY, subject TEXT UNIQUE NOT NULL, email TEXT NOT NULL, name TEXT NOT NULL)")
     conn.execute("CREATE TABLE IF NOT EXISTS account_tokens (digest TEXT PRIMARY KEY, account_id TEXT NOT NULL, expires REAL NOT NULL)")
     conn.execute("CREATE TABLE IF NOT EXISTS oauth_states (digest TEXT PRIMARY KEY, nonce TEXT NOT NULL, verifier TEXT NOT NULL, expires REAL NOT NULL)")
     conn.execute("CREATE TABLE IF NOT EXISTS login_tickets (digest TEXT PRIMARY KEY, binding TEXT NOT NULL, account_id TEXT NOT NULL, expires REAL NOT NULL)")
+    conn.execute("CREATE TABLE IF NOT EXISTS browser_sessions (digest TEXT PRIMARY KEY, account_id TEXT NOT NULL, expires REAL NOT NULL)")
     return conn
 
 def begin():
@@ -31,7 +37,7 @@ def consume_state(state):
         raise ValueError("Sign-in expired. Please try again.")
     return row[0], row[1]
 
-def issue_ticket(claims):
+def issue_ticket(claims, session=None):
     if not claims.get("sub") or claims.get("email_verified") is not True or not claims.get("email"):
         raise ValueError("Google must verify your email address.")
     ticket, binding = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
@@ -41,6 +47,9 @@ def issue_ticket(claims):
         conn.execute("INSERT INTO google_accounts VALUES (?,?,?,?) ON CONFLICT(subject) DO UPDATE SET email=excluded.email,name=excluded.name", (account_id, claims["sub"], claims["email"], claims.get("name", claims["email"])))
         conn.execute("DELETE FROM login_tickets WHERE expires <= ?", (time.time(),))
         conn.execute("INSERT INTO login_tickets VALUES (?,?,?,?)", (digest(ticket), digest(binding), account_id, time.time()+120))
+        if session:
+            conn.execute("DELETE FROM browser_sessions WHERE expires <= ?", (time.time(),))
+            conn.execute("INSERT INTO browser_sessions VALUES (?,?,?)", (digest(session), account_id, time.time()+SESSION_SECONDS))
     return ticket, binding
 
 def exchange_ticket(ticket, binding):
@@ -63,3 +72,21 @@ def authenticate(token):
 def logout(token):
     with connect() as conn:
         conn.execute("DELETE FROM account_tokens WHERE digest=?", (digest(token),))
+
+def resume(session):
+    """Sign a browser back in from its session cookie, with a fresh token.
+
+    The cookie is set at the Google callback, so only the browser that
+    signed in holds it; only its digest is stored here.
+    """
+    with connect() as conn:
+        row = conn.execute("SELECT account_id FROM browser_sessions WHERE digest=? AND expires>?", (digest(session), time.time())).fetchone()
+        if not row:
+            raise ValueError("This browser session has ended. Please sign in again.")
+        token = secrets.token_urlsafe(32)
+        conn.execute("INSERT INTO account_tokens VALUES (?,?,?)", (digest(token), row[0], time.time()+86400))
+    return {"token": token, **authenticate(token)}
+
+def end_session(session):
+    with connect() as conn:
+        conn.execute("DELETE FROM browser_sessions WHERE digest=?", (digest(session),))

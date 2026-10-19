@@ -55,6 +55,12 @@ def test_google_callback_state_and_nonce(client, monkeypatch):
     ticket = parse_qs(urlparse(response.headers["location"]).query)["login_ticket"][0]
     binding = client.cookies.get("br_login_binding")
     assert client.post("/auth/exchange", json=dict(ticket=ticket, binding=binding)).status_code == 200
+    # Signed in until the browser closes: a session cookie, no expiry, not
+    # readable by page scripts, and good for a fresh sign-in.
+    session_cookie = next(c for c in response.headers.get_list("set-cookie") if c.startswith("br_session="))
+    lowered = session_cookie.lower()
+    assert "httponly" in lowered and "max-age" not in lowered and "expires" not in lowered
+    assert client.post("/auth/resume", json=dict(session=client.cookies.get("br_session"))).status_code == 200
     assert client.get("/auth/google/callback", params=dict(state=params["state"][0], code="test-code")).status_code == 400
     start = client.get("/auth/google/start", follow_redirects=False)
     state = parse_qs(urlparse(start.headers["location"]).query)["state"][0]
@@ -94,3 +100,28 @@ def test_private_review_library(client):
     assert client.get("/discover/sessions/"+sid, headers=h1).status_code == 200
     assert client.get("/discover/sessions/"+sid, headers=h2).status_code == 404
     assert client.post("/projects/"+sid+"/export", headers=h2).status_code == 404
+
+
+def test_a_browser_session_signs_back_in_until_signed_out(client):
+    ticket, binding = accounts.issue_ticket(dict(sub="one", email="a@example.test", email_verified=True), session="browser-secret")
+    first = accounts.exchange_ticket(ticket, binding)
+    resumed = client.post("/auth/resume", json=dict(session="browser-secret"))
+    assert resumed.status_code == 200
+    assert resumed.json()["email"] == "a@example.test"
+    assert resumed.json()["token"] != first["token"], "a fresh token, not the old one replayed"
+    assert client.post("/auth/resume", json=dict(session="someone-elses")).status_code == 401
+    headers = {"Authorization": "Bearer " + resumed.json()["token"]}
+    assert client.post("/auth/logout", headers=headers, json=dict(session="browser-secret")).status_code == 200
+    assert client.post("/auth/resume", json=dict(session="browser-secret")).status_code == 401
+
+
+def test_a_browser_session_expires_server_side_too(client):
+    accounts.issue_ticket(dict(sub="one", email="a@example.test", email_verified=True), session="s")
+    with accounts.connect() as conn:
+        conn.execute("UPDATE browser_sessions SET expires=0")
+    assert client.post("/auth/resume", json=dict(session="s")).status_code == 401
+
+
+def test_logout_without_a_session_still_works(client):
+    token = identity()["token"]
+    assert client.post("/auth/logout", headers={"Authorization": "Bearer " + token}).status_code == 200

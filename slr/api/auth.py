@@ -2,6 +2,7 @@
 import base64
 import hashlib
 import hmac
+import secrets
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -68,12 +69,16 @@ def google_callback(request: Request, state: str = "", code: str = "", error: st
         claims = id_token.verify_oauth2_token(result.json()["id_token"], GoogleRequest(), cfg["client_id"])
         if not hmac.compare_digest(claims.get("nonce", ""), nonce):
             raise ValueError("Invalid Google sign-in nonce.")
-        ticket, binding = accounts.issue_ticket(claims)
+        session = secrets.token_urlsafe(32)
+        ticket, binding = accounts.issue_ticket(claims, session=session)
     except (ValueError, KeyError, httpx.HTTPError) as exc:
         raise HTTPException(400, "Google sign-in could not complete. Please start again.") from exc
     response = RedirectResponse(cfg["dashboard"] + "?login_ticket=" + ticket, status_code=303)
     response.delete_cookie("br_oauth_state", path="/auth")
     response.set_cookie("br_login_binding", binding, max_age=120, httponly=True, secure=cfg["dashboard"].startswith("https:"), samesite="lax", path="/")
+    # No max_age or expires: a session cookie, which the browser deletes when
+    # it closes. Lets a reload or a new tab sign back in without Google.
+    response.set_cookie("br_session", session, httponly=True, secure=cfg["dashboard"].startswith("https:"), samesite="lax", path="/")
     response.headers["Cache-Control"] = "no-store"
     response.headers["Referrer-Policy"] = "no-referrer"
     return response
@@ -89,7 +94,19 @@ def exchange(req: Ticket):
     except ValueError as exc:
         raise HTTPException(401, str(exc)) from exc
 
+class BrowserSession(BaseModel):
+    session: str = Field(min_length=1, max_length=200)
+
+@router.post("/resume")
+def resume(req: BrowserSession):
+    try:
+        return JSONResponse(accounts.resume(req.session), headers={"Cache-Control": "no-store"})
+    except ValueError as exc:
+        raise HTTPException(401, str(exc)) from exc
+
 @router.post("/logout")
-def logout(account=Depends(current_account), credentials=Depends(bearer)):
+def logout(req: BrowserSession | None = None, account=Depends(current_account), credentials=Depends(bearer)):
     accounts.logout(credentials.credentials)
+    if req is not None:
+        accounts.end_session(req.session)
     return {"signed_out": True}

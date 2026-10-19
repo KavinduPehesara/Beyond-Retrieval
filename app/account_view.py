@@ -27,11 +27,41 @@ def _google_button():
     )
 
 
+def _cookie(name):
+    """A cookie the browser sent when this page session opened."""
+    try:
+        return st.context.cookies.get(name, "")
+    except Exception:  # no browser context, e.g. under test
+        return ""
+
+
+def restore_sign_in():
+    """Sign back in from the browser-session cookie set at Google sign-in.
+
+    A reload or a new tab starts a new Streamlit session with empty state,
+    which used to mean signing in again. The cookie has no expiry, so the
+    browser deletes it on close: signed in until the browser closes.
+    Tried once per page session; a dead cookie just leaves a guest.
+    """
+    if st.session_state.get("google_account") or st.session_state.get("resume_tried"):
+        return
+    st.session_state["resume_tried"] = True
+    session = _cookie("br_session")
+    if not session:
+        return
+    try:
+        st.session_state["google_account"] = account_request("POST", "/auth/resume", json={"session": session})
+        st.session_state["guest_access"] = True
+    except httpx.HTTPError:
+        pass
+
+
 def render_account():
+    restore_sign_in()
     ticket = st.query_params.get("login_ticket")
     if ticket:
         try:
-            binding = st.context.cookies.get("br_login_binding", "")
+            binding = _cookie("br_login_binding")
             account = account_request("POST", "/auth/exchange", json={"ticket": ticket, "binding": binding})
             st.session_state["google_account"] = account
             st.session_state.pop("session", None)
@@ -49,7 +79,8 @@ def render_account():
         st.caption(account["email"])
         if st.button("Sign out"):
             try:
-                account_request("POST", "/auth/logout")
+                account_request("POST", "/auth/logout",
+                                json={"session": _cookie("br_session")} if _cookie("br_session") else None)
             except httpx.HTTPError:
                 pass
             for key in list(st.session_state):
@@ -57,6 +88,8 @@ def render_account():
                     del st.session_state[key]
             # Signed out on purpose: don't greet them with the sign-in dialog.
             st.session_state["welcome_shown"] = True
+            # The cookie is dead server-side now; don't try it again.
+            st.session_state["resume_tried"] = True
             st.rerun()
 
 

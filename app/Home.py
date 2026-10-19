@@ -23,8 +23,10 @@ st.set_page_config(page_title="Beyond Retrieval", page_icon="\U0001f4da", layout
 from research_style import apply_research_style
 apply_research_style()
 from account_view import render_account, render_library, render_welcome
-render_welcome()
+# Account first: it restores a sign-in from the browser-session cookie,
+# and the welcome dialog should not greet someone already signed in.
 render_account()
+render_welcome()
 
 #: The full-text route reads at most this many papers per request.
 MAX_FULLTEXT = 10
