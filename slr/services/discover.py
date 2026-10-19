@@ -115,6 +115,12 @@ def search_openalex(
     """
     if not query or not query.strip():
         raise ValueError("query must not be empty")
+    # OpenAlex answers 400 to a search containing "?" or "*" (wildcards it
+    # does not support), and a research question usually ends in "?".
+    # Observed live, 19 October 2026; no other ASCII punctuation is refused.
+    query = " ".join(query.replace("?", " ").replace("*", " ").split())
+    if not query:
+        raise ValueError("query must not be empty")
 
     params = {
         "search": query,

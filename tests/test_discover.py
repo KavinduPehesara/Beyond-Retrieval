@@ -470,3 +470,17 @@ def test_the_same_criteria_twice_is_served_from_cache(conn):
     paper = run(second)[0]
     assert paper.decision.from_cache is True
     assert not [p for p in second.prompts if p.startswith("screen")]
+
+
+def test_search_openalex_strips_the_wildcards_openalex_refuses():
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.params["search"])
+        return httpx.Response(200, json={"results": []})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    search_openalex("Does vitamin D reduce asthma*?", limit=3, client=client)
+    assert seen == ["Does vitamin D reduce asthma"]
+    with pytest.raises(ValueError):
+        search_openalex("??", client=client)
