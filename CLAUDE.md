@@ -1555,6 +1555,38 @@ stubs, and the dashboard offering dense retrieval on reviews with no cached
 vectors). Week 15's limitations section should name the pattern, not just the
 five instances.
 
+**19 October 2026 — report tables regenerated, and the index was hiding half
+the runs (rule 7).** `reports/results.{csv,md}` were last generated on 21
+September, before weeks 10 to 14 produced anything. Regenerating them added
+**82 lines and deleted none**: every figure recorded before 21 September is
+unchanged, and the runs since then are now in the table. That "zero deletions"
+is the useful part — it is a checkable statement that no reported number moved
+when the artefact was rebuilt.
+
+**But regenerating it exposed a real hole in week 14's exit test.**
+`load_runs` only accepts runs whose `metrics.json` carries the screening
+schema, and it printed a `skipping ...` line for each of the others and moved
+on. Of 79 directories under `runs/`, **36 were invisible** in the one artefact
+that is supposed to be the index: every ASReview baseline, the ablation, the
+error typology, all eight gap runs, gap recall, both query-expansion runs,
+seven extraction runs, four interrupted runs and six ASReview project
+directories. Figures from almost all of those are reported in this file.
+
+Week 14's exit test is "every figure traces to a run directory and commit
+hash". Each figure did trace — the directories exist and carry their shas —
+but a figure in a directory nothing lists is only half-traceable, and an
+examiner reading `results.md` would not know the ASReview comparison or the
+97.8% criteria-echo figure came from a run at all. So `report_tables` now also
+writes `reports/run_index.{csv,md}`: all 79 directories, their harness kind,
+config, reviews, commit sha, and whether they appear in `results.md`. The ten
+with no `metrics.json` are listed too and then explicitly set aside — four runs
+killed before the harness wrote one, six ASReview working directories — because
+an unexplained directory under `runs/` invites a reader to wonder what figure
+came out of it, and the answer is none. Every indexed run has a commit hash; 0
+are missing one.
+
+Three tests added. 522 passing (was 519).
+
 ## Next: close out week 11, run the week 12 usability check, submit ethics
 
 Immediate: minute the week 11 go/no-go decision with the supervisor using

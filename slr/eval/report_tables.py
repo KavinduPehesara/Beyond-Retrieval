@@ -179,9 +179,131 @@ def to_markdown(rows: list[dict]) -> str:
     return "\n".join(out)
 
 
+def run_index(runs_dir: Path) -> list[dict]:
+    """Every run directory, whatever kind it is.
+
+    ``load_runs`` only accepts screening and baseline runs -- they are the ones
+    whose ``metrics.json`` share a schema the results table can tabulate. But
+    the extraction, gap, gap-recall, ablation, typology, expansion and ASReview
+    harnesses all write run directories too, and figures from every one of them
+    are reported. Skipping them silently left 26 of 79 directories invisible in
+    the one artefact that is supposed to be the index, which makes week 14's
+    exit test ("every figure traces to a run directory and commit hash") true
+    in the repository and false in the report.
+
+    So: list them all, with the commit each was produced at. The detailed
+    columns still only apply to the runs that have them; what this guarantees
+    is that no run is absent.
+    """
+    out = []
+    for directory in sorted(p for p in runs_dir.glob("*") if p.is_dir()):
+        path = directory / "metrics.json"
+        # A directory with no metrics.json is a run that never finished, or a
+        # third-party tool's own working directory. Both are listed rather than
+        # skipped: an unexplained directory under runs/ invites the reader to
+        # wonder what figure came out of it, and the answer is "none".
+        try:
+            data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+        except (OSError, json.JSONDecodeError):
+            data = {}
+        name = directory.name
+        # The harness kind is in the directory name, between timestamp and hash.
+        kind = "screen"
+        for marker in ("extract", "gapconsensus", "gaprecall", "gap", "ablation",
+                       "typology", "ftcoverage", "expand"):
+            if f"-{marker}-" in name:
+                kind = marker
+                break
+        if name.startswith("asreview-"):
+            kind = "asreview"
+        if not path.exists():
+            # ASReview's own project file, or a run killed before it wrote metrics.
+            kind = "asreview-project" if (directory / "project.asreview").exists() else "incomplete"
+        sha = ""
+        for candidate in ("git_sha.txt", "run.json"):
+            target = directory / candidate
+            if not target.exists():
+                continue
+            if candidate == "git_sha.txt":
+                sha = target.read_text(encoding="utf-8").strip()
+            else:
+                try:
+                    sha = json.loads(target.read_text(encoding="utf-8")).get("git_sha", "") or sha
+                except (OSError, json.JSONDecodeError):
+                    pass
+            if sha:
+                break
+        reviews = data.get("per_review") or []
+        if isinstance(reviews, list):
+            review_names = sorted({r.get("review", "") for r in reviews if isinstance(r, dict)})
+        else:
+            review_names = sorted(reviews) if isinstance(reviews, dict) else []
+        out.append({
+            "run": name,
+            "kind": kind,
+            "config": data.get("config_name") or data.get("name") or data.get("mode") or "",
+            "reviews": ", ".join(n for n in review_names if n) or data.get("review", "") or "",
+            "tabulated": kind == "screen" and data.get("metrics_schema") == METRICS_SCHEMA,
+            "has_metrics": path.exists(),
+            "git_sha": sha[:10],
+        })
+    return out
+
+
+def index_to_markdown(index: list[dict]) -> str:
+    tabulated = sum(1 for r in index if r["tabulated"])
+    lines = [
+        "# Run index",
+        "",
+        f"All {len(index)} run directories under `runs/`. {tabulated} of them have the",
+        "screening/baseline metrics schema and appear with full columns in",
+        "`results.md`; the rest are other harness kinds (extraction, gap discovery,",
+        "gap recall, ablation, error typology, query expansion, the ASReview",
+        "baseline) whose metrics have their own shapes and are reported in their own",
+        "run directories and in `CLAUDE.md`.",
+        "",
+        "This file exists so that no run is invisible: week 14's exit test is that",
+        "every figure traces to a run directory and a commit hash, and a figure in a",
+        "directory nothing lists is only half-traceable.",
+        "",
+        "| Run | Kind | Config | Review(s) | In results.md | Commit |",
+        "|---|---|---|---|---|---|",
+    ]
+    for r in sorted(index, key=lambda x: (x["kind"], x["run"])):
+        state = "yes" if r["tabulated"] else ("no" if r["has_metrics"] else "no metrics.json")
+        lines.append(
+            f"| `{r['run']}` | {r['kind']} | {r['config']} | {r['reviews']} | "
+            f"{state} | `{r['git_sha'] or '--'}` |"
+        )
+    incomplete = [r for r in index if not r["has_metrics"]]
+    if incomplete:
+        lines += [
+            "",
+            "## Directories that produced no figure",
+            "",
+            f"{len(incomplete)} of the above have no `metrics.json`: runs interrupted "
+            "before the harness wrote one, and ASReview's own project directories "
+            "(the reported ASReview figures come from the `asreview-<review>-<ts>` "
+            "directories, which do have metrics). No reported number comes from any "
+            "of these, which is why they are listed and then set aside.",
+        ]
+    return "\n".join(lines) + "\n"
+
+
 def build(runs_dir: Path, out_dir: Path) -> list[dict]:
     rows = [row for name, data in load_runs(runs_dir) for row in rows_for(name, data)]
     out_dir.mkdir(parents=True, exist_ok=True)
+
+    index = run_index(runs_dir)
+    with (out_dir / "run_index.csv").open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=["run", "kind", "config", "reviews", "tabulated", "has_metrics", "git_sha"],
+            lineterminator="\n",
+        )
+        writer.writeheader()
+        writer.writerows(index)
+    (out_dir / "run_index.md").write_text(index_to_markdown(index), encoding="utf-8", newline="\n")
 
     with (out_dir / "results.csv").open("w", encoding="utf-8", newline="") as handle:
         # csv writes CRLF by default; artefacts are LF on every platform.
@@ -199,7 +321,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", default="reports", help="Where to write results.csv and results.md")
     args = parser.parse_args(argv)
     rows = build(Path(args.runs), Path(args.out))
-    print(f"{len(rows)} rows -> {Path(args.out) / 'results.csv'}, {Path(args.out) / 'results.md'}")
+    out = Path(args.out)
+    index = run_index(Path(args.runs))
+    print(f"{len(rows)} rows -> {out / 'results.csv'}, {out / 'results.md'}")
+    print(f"{len(index)} run directories indexed -> {out / 'run_index.csv'}, {out / 'run_index.md'}")
+    untabulated = [r for r in index if not r["tabulated"]]
+    if untabulated:
+        kinds = sorted({r["kind"] for r in untabulated})
+        print(
+            f"  {len(untabulated)} of them are not in results.md (kinds: {', '.join(kinds)}) "
+            "-- their figures live in their own run directories; see run_index.md"
+        )
     return 0
 
 

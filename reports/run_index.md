@@ -1,0 +1,98 @@
+# Run index
+
+All 79 run directories under `runs/`. 43 of them have the
+screening/baseline metrics schema and appear with full columns in
+`results.md`; the rest are other harness kinds (extraction, gap discovery,
+gap recall, ablation, error typology, query expansion, the ASReview
+baseline) whose metrics have their own shapes and are reported in their own
+run directories and in `CLAUDE.md`.
+
+This file exists so that no run is invisible: week 14's exit test is that
+every figure traces to a run directory and a commit hash, and a figure in a
+directory nothing lists is only half-traceable.
+
+| Run | Kind | Config | Review(s) | In results.md | Commit |
+|---|---|---|---|---|---|
+| `20261005T081610581869Z-ablation-414c762b99` | ablation | ablation |  | no | `93913ec960` |
+| `asreview-menon_2022-20261002T123311158497Z` | asreview |  | Menon_2022 | no | `a2bf6b45fe` |
+| `asreview-nelson_2002-20261002T122739000594Z` | asreview |  | Nelson_2002 | no | `a17b760227` |
+| `asreview-radjenovic_2013-20261002T123319592779Z` | asreview |  | Radjenovic_2013 | no | `a2bf6b45fe` |
+| `asreview-smid_2020-20261002T122739515969Z` | asreview |  | Smid_2020 | no | `a17b760227` |
+| `asreview-van_der_valk_2021-20261002T123310657233Z` | asreview |  | van_der_Valk_2021 | no | `a2bf6b45fe` |
+| `asreview-van_der_waal_2022-20261002T123311697228Z` | asreview |  | van_der_Waal_2022 | no | `a2bf6b45fe` |
+| `asreview-menon2022` | asreview-project |  |  | no metrics.json | `--` |
+| `asreview-nelson2002` | asreview-project |  |  | no metrics.json | `--` |
+| `asreview-radjenovic2013` | asreview-project |  |  | no metrics.json | `--` |
+| `asreview-smid2020` | asreview-project |  |  | no metrics.json | `--` |
+| `asreview-valk2021` | asreview-project |  |  | no metrics.json | `--` |
+| `asreview-waal2022` | asreview-project |  |  | no metrics.json | `--` |
+| `20261008T153607000708Z-expand-1b48b4b015` | expand |  | Menon_2022, Nelson_2002, Radjenovic_2013, Smid_2020, van_der_Valk_2021, van_der_Waal_2022 | no | `34175755ca` |
+| `20261008T153931706747Z-expand-29d4a7dc7a` | expand |  | Menon_2022, Nelson_2002, Radjenovic_2013, Smid_2020, van_der_Valk_2021, van_der_Waal_2022 | no | `34175755ca` |
+| `20260920T122648310211Z-extract-705f89ab33` | extract | extract_demo_nelson2002 | Nelson_2002 | no | `a56a889ac3` |
+| `20260920T130935713644Z-extract-454fea8b50` | extract | extract_demo_smid2020 | Smid_2020 | no | `0946abb6d4` |
+| `20260920T133746642566Z-extract-7b72d83b0a` | extract | extract_demo_valk2021 | van_der_Valk_2021 | no | `78882470a9` |
+| `20260921T090058751699Z-extract-e1e1617c75` | extract | extract_demo_radjenovic2013 | Radjenovic_2013 | no | `272b6f7814` |
+| `20260924T121711794197Z-extract-69af3c168d` | extract | extract_demo_menon2022 | Menon_2022 | no | `05857d9227` |
+| `20260924T122137987321Z-extract-1d1c17652a` | extract | extract_demo_vanderwaal2022 | van_der_Waal_2022 | no | `05857d9227` |
+| `20261007T075608842798Z-extract-705f89ab33` | extract | extract_demo_nelson2002 | Nelson_2002 | no | `d22dfe0c43` |
+| `20260923T102642236622Z-gap-3496ae576f` | gap | gap_demo_nelson2002 | Nelson_2002 | no | `48329dffc2` |
+| `20260923T102816243601Z-gap-80a180d02a` | gap | gap_demo_smid2020 | Smid_2020 | no | `48329dffc2` |
+| `20260923T102825404365Z-gap-8002013514` | gap | gap_demo_valk2021 | van_der_Valk_2021 | no | `48329dffc2` |
+| `20260923T102838078110Z-gap-c8a03baad8` | gap | gap_demo_radjenovic2013 | Radjenovic_2013 | no | `48329dffc2` |
+| `20260924T100941794221Z-gap-5665542565` | gap | gap_demo_menon2022 | Menon_2022 | no | `42d6048e0c` |
+| `20260924T101041926525Z-gap-3fe61354b0` | gap | gap_demo_vanderwaal2022 | van_der_Waal_2022 | no | `42d6048e0c` |
+| `20261007T075606020247Z-gap-3496ae576f` | gap | gap_demo_nelson2002 | Nelson_2002 | no | `d22dfe0c43` |
+| `20261007T075607403784Z-gap-80a180d02a` | gap | gap_demo_smid2020 | Smid_2020 | no | `d22dfe0c43` |
+| `20260924T120813705057Z-gaprecall-d6901cb0a0` | gaprecall |  | Menon_2022, Nelson_2002, Radjenovic_2013, van_der_Waal_2022 | no | `29daabcc91` |
+| `20260920T154028150604Z-5573f0e390` | incomplete |  |  | no metrics.json | `--` |
+| `20260921T122044137890Z-33c61120f3` | incomplete |  |  | no metrics.json | `--` |
+| `20260922T131339466968Z-9a8ec8f4db` | incomplete |  |  | no metrics.json | `--` |
+| `20261007T080659069941Z-33c61120f3` | incomplete |  |  | no metrics.json | `--` |
+| `20260914T131155875897Z-96849ba0a1` | screen | baseline_random | Nelson_2002, Smid_2020 | yes | `421e415b04` |
+| `20260914T131157943219Z-96849ba0a1` | screen | baseline_random | Nelson_2002, Smid_2020 | yes | `421e415b04` |
+| `20260914T131159900053Z-e4eab7ef35` | screen | baseline_bm25 | Nelson_2002, Smid_2020 | yes | `421e415b04` |
+| `20260914T131201962898Z-e4eab7ef35` | screen | baseline_bm25 | Nelson_2002, Smid_2020 | yes | `421e415b04` |
+| `20260914T131204021505Z-52a780798c` | screen | smoke | Nelson_2002 | yes | `421e415b04` |
+| `20260914T131205984499Z-52a780798c` | screen | smoke | Nelson_2002 | yes | `421e415b04` |
+| `20260918T052905492231Z-e4eab7ef35` | screen | baseline_bm25 | Nelson_2002, Smid_2020 | yes | `bb467d9166` |
+| `20260918T053046514462Z-e4eab7ef35` | screen | baseline_bm25 | Nelson_2002, Smid_2020 | yes | `bb467d9166` |
+| `20260918T053047282332Z-e4eab7ef35` | screen | baseline_bm25 | Nelson_2002, Smid_2020 | yes | `bb467d9166` |
+| `20260918T053101825842Z-52a780798c` | screen | smoke | Nelson_2002 | yes | `bb467d9166` |
+| `20260918T060009642242Z-0ec56fd833` | screen | smoke_ollama | Nelson_2002 | yes | `bb467d9166` |
+| `20260918T060412811907Z-2556bbe54c` | screen | week08_ollama_qwen25_7b | Nelson_2002, Smid_2020 | yes | `c103be45a8` |
+| `20260918T072515193074Z-2556bbe54c` | screen | week08_ollama_qwen25_7b | Nelson_2002, Smid_2020 | yes | `c103be45a8` |
+| `20260920T131834130857Z-89b8a49fec` | screen | valk2021_ollama_qwen25_7b | van_der_Valk_2021 | yes | `c7a468e247` |
+| `20260920T133509350330Z-89b8a49fec` | screen | valk2021_ollama_qwen25_7b | van_der_Valk_2021 | yes | `c7a468e247` |
+| `20260920T141238874787Z-2ecaa4d8d7` | screen | week09_baseline_bm25 | Nelson_2002, Smid_2020, van_der_Valk_2021 | yes | `4bb1340ad6` |
+| `20260920T141257485896Z-423a543937` | screen | week09_dense | Nelson_2002, Smid_2020, van_der_Valk_2021 | yes | `4bb1340ad6` |
+| `20260920T153200090557Z-538ba6a5bc` | screen | week09_hybrid | Nelson_2002, Smid_2020, van_der_Valk_2021 | yes | `86c3502ac7` |
+| `20260920T153252374417Z-da2f69f68d` | screen | week09_rerank | Nelson_2002, Smid_2020, van_der_Valk_2021 | yes | `4c033a95fe` |
+| `20260921T072321083927Z-2ecaa4d8d7` | screen | week09_baseline_bm25 | Nelson_2002, Smid_2020, van_der_Valk_2021 | yes | `393db155e8` |
+| `20260921T072327017657Z-423a543937` | screen | week09_dense | Nelson_2002, Smid_2020, van_der_Valk_2021 | yes | `393db155e8` |
+| `20260921T072358111413Z-538ba6a5bc` | screen | week09_hybrid | Nelson_2002, Smid_2020, van_der_Valk_2021 | yes | `393db155e8` |
+| `20260921T072421885220Z-da2f69f68d` | screen | week09_rerank | Nelson_2002, Smid_2020, van_der_Valk_2021 | yes | `393db155e8` |
+| `20260921T072653933329Z-5573f0e390` | screen | radjenovic2013_ollama_qwen25_7b | Radjenovic_2013 | yes | `b6092a3722` |
+| `20260921T112221881735Z-86c962f1d6` | screen | week10_full_subset | Nelson_2002, Radjenovic_2013, Smid_2020, van_der_Valk_2021 | yes | `8ac4063684` |
+| `20260921T122043060429Z-df0fc175b2` | screen | week10_prompt_v1_nelson | Nelson_2002 | yes | `8ac4063684` |
+| `20260922T115430121258Z-33c61120f3` | screen | week10_prompt_v2_nelson | Nelson_2002 | yes | `8ac4063684` |
+| `20260922T123132050251Z-6e54fdd202` | screen | week10_prompt_v3_nelson | Nelson_2002 | yes | `8ac4063684` |
+| `20260922T123756418737Z-298d2bcad2` | screen | week10_model_qwen3_nelson | Nelson_2002 | yes | `8ac4063684` |
+| `20260922T124547509237Z-9a8ec8f4db` | screen | week10_repeat_nelson | Nelson_2002 | yes | `8ac4063684` |
+| `20260922T125249401736Z-9a8ec8f4db` | screen | week10_repeat_nelson | Nelson_2002 | yes | `8ac4063684` |
+| `20260922T125946438273Z-9a8ec8f4db` | screen | week10_repeat_nelson | Nelson_2002 | yes | `8ac4063684` |
+| `20260922T130642579955Z-9a8ec8f4db` | screen | week10_repeat_nelson | Nelson_2002 | yes | `8ac4063684` |
+| `20260923T074803087022Z-9a8ec8f4db` | screen | week10_repeat_nelson | Nelson_2002 | yes | `8ac4063684` |
+| `20260924T090935787946Z-88b91f8dc3` | screen | remaining_reviews_ollama_qwen25_7b | Menon_2022, van_der_Waal_2022 | yes | `41d9f75423` |
+| `20261007T075321959635Z-2ecaa4d8d7` | screen | week09_baseline_bm25 | Nelson_2002, Smid_2020, van_der_Valk_2021 | yes | `d22dfe0c43` |
+| `20261007T075323135692Z-423a543937` | screen | week09_dense | Nelson_2002, Smid_2020, van_der_Valk_2021 | yes | `d22dfe0c43` |
+| `20261007T075357565472Z-538ba6a5bc` | screen | week09_hybrid | Nelson_2002, Smid_2020, van_der_Valk_2021 | yes | `d22dfe0c43` |
+| `20261007T075409352775Z-da2f69f68d` | screen | week09_rerank | Nelson_2002, Smid_2020, van_der_Valk_2021 | yes | `d22dfe0c43` |
+| `20261007T075542558551Z-2556bbe54c` | screen | week08_ollama_qwen25_7b | Nelson_2002, Smid_2020 | yes | `d22dfe0c43` |
+| `20261007T075544695718Z-2556bbe54c` | screen | week08_ollama_qwen25_7b | Nelson_2002, Smid_2020 | yes | `d22dfe0c43` |
+| `20261007T080653689188Z-86c962f1d6` | screen | week10_full_subset | Nelson_2002, Radjenovic_2013, Smid_2020, van_der_Valk_2021 | yes | `d22dfe0c43` |
+| `20261007T080657568919Z-df0fc175b2` | screen | week10_prompt_v1_nelson | Nelson_2002 | yes | `d22dfe0c43` |
+| `20261005T082109115224Z-typology-414c762b99` | typology | error_typology |  | no | `93913ec960` |
+
+## Directories that produced no figure
+
+10 of the above have no `metrics.json`: runs interrupted before the harness wrote one, and ASReview's own project directories (the reported ASReview figures come from the `asreview-<review>-<ts>` directories, which do have metrics). No reported number comes from any of these, which is why they are listed and then set aside.

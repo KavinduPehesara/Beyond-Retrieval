@@ -14,6 +14,8 @@ criteria — not reportable.
 | Run | Mode | Strategy | Model | N screened | Verified | Rec (v) | Rec (+h) | Saved | AC1 | PABAK | TNR@r | WSS@r | Cost (USD) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | radjenovic2013_ollama_qwen25_7b<br>`20260921T072653933329Z-5573f0e390` | screen | random | qwen2.5:7b-instruct | 5935 | 35.6% | 0.925 | 0.938 | 33.4% | 0.950 | 0.907 | 0.209 | 0.157 | 0.0000 |
+| week10_full_subset<br>`20260921T112221881735Z-86c962f1d6` | screen | random | qwen2.5:7b-instruct | 5935 | 35.6% | 0.925 | 0.938 | 33.4% | 0.950 | 0.907 | 0.209 | 0.157 | 0.0000 |
+| week10_full_subset<br>`20261007T080653689188Z-86c962f1d6` | screen | random | qwen2.5:7b-instruct | 5935 | 35.6% | 0.925 | 0.938 | 33.4% | 0.950 | 0.907 | 0.209 | 0.157 | 0.0000 |
 
 ## Smid_2020 — 2,627 records, 1.0% included
 
@@ -36,6 +38,26 @@ criteria — not reportable.
 | week09_dense<br>`20260921T072327017657Z-423a543937` | baseline | dense | — | — | — | — | — | — | — | — | 0.696 | 0.639 | — |
 | week09_hybrid<br>`20260921T072358111413Z-538ba6a5bc` | baseline | hybrid | — | — | — | — | — | — | — | — | 0.757 | 0.700 | — |
 | week09_rerank<br>`20260921T072421885220Z-da2f69f68d` | baseline | rerank | — | — | — | — | — | — | — | — | 0.757 | 0.700 | — |
+| week10_full_subset<br>`20260921T112221881735Z-86c962f1d6` | screen | random | qwen2.5:7b-instruct | 2627 | 91.6% | 0.308 | 0.333 | 91.3% | 0.992 | 0.984 | 0.113 | 0.062 | 0.0000 |
+| week09_baseline_bm25<br>`20261007T075321959635Z-2ecaa4d8d7` | baseline | bm25 | — | — | — | — | — | — | — | — | 0.520 | 0.465 | — |
+| week09_dense<br>`20261007T075323135692Z-423a543937` | baseline | dense | — | — | — | — | — | — | — | — | 0.696 | 0.639 | — |
+| week09_hybrid<br>`20261007T075357565472Z-538ba6a5bc` | baseline | hybrid | — | — | — | — | — | — | — | — | 0.757 | 0.700 | — |
+| week09_rerank<br>`20261007T075409352775Z-da2f69f68d` | baseline | rerank | — | — | — | — | — | — | — | — | 0.757 | 0.700 | — |
+| week08_ollama_qwen25_7b<br>`20261007T075542558551Z-2556bbe54c` | screen | random | qwen2.5:7b-instruct | 2627 | 91.6% | 0.308 | 0.333 | 91.3% | 0.992 | 0.984 | 0.113 | 0.062 | 0.0000 |
+| week08_ollama_qwen25_7b<br>`20261007T075544695718Z-2556bbe54c` | screen | random | qwen2.5:7b-instruct | 2627 | 91.6% | 0.308 | 0.333 | 91.3% | 0.992 | 0.984 | 0.113 | 0.062 | 0.0000 |
+| week10_full_subset<br>`20261007T080653689188Z-86c962f1d6` | screen | random | qwen2.5:7b-instruct | 2627 | 91.6% | 0.308 | 0.333 | 91.3% | 0.992 | 0.984 | 0.113 | 0.062 | 0.0000 |
+
+## van_der_Waal_2022 — 1,970 records, 1.7% included
+
+| Run | Mode | Strategy | Model | N screened | Verified | Rec (v) | Rec (+h) | Saved | AC1 | PABAK | TNR@r | WSS@r | Cost (USD) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| remaining_reviews_ollama_qwen25_7b<br>`20260924T090935787946Z-88b91f8dc3` | screen | random | qwen2.5:7b-instruct | 1970 | 39.3% | 0.650 | 0.788 | 35.1% | 0.888 | 0.804 | 0.158 | 0.106 | 0.0000 |
+
+## Menon_2022 — 975 records, 7.6% included
+
+| Run | Mode | Strategy | Model | N screened | Verified | Rec (v) | Rec (+h) | Saved | AC1 | PABAK | TNR@r | WSS@r | Cost (USD) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| remaining_reviews_ollama_qwen25_7b<br>`20260924T090935787946Z-88b91f8dc3` | screen | random | qwen2.5:7b-instruct | 975 | 94.8% | 0.722 | 0.730 | 87.7% | 0.953 | 0.920 | 0.315 | 0.244 | 0.0000 |
 
 ## van_der_Valk_2021 — 725 records, 12.3% included
 
@@ -51,6 +73,12 @@ criteria — not reportable.
 | week09_dense<br>`20260921T072327017657Z-423a543937` | baseline | dense | — | — | — | — | — | — | — | — | 0.181 | 0.114 | — |
 | week09_hybrid<br>`20260921T072358111413Z-538ba6a5bc` | baseline | hybrid | — | — | — | — | — | — | — | — | 0.068 | 0.015 | — |
 | week09_rerank<br>`20260921T072421885220Z-da2f69f68d` | baseline | rerank | — | — | — | — | — | — | — | — | 0.068 | 0.015 | — |
+| week10_full_subset<br>`20260921T112221881735Z-86c962f1d6` | screen | random | qwen2.5:7b-instruct | 725 | 39.3% | 0.320 | 0.809 | 37.8% | 0.920 | 0.860 | 0.138 | 0.077 | 0.0000 |
+| week09_baseline_bm25<br>`20261007T075321959635Z-2ecaa4d8d7` | baseline | bm25 | — | — | — | — | — | — | — | — | 0.049 | -0.002 | — |
+| week09_dense<br>`20261007T075323135692Z-423a543937` | baseline | dense | — | — | — | — | — | — | — | — | 0.181 | 0.114 | — |
+| week09_hybrid<br>`20261007T075357565472Z-538ba6a5bc` | baseline | hybrid | — | — | — | — | — | — | — | — | 0.068 | 0.015 | — |
+| week09_rerank<br>`20261007T075409352775Z-da2f69f68d` | baseline | rerank | — | — | — | — | — | — | — | — | 0.068 | 0.015 | — |
+| week10_full_subset<br>`20261007T080653689188Z-86c962f1d6` | screen | random | qwen2.5:7b-instruct | 725 | 39.3% | 0.320 | 0.809 | 37.8% | 0.920 | 0.860 | 0.138 | 0.077 | 0.0000 |
 
 ## Nelson_2002 — 366 records, 21.9% included
 
@@ -77,3 +105,21 @@ criteria — not reportable.
 | week09_dense<br>`20260921T072327017657Z-423a543937` | baseline | dense | — | — | — | — | — | — | — | — | 0.178 | 0.100 | — |
 | week09_hybrid<br>`20260921T072358111413Z-538ba6a5bc` | baseline | hybrid | — | — | — | — | — | — | — | — | 0.094 | 0.035 | — |
 | week09_rerank<br>`20260921T072421885220Z-da2f69f68d` | baseline | rerank | — | — | — | — | — | — | — | — | 0.094 | 0.035 | — |
+| week10_full_subset<br>`20260921T112221881735Z-86c962f1d6` | screen | random | qwen2.5:7b-instruct | 366 | 51.9% | 0.906 | 0.938 | 20.8% | 0.263 | 0.253 | 0.164 | 0.089 | 0.0000 |
+| week10_prompt_v1_nelson<br>`20260921T122043060429Z-df0fc175b2` | screen | random | qwen2.5:7b-instruct | 366 | 51.9% | 0.906 | 0.938 | 20.8% | 0.263 | 0.253 | 0.164 | 0.089 | 0.0000 |
+| week10_prompt_v2_nelson<br>`20260922T115430121258Z-33c61120f3` | screen | random | qwen2.5:7b-instruct | 366 | 13.4% | 0.615 | 0.938 | 8.7% | 0.503 | 0.429 | 0.038 | -0.009 | 0.0000 |
+| week10_prompt_v3_nelson<br>`20260922T123132050251Z-6e54fdd202` | screen | random | qwen2.5:7b-instruct | 366 | 13.9% | 0.667 | 0.925 | 6.0% | 0.104 | 0.098 | 0.024 | -0.020 | 0.0000 |
+| week10_model_qwen3_nelson<br>`20260922T123756418737Z-298d2bcad2` | screen | random | qwen3:8b | 366 | 42.1% | 0.385 | 0.800 | 35.8% | 0.743 | 0.623 | 0.150 | 0.078 | 0.0000 |
+| week10_repeat_nelson<br>`20260922T124547509237Z-9a8ec8f4db` | screen | random | qwen2.5:7b-instruct | 366 | 50.5% | 0.938 | 0.963 | 20.5% | 0.280 | 0.265 | 0.280 | 0.180 | 0.0000 |
+| week10_repeat_nelson<br>`20260922T125249401736Z-9a8ec8f4db` | screen | random | qwen2.5:7b-instruct | 366 | 50.8% | 0.938 | 0.963 | 20.5% | 0.273 | 0.258 | 0.280 | 0.180 | 0.0000 |
+| week10_repeat_nelson<br>`20260922T125946438273Z-9a8ec8f4db` | screen | random | qwen2.5:7b-instruct | 366 | 50.8% | 0.938 | 0.963 | 20.5% | 0.273 | 0.258 | 0.280 | 0.180 | 0.0000 |
+| week10_repeat_nelson<br>`20260922T130642579955Z-9a8ec8f4db` | screen | random | qwen2.5:7b-instruct | 366 | 50.8% | 0.938 | 0.963 | 20.5% | 0.273 | 0.258 | 0.280 | 0.180 | 0.0000 |
+| week10_repeat_nelson<br>`20260923T074803087022Z-9a8ec8f4db` | screen | random | qwen2.5:7b-instruct | 366 | 50.5% | 0.938 | 0.963 | 20.5% | 0.280 | 0.265 | 0.280 | 0.180 | 0.0000 |
+| week09_baseline_bm25<br>`20261007T075321959635Z-2ecaa4d8d7` | baseline | bm25 | — | — | — | — | — | — | — | — | 0.038 | -0.009 | — |
+| week09_dense<br>`20261007T075323135692Z-423a543937` | baseline | dense | — | — | — | — | — | — | — | — | 0.178 | 0.100 | — |
+| week09_hybrid<br>`20261007T075357565472Z-538ba6a5bc` | baseline | hybrid | — | — | — | — | — | — | — | — | 0.094 | 0.035 | — |
+| week09_rerank<br>`20261007T075409352775Z-da2f69f68d` | baseline | rerank | — | — | — | — | — | — | — | — | 0.094 | 0.035 | — |
+| week08_ollama_qwen25_7b<br>`20261007T075542558551Z-2556bbe54c` | screen | random | qwen2.5:7b-instruct | 366 | 51.9% | 0.906 | 0.938 | 20.8% | 0.263 | 0.253 | 0.164 | 0.089 | 0.0000 |
+| week08_ollama_qwen25_7b<br>`20261007T075544695718Z-2556bbe54c` | screen | random | qwen2.5:7b-instruct | 366 | 51.9% | 0.906 | 0.938 | 20.8% | 0.263 | 0.253 | 0.164 | 0.089 | 0.0000 |
+| week10_full_subset<br>`20261007T080653689188Z-86c962f1d6` | screen | random | qwen2.5:7b-instruct | 366 | 51.9% | 0.906 | 0.938 | 20.8% | 0.263 | 0.253 | 0.164 | 0.089 | 0.0000 |
+| week10_prompt_v1_nelson<br>`20261007T080657568919Z-df0fc175b2` | screen | random | qwen2.5:7b-instruct | 366 | 51.9% | 0.906 | 0.938 | 20.8% | 0.263 | 0.253 | 0.164 | 0.089 | 0.0000 |
