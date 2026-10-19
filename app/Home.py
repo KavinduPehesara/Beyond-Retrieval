@@ -1,157 +1,325 @@
-"""Beyond Retrieval -- the front door.
+"""Beyond Retrieval -- one research question, start to finish.
 
-Deliberately a search box rather than a table of the six test reviews. The
-six reviews are how this project proves its figures; they are not what the
-tool is for, and leading with them made the tool look like a report about
-six old medical reviews. So the first thing on screen asks the question a
-researcher actually arrives with, and the validation evidence sits one
-click away under its own clearly-labelled pages.
+1. The researcher types a question.
+2. The system searches OpenAlex, ranks the candidates by closeness to the
+   question, and suggests the best ones. Each comes with whether it addresses
+   the question and any research gap its authors state, both backed by a
+   sentence found word for word in the abstract.
+3. The researcher picks the papers worth reading in full.
+4. The system reads those papers and lays out what each contains, by
+   category, next to how relevant it is to the question.
 
-Nothing here computes a figure. Every number comes from the API, which
-reads a run directory or the live database.
+Nothing here computes a figure. Every value comes from the API.
 """
 
 from __future__ import annotations
 
+import httpx
 import streamlit as st
-from api_client import API_URL, charts_corpus, health, list_reviews
+from api_client import API_URL, discover_fulltext, export_project, health, read_live_session, suggest
+from fulltext_view import render_categories
 
 st.set_page_config(page_title="Beyond Retrieval", page_icon="\U0001f4da", layout="wide")
 from research_style import apply_research_style
 apply_research_style()
-from account_view import render_welcome, render_account, render_library
+from account_view import render_account, render_library, render_welcome
 render_welcome()
 render_account()
-render_library()
+
+#: The full-text route reads at most this many papers per request.
+MAX_FULLTEXT = 10
+
+FULLTEXT_FIELDS = [
+    ("primary_outcome", "Main result"),
+    ("effect_size", "Effect size"),
+    ("statistical_methods", "Method"),
+    ("sample_characteristics", "Sample"),
+    ("limitations", "Limitations"),
+]
+
+RELEVANCE_BADGE = {
+    "relevant": ("\U0001f7e2", "Addresses your question"),
+    "check": ("\U0001f7e1", "Check it yourself"),
+    "not_relevant": ("⚪", "Probably off-topic"),
+}
+
+
+def relevance_label(paper: dict) -> str:
+    """Relevant only when the model said include *and* its quote verified."""
+    d = paper.get("decision") or {}
+    if not d.get("span_verified"):
+        return "check"
+    return "relevant" if d.get("status") == "include" else "not_relevant"
+
+
+def field_text(item: dict | None) -> str:
+    """One cell of the comparison table. A withheld value is never shown."""
+    if not item:
+        return "—"
+    if item["status"] == "verified":
+        return item.get("value") or "—"
+    if item["status"] == "not_stated":
+        return "not stated"
+    return "withheld (quote not found)"
+
 
 st.title("Beyond Retrieval")
-st.markdown("#### Find the papers that matter, and check every decision for yourself.")
+st.markdown("#### Ask a research question. Get the papers worth reading, and what is in them.")
 
 if not health():
-    st.error(
-        f"Can't reach the API at `{API_URL}`. Start it first:\n\n"
-        "```\nuvicorn slr.api.app:app\n```"
+    st.error(f"Can't reach the API at `{API_URL}`. Start it with `uvicorn slr.api.app:app`.")
+    st.stop()
+
+render_library()
+
+# ---------------------------------------------------------------------------
+# Step 1 -- the question
+# ---------------------------------------------------------------------------
+
+with st.form("question"):
+    question = st.text_area(
+        "What is your research question?",
+        height=90,
+        placeholder="e.g. Does vitamin D supplementation reduce the risk of asthma attacks in children?",
+    )
+    n = st.slider("Papers to suggest", min_value=5, max_value=25, value=20)
+    st.caption(
+        "Searches OpenAlex live, ranks what comes back by how close it is to your question, "
+        "then has the local model check the top papers. Expect a few minutes for 20."
+    )
+    asked = st.form_submit_button("Find papers", type="primary")
+
+if asked:
+    if not question.strip():
+        st.warning("Type a research question first.")
+        st.stop()
+    if st.session_state.get("google_account") and not st.session_state.get("active_project"):
+        st.warning("Create or open a research project above first, so the results are saved.")
+        st.stop()
+    with st.spinner(f"Searching and checking the {n} closest papers..."):
+        try:
+            st.session_state["session"] = suggest(question.strip(), n=n)
+            st.session_state.pop("fulltext", None)
+            st.session_state.pop("picked", None)
+            st.session_state.pop("export", None)
+        except httpx.HTTPStatusError as exc:
+            code = exc.response.status_code
+            if code == 502:
+                st.error("Couldn't reach OpenAlex. Check your internet connection and try again.")
+            elif code == 409:
+                st.error("A cached answer didn't match this request, so the search was stopped. Try again.")
+            else:
+                st.error(f"Request failed: {exc.response.text}")
+            st.stop()
+        except httpx.HTTPError:
+            st.error("The model didn't respond in time. Is Ollama running?")
+            st.stop()
+
+session = st.session_state.get("session")
+if not session:
+    st.info(
+        "Needs Ollama running locally (`ollama pull qwen2.5:7b-instruct`). "
+        "Full-text reading needs you to sign in and open a project."
+    )
+    st.stop()
+
+papers = session.get("papers") or []
+if not papers:
+    st.warning(
+        "No results had an abstract to check. OpenAlex can only share abstracts for about half "
+        "of what it indexes. Try different wording."
     )
     st.stop()
 
 # ---------------------------------------------------------------------------
-# The front door. Typing a topic here hands it to Run a review, which asks
-# for the eligibility criteria -- two short steps rather than one long form,
-# because the topic is the thing people arrive already knowing.
+# Step 2 -- suggestions, and whether other authors name the question as a gap
 # ---------------------------------------------------------------------------
 
-with st.form("start"):
-    topic = st.text_input(
-        "What are you researching?",
-        placeholder="e.g. machine learning for crop disease detection",
-        label_visibility="visible",
-    )
-    started = st.form_submit_button("Start a review", type="primary")
+st.divider()
+st.subheader(f"Suggested papers for: {session['query']}")
 
-if started:
-    if not topic.strip():
-        st.warning("Type a topic to get started.")
+relevant = [p for p in papers if relevance_label(p) == "relevant"]
+gaps = [p for p in papers if (p.get("gap") or {}).get("status") == "gap_stated"]
+m = st.columns(4)
+m[0].metric("Candidates ranked", session.get("n_candidates") or len(papers))
+m[1].metric("Suggested", len(papers))
+m[2].metric("Address your question", len(relevant), help="The model said yes and its quote was found in the abstract.")
+m[3].metric("State a research gap", len(gaps))
+if session.get("ranking_note"):
+    st.caption(session["ranking_note"])
+
+with st.container(border=True):
+    st.markdown("**Is your question an open gap?**")
+    if not gaps:
+        st.caption(
+            "None of the suggested papers states a research gap in its abstract. That does not "
+            "mean the question is answered: the gap check finds roughly half of stated gaps, "
+            "and reads abstracts only."
+        )
     else:
-        st.session_state["pending_topic"] = topic.strip()
-        st.switch_page("pages/1_Run_a_Review.py")
+        ordered = sorted(gaps, key=lambda p: -(p.get("gap_match") or 0.0))
+        st.caption(
+            "Gaps other authors state in their own words, closest to your question first. "
+            "Each quote was found word for word in that paper's abstract."
+        )
+        for p in ordered[:6]:
+            match = f" · similarity {p['gap_match']:.2f}" if p.get("gap_match") is not None else ""
+            st.markdown(f"> {p['gap']['quote']}")
+            st.caption(f"{p['title'] or p['work_id']} ({p.get('year') or 'n.d.'}){match}")
 
-st.caption(
-    "Searches live academic literature, screens it against criteria you write, pulls out the "
-    "study details, and flags the research gaps authors state themselves — showing you the "
-    "exact sentence behind every answer."
-)
-
-st.divider()
-
-st.subheader("What it does")
-c1, c2, c3 = st.columns(3)
-with c1:
-    st.markdown(
-        "**1 · Searches and sorts**\n\n"
-        "Finds candidate papers on your topic and puts the ones most likely to matter first, "
-        "so the reading you skip is the reading least likely to be relevant."
-    )
-with c2:
-    st.markdown(
-        "**2 · Screens against your criteria**\n\n"
-        "You write what counts as relevant, in plain sentences. Every keep-or-drop decision is "
-        "judged against that and nothing else."
-    )
-with c3:
-    st.markdown(
-        "**3 · Shows its working**\n\n"
-        "Each decision comes with the sentence it rests on, checked word-for-word against the "
-        "paper's abstract. If that check fails, the decision is withheld rather than shown."
-    )
-
-st.divider()
+st.markdown(f"**Pick the papers to read in full** (up to {MAX_FULLTEXT})")
+picked: set[str] = set(st.session_state.get("picked", []))
+for rank, paper in enumerate(papers, 1):
+    icon, label = RELEVANCE_BADGE[relevance_label(paper)]
+    d = paper.get("decision") or {}
+    with st.container(border=True):
+        top = st.columns([0.06, 0.94])
+        checked = top[0].checkbox(
+            "Select", key="pick-" + paper["work_id"], value=paper["work_id"] in picked,
+            label_visibility="collapsed",
+        )
+        if checked:
+            picked.add(paper["work_id"])
+        else:
+            picked.discard(paper["work_id"])
+        with top[1]:
+            st.markdown(f"**#{rank} · {icon} {label} — {paper['title'] or paper['work_id']}**")
+            bits = [str(paper["year"]) if paper.get("year") else "year unknown"]
+            if paper.get("relevance") is not None:
+                bits.append(f"similarity {paper['relevance']:.2f}")
+            if paper.get("source_url"):
+                bits.append(f"[view paper]({paper['source_url']})")
+            st.caption(" · ".join(bits))
+            if d.get("quote") and d.get("span_verified"):
+                st.markdown(f"Why: “{d['quote']}”")
+            elif d.get("quote"):
+                st.caption("The model's reason wasn't found in the abstract, so its call is withheld. Read this one yourself.")
+            gap = paper.get("gap") or {}
+            if gap.get("status") == "gap_stated":
+                st.markdown(f"Gap the authors state: “{gap['quote']}”")
+            if paper.get("abstract"):
+                with st.expander("Abstract"):
+                    st.write(paper["abstract"])
+st.session_state["picked"] = sorted(picked)
 
 # ---------------------------------------------------------------------------
-# The evidence, summarised honestly and in one place. This is the section
-# that used to be the whole landing page.
+# Step 3 -- full text for the papers the researcher chose
 # ---------------------------------------------------------------------------
 
-st.subheader("Why you should believe any of it")
-st.markdown(
-    "Any tool can produce confident-looking answers. The only reason to trust this one is that "
-    "it has been run over literature where the right answers were already known and published — "
-    "**six completed systematic reviews, 12,598 papers, 351 of which the original human "
-    "reviewers kept.** Every figure in this project comes from that exercise, and the pages "
-    "under *Validation* show it, including the parts that went badly."
-)
+st.divider()
+st.subheader("Read the selected papers in full")
+chosen = [p for p in papers if p["work_id"] in picked]
+too_many = len(chosen) > MAX_FULLTEXT
+signed_in = bool(st.session_state.get("google_account"))
+has_project = bool(st.session_state.get("active_project"))
 
-try:
-    reviews = list_reviews()
-    corpus = charts_corpus()
-except Exception as exc:
-    st.warning(f"Couldn't load the validation summary: {exc}")
+if too_many:
+    st.warning(f"{len(chosen)} selected. Full text is read {MAX_FULLTEXT} at a time; untick a few.")
+elif not signed_in:
+    st.info("Sign in with Google and open a project to read full text.")
+elif not has_project:
+    st.info("Create or open a research project above to read full text.")
 else:
-    totals = corpus["prevalence"]
-    e1, e2, e3, e4 = st.columns(4)
-    e1.metric("Test reviews", len(totals))
-    e2.metric("Papers screened", f"{sum(r['n'] for r in totals):,}")
-    e3.metric("Correct answers known", f"{sum(r['included'] for r in totals):,}")
-    if totals:
-        lo = min(r["prevalence"] for r in totals)
-        hi = max(r["prevalence"] for r in totals)
-        e4.metric(
-            "Difficulty range",
-            f"{lo * 100:.1f}%–{hi * 100:.1f}%",
-            help=(
-                "The share of papers actually worth keeping, per review. Chosen to span easy to "
-                "very hard on purpose: a screening tool looks far better on a review where one "
-                "paper in five is a keeper than on one where it's one in 125."
-            ),
+    st.caption(
+        "Only open-access papers held by Europe PMC can be read in full, mostly medicine and "
+        "life sciences. Each paper takes a lookup, a download and a long model call."
+    )
+
+if st.button(
+    f"Extract full text from {len(chosen)} paper(s)",
+    type="primary",
+    disabled=not chosen or too_many or not signed_in or not has_project,
+):
+    targets = [{"work_id": p["work_id"], "title": p["title"], "doi": p.get("doi")} for p in chosen]
+    with st.spinner(f"Fetching and reading {len(targets)} paper(s)..."):
+        try:
+            discover_fulltext(targets)
+            st.session_state.pop("export", None)
+            st.session_state["fulltext"] = read_live_session(st.session_state["active_project"]).get("fulltext")
+        except httpx.HTTPStatusError as exc:
+            st.error(f"Request failed: {exc.response.text}")
+        except httpx.HTTPError:
+            st.error("The model didn't respond in time. Is Ollama running?")
+
+ft = st.session_state.get("fulltext")
+if ft and ft.get("papers"):
+    by_id = {p["work_id"]: p for p in papers}
+    rank_of = {p["work_id"]: i for i, p in enumerate(papers, 1)}
+    results = sorted(ft["papers"], key=lambda p: rank_of.get(p["work_id"], 999))
+    found = sum(1 for p in results if p.get("found"))
+    if found:
+        st.success(f"Full text found for {found} of {len(results)}.")
+    else:
+        st.warning(
+            f"None of the {len(results)} papers had open-access full text in Europe PMC. "
+            "That is a coverage limit; each paper's reason is below."
         )
 
-    not_screened = [r["review"] for r in reviews if not r["screen_run"]]
-    if not_screened:
-        st.warning("Not yet screened: " + ", ".join(not_screened))
+    with st.container(border=True):
+        st.markdown("**Save to your computer**")
+        st.caption(
+            "One folder per paper: the PDF when an open-access copy can be downloaded, its "
+            "categorised data (readable summary.md and data.json), tables as CSV, and figures. "
+            "Plus summary.csv comparing them all. Your browser saves it as a .zip; unzip it "
+            "wherever you keep your research."
+        )
+        if st.button("Prepare download", key="prepare-export"):
+            with st.spinner("Downloading PDFs and packaging the data..."):
+                try:
+                    st.session_state["export"] = export_project(st.session_state["active_project"])
+                except httpx.HTTPStatusError as exc:
+                    st.error(f"Export failed: {exc.response.text}")
+                except httpx.HTTPError:
+                    st.error("The export took too long. Try again with fewer papers.")
+        export = st.session_state.get("export")
+        if export:
+            name, data = export
+            st.download_button("Download folder (.zip)", data, file_name=name,
+                               mime="application/zip", type="primary", key="download-export")
+            st.caption(f"{len(data) / 1_000_000:.1f} MB")
 
-    st.caption(
-        "**The honest headline:** the system reliably refuses to assert what it can't back with a "
-        "real quote, and that is the property this project set out to build. It does *not* hit the "
-        "99% verification target the proposal set, it finds roughly half the research gaps that "
-        "are actually stated, and a dedicated active-learning tool out-ranks it on every review "
-        "where the two can be compared. All three are on the validation pages with numbers."
-    )
+    st.markdown("**At a glance**")
+    rows = []
+    for p in results:
+        s = by_id.get(p["work_id"], {})
+        _, label = RELEVANCE_BADGE[relevance_label(s)] if s else ("", "—")
+        rows.append(
+            {
+                "Paper": (p.get("title") or p["work_id"])[:90],
+                "Relevance": label,
+                "Similarity": round(s["relevance"], 2) if s.get("relevance") is not None else None,
+                "Full text": "yes" if p.get("found") else "no",
+                **{name: field_text(p.get(field)) for field, name in FULLTEXT_FIELDS},
+            }
+        )
+    st.dataframe(rows, hide_index=True, use_container_width=True)
+    st.caption("A value appears only when its supporting quote was found in the paper. Tables and figures below come straight from the publisher's file.")
 
-with st.expander("What a “test review” is, if you're not a researcher"):
-    st.markdown(
-        "A systematic review is what researchers do when they want to answer a question properly: "
-        "search the databases, get back a few thousand papers that *might* be relevant, then have "
-        "two people read every title and abstract and decide one by one what stays. It takes "
-        "weeks, and it is the part this tool is trying to help with.\n\n"
-        "The six reviews here were all completed years ago by other research teams, who published "
-        "their answer sheets — the exact list of which papers they kept. So the same papers can "
-        "be handed to this system, and its answers compared with theirs. **The right answer is "
-        "already known, which is what makes the result a measurement rather than a claim.**\n\n"
-        "A researcher using the finished tool would never see these six. They'd type their own "
-        "topic on this page. The six are the crash-test dummies, not the car."
-    )
+    for index, p in enumerate(results):
+        s = by_id.get(p["work_id"], {})
+        with st.container(border=True):
+            st.markdown(f"#### {p.get('title') or p['work_id']}")
+            if s:
+                icon, label = RELEVANCE_BADGE[relevance_label(s)]
+                d = s.get("decision") or {}
+                line = f"{icon} **{label}**"
+                if s.get("relevance") is not None:
+                    line += f" · similarity {s['relevance']:.2f}"
+                st.markdown(line)
+                if d.get("quote") and d.get("span_verified"):
+                    st.caption(f"Why: “{d['quote']}”")
+                gap = s.get("gap") or {}
+                if gap.get("status") == "gap_stated":
+                    st.caption(f"Gap the authors state: “{gap['quote']}”")
+            if p.get("coverage"):
+                render_categories({**p, "fulltext_ui_key": f"ft-{index}-{p['work_id']}",
+                                   "fulltext_note": p.get("note", "")})
+            elif p.get("note"):
+                st.caption(f"Full text: {p['note']}")
 
 st.divider()
 st.caption(
-    f"API: `{API_URL}` · Runs on a local model, so every figure on this dashboard cost $0. "
-    "MSE907 capstone — Pehesara Gunawardena."
+    "Nothing on this page is scored: there is no answer sheet for a question you just typed. "
+    "Every claim is shown with the sentence it rests on, so you can check it. "
+    "Runs on a local model, so a search costs nothing."
 )

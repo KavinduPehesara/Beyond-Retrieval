@@ -38,21 +38,6 @@ def test_identity_uses_subject_and_expiry(client):
     with pytest.raises(ValueError):
         accounts.issue_ticket(dict(sub="bad", email="bad@example.test", email_verified=False))
 
-def test_private_review_library(client):
-    one, two = identity("one"), identity("two")
-    saved = live_review.create_session(dict(query="Private topic", papers=[]), one["id"])
-    sid = saved["session_id"]
-    assert client.get("/discover/sessions").status_code == 401
-    h1 = {"Authorization": "Bearer "+one["token"]}
-    h2 = {"Authorization": "Bearer "+two["token"]}
-    assert len(client.get("/discover/sessions", headers=h1).json()) == 1
-    assert client.get("/discover/sessions", headers=h2).json() == []
-    assert client.get("/discover/sessions/"+sid, headers=h1).status_code == 200
-    assert client.get("/discover/sessions/"+sid, headers=h2).status_code == 404
-    assert client.post("/discover/sessions/"+sid+"/semantic-map", headers=h2).status_code == 404
-    action = dict(work_id="W1", decision="exclude")
-    assert client.post("/discover/sessions/"+sid+"/review", headers=h2, json=action).status_code == 404
-
 def test_google_callback_state_and_nonce(client, monkeypatch):
     assert client.get("/auth/google/callback?state=bad&code=bad").status_code == 400
     start = client.get("/auth/google/start", follow_redirects=False)
@@ -95,3 +80,17 @@ def test_google_state_expiry(client):
         conn.execute("UPDATE oauth_states SET expires=0")
     with pytest.raises(ValueError):
         accounts.consume_state(state)
+
+
+def test_private_review_library(client):
+    one, two = identity("one"), identity("two")
+    saved = live_review.create_session(dict(query="Private topic", papers=[]), one["id"])
+    sid = saved["session_id"]
+    assert client.get("/discover/sessions").status_code == 401
+    h1 = {"Authorization": "Bearer "+one["token"]}
+    h2 = {"Authorization": "Bearer "+two["token"]}
+    assert len(client.get("/discover/sessions", headers=h1).json()) == 1
+    assert client.get("/discover/sessions", headers=h2).json() == []
+    assert client.get("/discover/sessions/"+sid, headers=h1).status_code == 200
+    assert client.get("/discover/sessions/"+sid, headers=h2).status_code == 404
+    assert client.post("/projects/"+sid+"/export", headers=h2).status_code == 404

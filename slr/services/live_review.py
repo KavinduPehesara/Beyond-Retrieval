@@ -7,8 +7,6 @@ import sqlite3
 from threading import Lock
 from uuid import uuid4
 
-import numpy as np
-from slr.services.verify import verify_span
 
 STORE = Path(__file__).resolve().parents[2] / "data" / "live_reviews.sqlite3"
 EMBED_LOCK = Lock()
@@ -60,76 +58,10 @@ def read_session(session_id):
     return session
 
 
-def record_action(session_id, work_id, action):
-    session = read_session(session_id)
-    paper = next((p for p in session["papers"] if p["work_id"] == work_id), None)
-    if paper is None:
-        raise KeyError("Paper not found in this session")
-    coded = bool(action.get("technique") or action.get("domain"))
-    if coded and not (action.get("technique") and action.get("domain")):
-        raise ValueError("Supply both technique and domain to code a paper")
-    if coded and not verify_span(action.get("quote"), paper.get("abstract")).verified:
-        raise ValueError("Coding evidence must match the stored abstract")
-    with _connect() as conn:
-        conn.execute("INSERT INTO actions(session_id,work_id,payload,created_at) VALUES (?,?,?,?)",
-                     (session_id, work_id, json.dumps(action), datetime.now(timezone.utc).isoformat()))
-    return read_session(session_id)
-
-
-def coverage(session):
-    rows = []
-    for paper in session["papers"]:
-        action = session["reviewer_latest"].get(paper["work_id"], {})
-        if action.get("decision") == "exclude" or not action.get("technique") or not action.get("domain"):
-            continue
-        gap = paper.get("gap") or {}
-        gap_quote = gap.get("quote") if gap.get("status") == "gap_stated" else ""
-        if not verify_span(gap_quote, paper.get("abstract")).verified:
-            gap_quote = ""
-        rows.append(dict(work_id=paper["work_id"], title=paper.get("title"), source_url=paper.get("source_url"),
-                         technique=action["technique"], domain=action["domain"], quote=action["quote"], gap_quote=gap_quote))
-    techniques = sorted({r["technique"] for r in rows})
-    domains = sorted({r["domain"] for r in rows})
-    cells = [dict(technique=t, domain=d, papers=sum(r["technique"] == t and r["domain"] == d for r in rows),
-                  gap_statements=sum(r["technique"] == t and r["domain"] == d and bool(r["gap_quote"]) for r in rows))
-             for t in techniques for d in domains]
-    return dict(cells=cells, evidence=rows, n_coded=len(rows))
-
-
 @lru_cache(maxsize=1)
 def _embedder():
     from slr.adapters.embed import Specter2Embedder
     return Specter2Embedder()
-
-
-def semantic_map(session_id, embedder=None):
-    session = read_session(session_id)
-    with _connect() as conn:
-        cached = conn.execute("SELECT payload FROM maps WHERE session_id=?", (session_id,)).fetchone()
-    if cached:
-        return json.loads(cached[0])
-    papers = [p for p in session["papers"] if p.get("abstract")]
-    if len(papers) < 3:
-        raise ValueError("At least three papers with abstracts are needed for a two-dimensional map")
-    texts = [(p.get("title") or "") + " [SEP] " + p["abstract"] for p in papers]
-    with EMBED_LOCK:
-        vectors = np.asarray((embedder or _embedder()).encode(texts), dtype=float)
-    if vectors.ndim != 2 or vectors.shape[0] != len(papers) or not np.isfinite(vectors).all():
-        raise ValueError("Embedding model returned invalid vectors")
-    norms = np.linalg.norm(vectors, axis=1, keepdims=True)
-    vectors = vectors / np.maximum(norms, 1e-12)
-    centered = vectors - vectors.mean(axis=0)
-    u, s, _ = np.linalg.svd(centered, full_matrices=False)
-    xy = u[:, :2] * s[:2]
-    if xy.shape[1] < 2:
-        raise ValueError("Embeddings do not support a two-dimensional map")
-    variance = float((s[:2] ** 2).sum() / (s ** 2).sum()) if (s ** 2).sum() else 0.0
-    result = dict(model="SPECTER2 proximity", projection="PCA of normalized embeddings", variance_explained=variance,
-                  points=[dict(work_id=p["work_id"], title=p.get("title"), source_url=p.get("source_url"),
-                               x=float(xy[i, 0]), y=float(xy[i, 1])) for i, p in enumerate(papers)])
-    with _connect() as conn:
-        conn.execute("INSERT OR REPLACE INTO maps VALUES (?,?)", (session_id, json.dumps(result)))
-    return result
 
 
 def update_project(session_id, account_id, **changes):

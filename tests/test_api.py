@@ -33,16 +33,8 @@ def conn(tmp_path):
 
 
 @pytest.fixture()
-def runs_dir(tmp_path):
-    d = tmp_path / "runs"
-    d.mkdir()
-    return d
-
-
-@pytest.fixture()
-def client(conn, runs_dir, monkeypatch, tmp_path):
+def client(conn, monkeypatch, tmp_path):
     monkeypatch.setattr(app_module.live_review, "STORE", tmp_path / "live.sqlite3")
-    monkeypatch.setattr(app_module, "RUNS_DIR", runs_dir)
     monkeypatch.setattr(app_module, "PROMPTS_DIR", app_module.PROMPTS_DIR)  # real prompts/ dir, read-only
 
     def override_get_conn():
@@ -53,235 +45,8 @@ def client(conn, runs_dir, monkeypatch, tmp_path):
     app_module.app.dependency_overrides.clear()
 
 
-def _write_run(runs_dir, name, metrics):
-    d = runs_dir / name
-    d.mkdir()
-    (d / "metrics.json").write_text(json.dumps(metrics), encoding="utf-8")
-    return d
-
-
 def test_health(client):
     assert client.get("/health").json() == {"status": "ok"}
-
-
-def test_live_session_review_is_audited_and_matrix_checks_quotes(client, conn):
-    from slr.services import accounts
-    ticket, binding = accounts.issue_ticket(dict(sub="test-owner", email="owner@example.test", email_verified=True))
-    token = accounts.exchange_ticket(ticket, binding)["token"]
-    client.headers["Authorization"] = "Bearer " + token
-    payload = dict(query="asthma", criteria=None, n_found=1, n_screened=0,
-                   n_included=0, n_excluded=0, n_referred=0, n_verified_quotes=0, n_gaps=0,
-                   papers=[dict(work_id="LIVE1", title="Trial", year=2024, source_url=None,
-                                abstract="We studied asthma with regression.")])
-    result = client.post("/discover/sessions", json=payload)
-    assert result.status_code == 200
-    sid = result.json()["session_id"]
-    action = dict(work_id="LIVE1", decision="include", technique="Regression", domain="Asthma", quote="invented")
-    assert client.post(f"/discover/sessions/{sid}/review", json=action).status_code == 400
-    action["quote"] = "We studied asthma with regression."
-    assert client.post(f"/discover/sessions/{sid}/review", json=action).status_code == 200
-    saved = client.get(f"/discover/sessions/{sid}").json()
-    assert saved["coverage_matrix"]["cells"][0]["papers"] == 1
-    assert len(saved["reviewer_actions"]) == 1
-    action["decision"] = "exclude"
-    client.post(f"/discover/sessions/{sid}/review", json=action)
-    saved = client.get(f"/discover/sessions/{sid}").json()
-    assert len(saved["reviewer_actions"]) == 2
-    assert saved["coverage_matrix"]["n_coded"] == 0
-    assert conn.execute("SELECT COUNT(*) FROM human_decision").fetchone()[0] == 0
-    assert client.get("/discover/sessions/unknown").status_code == 404
-    assert client.post(f"/discover/sessions/{sid}/semantic-map").status_code == 400
-
-
-def test_list_reviews_reflects_the_corpus_and_criteria(client):
-    resp = client.get("/reviews")
-    assert resp.status_code == 200
-    body = resp.json()
-    assert len(body) == 1
-    r = body[0]
-    assert r["review"] == "R1"
-    assert r["n_records"] == 2
-    assert r["n_included"] == 1
-    assert r["prevalence"] == pytest.approx(0.5)
-    assert r["criteria_status"] == "published"
-    assert r["screen_run"] is None
-
-
-def test_review_metrics_404_when_no_screening_run_exists(client):
-    assert client.get("/reviews/R1/metrics").status_code == 404
-
-
-def test_review_metrics_reads_the_named_run(client, runs_dir):
-    _write_run(runs_dir, "20260101T000000Z-aaa", {
-        "mode": "screen", "reviews_completed": ["R1"],
-        "per_review": [{"review": "R1", "verification_rate": 0.9}],
-    })
-    resp = client.get("/reviews/R1/metrics")
-    assert resp.status_code == 200
-    assert resp.json()["verification_rate"] == 0.9
-    assert resp.json()["run_id"] == "20260101T000000Z-aaa"
-
-
-def test_list_papers_without_a_screening_run_is_404(client):
-    assert client.get("/reviews/R1/papers").status_code == 404
-
-
-def test_list_papers_joins_screening_decisions(client, conn, runs_dir):
-    _write_run(runs_dir, "20260101T000000Z-aaa", {"mode": "screen", "reviews_completed": ["R1"]})
-    conn.execute("INSERT INTO run (run_id, config_hash) VALUES ('20260101T000000Z-aaa', 'h')")
-    conn.execute(
-        "INSERT INTO screening_decision (run_id, review, work_id, decision, confidence, span_verified, verify_note) "
-        "VALUES ('20260101T000000Z-aaa', 'R1', 'W1', 'include', 0.9, 1, 'ok')"
-    )
-    conn.commit()
-    resp = client.get("/reviews/R1/papers")
-    assert resp.status_code == 200
-    by_id = {p["work_id"]: p for p in resp.json()}
-    assert by_id["W1"]["decision"] == "include"
-    assert by_id["W2"]["decision"] is None  # unscreened, still listed
-
-
-def test_paper_detail_assembles_screen_extract_and_gap(client, conn, runs_dir):
-    _write_run(runs_dir, "20260101T000000Z-aaa", {"mode": "screen", "reviews_completed": ["R1"]})
-    _write_run(runs_dir, "20260101T000000Z-extract-bbb", {"review": "R1"})
-    _write_run(runs_dir, "20260101T000000Z-gap-ccc", {"review": "R1"})
-    conn.execute("INSERT INTO run (run_id, config_hash) VALUES ('20260101T000000Z-aaa', 'h')")
-    conn.execute(
-        "INSERT INTO screening_decision (run_id, review, work_id, decision, confidence, evidence_span, span_verified, verify_note) "
-        "VALUES ('20260101T000000Z-aaa', 'R1', 'W1', 'include', 0.9, 'Randomised trial', 1, 'ok')"
-    )
-    conn.execute(
-        "INSERT INTO extraction (run_id, source_run_id, review, work_id, field_name, value, evidence_span, span_verified, verify_note) "
-        "VALUES ('20260101T000000Z-extract-bbb', '20260101T000000Z-aaa', 'R1', 'W1', 'study_design', 'RCT', 'Randomised trial', 1, 'exact_after_normalisation')"
-    )
-    conn.execute(
-        "INSERT INTO extraction (run_id, source_run_id, review, work_id, field_name, value, evidence_span, span_verified, verify_note) "
-        "VALUES ('20260101T000000Z-extract-bbb', '20260101T000000Z-aaa', 'R1', 'W1', 'country', 'not_stated', NULL, 0, 'not_stated')"
-    )
-    conn.execute(
-        "INSERT INTO gap_statement (run_id, source_run_id, review, work_id, value, evidence_span, span_verified, rating, rating_note) "
-        "VALUES ('20260101T000000Z-gap-ccc', '20260101T000000Z-aaa', 'R1', 'W1', 'gap_stated', 'Further studies are needed', 1, 'valid', 'valid -- open future-work statement')"
-    )
-    conn.commit()
-    resp = client.get("/reviews/R1/papers/W1")
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["decision"] == "include"
-    assert body["study_design"] == {"status": "verified", "value": "RCT", "quote": "Randomised trial", "note": "exact_after_normalisation"}
-    assert body["country"]["status"] == "not_stated"
-    assert body["sample_size"]["status"] == "missing"  # never extracted for this paper
-    assert body["gap"]["status"] == "gap_stated"
-    assert body["gap"]["kind"] == "open"
-
-
-def test_paper_detail_404_for_unknown_paper(client):
-    assert client.get("/reviews/R1/papers/nope").status_code == 404
-
-
-def test_override_flow(client, conn, runs_dir):
-    _write_run(runs_dir, "20260101T000000Z-aaa", {"mode": "screen", "reviews_completed": ["R1"]})
-    conn.execute(
-        "INSERT INTO run (run_id, config_hash) VALUES ('20260101T000000Z-aaa', 'h')"
-    )
-    conn.execute(
-        "INSERT INTO screening_decision (run_id, review, work_id, decision, confidence, span_verified, verify_note) "
-        "VALUES ('20260101T000000Z-aaa', 'R1', 'W1', 'unverified', NULL, 0, 'not_found')"
-    )
-    conn.commit()
-
-    resp = client.post("/overrides", json={"run_id": "20260101T000000Z-aaa", "review": "R1", "work_id": "W1", "decision": "exclude", "rationale": "no RCT design stated"})
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["model_decision"] == "unverified"
-    assert body["changed"] is True
-
-    summary = client.get("/reviews/R1/overrides", params={"run_id": "20260101T000000Z-aaa"})
-    assert summary.status_code == 200
-    assert summary.json() == {"n_overrides": 1, "n_changed": 1, "n_confirmed": 0, "override_rate": 1.0, "by_model_decision": {"unverified": 1}}
-
-
-def test_override_404_for_unscreened_paper(client, conn):
-    conn.execute("INSERT INTO run (run_id, config_hash) VALUES ('r1', 'h')")
-    conn.commit()
-    resp = client.post("/overrides", json={"run_id": "r1", "review": "R1", "work_id": "W1", "decision": "include"})
-    assert resp.status_code == 404
-
-
-def test_list_gaps_returns_only_gap_stated_rows(client, conn, runs_dir):
-    _write_run(runs_dir, "20260101T000000Z-gap-ccc", {"review": "R1"})
-    conn.execute(
-        "INSERT INTO gap_statement (run_id, source_run_id, review, work_id, value, evidence_span, span_verified, rating) "
-        "VALUES ('20260101T000000Z-gap-ccc', 's', 'R1', 'W1', 'gap_stated', 'more research needed', 1, 'valid')"
-    )
-    conn.execute(
-        "INSERT INTO gap_statement (run_id, source_run_id, review, work_id, value, span_verified) "
-        "VALUES ('20260101T000000Z-gap-ccc', 's', 'R1', 'W2', 'not_stated', 0)"
-    )
-    conn.commit()
-    resp = client.get("/reviews/R1/gaps")
-    assert resp.status_code == 200
-    body = resp.json()
-    assert len(body) == 1
-    assert body[0]["work_id"] == "W1"
-
-
-def test_query_bm25_ranks_by_the_review_criteria_by_default(client):
-    resp = client.post("/query", json={"review": "R1", "strategy": "bm25", "top_n": 5})
-    assert resp.status_code == 200
-    ids = [r["work_id"] for r in resp.json()]
-    assert set(ids) == {"W1", "W2"}  # bm25 always returns the full review, ranked
-
-
-def test_query_rejects_an_unknown_strategy(client):
-    resp = client.post("/query", json={"review": "R1", "strategy": "nonsense"})
-    assert resp.status_code == 400
-
-
-def test_review_criteria(client):
-    resp = client.get("/reviews/R1/criteria")
-    assert resp.status_code == 200
-    assert resp.json() == {"review": "R1", "text": "Include RCTs.", "status": "published", "source": "test"}
-
-
-def test_extraction_summary_without_a_run_is_404(client):
-    assert client.get("/reviews/R1/extraction-summary").status_code == 404
-
-
-def test_extraction_summary_counts_by_field(client, conn, runs_dir):
-    _write_run(runs_dir, "20260101T000000Z-extract-bbb", {"review": "R1"})
-    rows = [
-        ("W1", "study_design", "RCT", "q1", 1, "exact_after_normalisation"),
-        ("W2", "study_design", None, None, 0, "not_stated"),
-        ("W1", "country", None, "q2", 0, "not_found"),
-    ]
-    for wid, field, value, span, verified, note in rows:
-        conn.execute(
-            "INSERT INTO extraction (run_id, source_run_id, review, work_id, field_name, value, evidence_span, span_verified, verify_note) "
-            "VALUES ('20260101T000000Z-extract-bbb', 's', 'R1', ?, ?, ?, ?, ?, ?)",
-            (wid, field, value, span, verified, note),
-        )
-    conn.commit()
-    resp = client.get("/reviews/R1/extraction-summary")
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["fields"]["study_design"] == {"verified": 1, "not_stated": 1, "unverified": 0}
-    assert body["fields"]["country"] == {"verified": 0, "not_stated": 0, "unverified": 1}
-
-
-def test_query_screen_rejects_more_than_the_cap(client):
-    ids = [f"W{i}" for i in range(20)]
-    resp = client.post("/query/screen", json={"review": "R1", "work_ids": ids})
-    assert resp.status_code == 422  # pydantic max_length on the request body
-
-
-def test_discover_rejects_an_empty_query(client):
-    resp = client.post("/discover", json={"query": ""})
-    assert resp.status_code == 422  # pydantic min_length on the request body
-
-
-def test_discover_rejects_a_limit_over_the_cap(client):
-    resp = client.post("/discover", json={"query": "something", "limit": 50})
-    assert resp.status_code == 422
 
 
 def _record_search_query(monkeypatch, seen: dict):
@@ -292,83 +57,6 @@ def _record_search_query(monkeypatch, seen: dict):
         return []
 
     monkeypatch.setattr(app_module, "run_discover", fake_run_discover)
-
-
-def test_expansion_is_off_unless_asked_for(client, monkeypatch):
-    seen: dict = {}
-    _record_search_query(monkeypatch, seen)
-
-    def fail(*a, **kw):
-        raise AssertionError("the model must not be asked for terms unless expand is true")
-
-    monkeypatch.setattr(app_module, "expand_query", fail)
-
-    body = client.post("/discover", json={"query": "vitamin D and mortality"}).json()
-    assert seen["query"] == "vitamin D and mortality"
-    assert body["expansion"] is None
-
-
-def test_expanded_query_is_what_gets_searched_and_is_reported(client, monkeypatch):
-    from slr.services.expand import Expansion
-
-    seen: dict = {}
-    _record_search_query(monkeypatch, seen)
-    monkeypatch.setattr(
-        app_module,
-        "expand_query",
-        lambda question, **kw: Expansion(
-            question=question,
-            terms=["cholecalciferol"],
-            query=question + " cholecalciferol",
-            note="expanded",
-        ),
-    )
-
-    body = client.post(
-        "/discover", json={"query": "vitamin D and mortality", "expand": True}
-    ).json()
-    assert seen["query"] == "vitamin D and mortality cholecalciferol"
-    assert body["expansion"]["terms"] == ["cholecalciferol"]
-    assert body["expansion"]["note"] == "expanded"
-    # The session still reports what the researcher typed, not the rewrite.
-    assert body["query"] == "vitamin D and mortality"
-
-
-def test_discover_returns_papers_with_extraction_and_gap_results(client, monkeypatch):
-    from slr.services.extract import FieldExtraction
-    from slr.services.gap import GapExtraction
-    from slr.services.discover import DiscoverPaper
-
-    def fake_run_discover(conn, query, **kwargs):
-        assert query == "fault prediction"
-        fields = [
-            FieldExtraction(
-                work_id="W1", review="_discover", field_name=name, value="v", evidence_span="a genuinely long quote here",
-                span_verified=True, verify_note="exact_after_normalisation", from_cache=False,
-                tokens_in=1, tokens_out=1, cost_usd=0.0, latency_ms=1,
-            )
-            for name in ("study_design", "sample_size", "country", "key_finding")
-        ]
-        gap = GapExtraction(
-            work_id="W1", review="_discover", value="not_stated", evidence_span=None,
-            span_verified=False, verify_note="not_stated", from_cache=False,
-            tokens_in=1, tokens_out=1, cost_usd=0.0, latency_ms=1,
-        )
-        return [DiscoverPaper(work_id="W1", title="A paper", year=2020, source_url="https://x", fields=fields, gap=gap)]
-
-    monkeypatch.setattr(app_module, "run_discover", fake_run_discover)
-
-    resp = client.post("/discover", json={"query": "fault prediction", "limit": 3})
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["n_found"] == 1
-    assert body["criteria"] is None
-    assert body["n_screened"] == 0, "no criteria given, so nothing was screened"
-    papers = body["papers"]
-    assert papers[0]["work_id"] == "W1"
-    assert papers[0]["study_design"]["status"] == "verified"
-    assert papers[0]["gap"]["status"] == "not_stated"
-    assert papers[0]["decision"] is None
 
 
 def _discover_paper(work_id, decision_status, verified, *, extracted):
@@ -407,66 +95,6 @@ def _discover_paper(work_id, decision_status, verified, *, extracted):
     )
 
 
-def test_discover_with_criteria_screens_and_counts_the_session(client, monkeypatch):
-    captured = {}
-
-    def fake_run_discover(conn, query, **kwargs):
-        captured.update(kwargs)
-        return [
-            _discover_paper("W1", "include", True, extracted=True),
-            _discover_paper("W2", "exclude", True, extracted=False),
-            _discover_paper("W3", "unverified", False, extracted=False),
-        ]
-
-    monkeypatch.setattr(app_module, "run_discover", fake_run_discover)
-    resp = client.post(
-        "/discover",
-        json={"query": "hrt", "limit": 5, "criteria": "Include randomised trials."},
-    )
-    assert resp.status_code == 200
-    body = resp.json()
-
-    # The user's criteria reach the service, and a screening template is loaded.
-    assert captured["criteria"] == "Include randomised trials."
-    assert captured["screen_template"], "screening needs the screen_v1 template"
-
-    assert (body["n_found"], body["n_screened"]) == (3, 3)
-    assert body["n_included"] == 1
-    assert body["n_excluded"] == 1
-    assert body["n_referred"] == 1
-    assert body["n_verified_quotes"] == 2
-    assert body["n_gaps"] == 1
-
-    by_id = {p["work_id"]: p for p in body["papers"]}
-    assert by_id["W1"]["study_design"]["status"] == "verified"
-    # Screened out or referred -> no extracted data at all, not empty fields.
-    assert by_id["W2"]["study_design"] is None and by_id["W2"]["gap"] is None
-    assert by_id["W3"]["study_design"] is None
-
-
-def test_discover_never_counts_an_unverified_include_as_included(client, monkeypatch):
-    """An include whose quote wasn't found is a referral. If this ever counts
-    as an include, the product page would show a fabricated quote as a keep.
-    """
-
-    def fake_run_discover(conn, query, **kwargs):
-        return [_discover_paper("W9", "include", False, extracted=False)]
-
-    monkeypatch.setattr(app_module, "run_discover", fake_run_discover)
-    body = client.post(
-        "/discover", json={"query": "q", "criteria": "Include trials."}
-    ).json()
-
-    assert body["n_included"] == 0
-    assert body["n_referred"] == 1
-    assert body["papers"][0]["decision"]["span_verified"] is False
-
-
-def test_discover_rejects_criteria_longer_than_the_cap(client):
-    resp = client.post("/discover", json={"query": "q", "criteria": "x" * 5000})
-    assert resp.status_code == 422
-
-
 # --------------------------------------------------------------------------
 # Chart routes
 #
@@ -500,112 +128,6 @@ def _screened(conn, run_id=RUN_DIR_NAME, review="R1"):
             (run_id, review, wid, decision, confidence, verified, note),
         )
     conn.commit()
-
-
-def test_charts_corpus_reports_prevalence_and_unchartable_columns(client, conn):
-    body = client.get("/charts/corpus").json()
-    assert body["prevalence"][0]["review"] == "R1"
-    assert body["prevalence"][0]["prevalence"] == pytest.approx(0.5)
-    # venue is set in the fixture, country is not.
-    coverage = {c["column"]: c for c in body["metadata_coverage"]}
-    assert coverage["venue"]["chartable"] is True
-    assert coverage["country"]["chartable"] is False
-
-
-def test_charts_trust_is_empty_without_a_run_but_does_not_error(client):
-    body = client.get("/charts/trust").json()
-    assert body["verification"] == []
-    assert body["overrides"]["n"] == 0
-
-
-def test_charts_trust_reads_the_latest_screening_run(client, conn, runs_dir):
-    _write_run(runs_dir, "20260101T000000Z-aaa", {
-        "mode": "screen", "reviews_completed": ["R1"],
-        "per_review": [{"review": "R1", "verification_rate": 0.5, "recall_verified": 1.0,
-                        "prevalence": 0.5}],
-    })
-    _screened(conn)
-    body = client.get("/charts/trust").json()
-    assert body["verification"][0]["verification_rate"] == pytest.approx(0.5)
-    assert body["verification"][0]["prevalence"] == pytest.approx(0.5)
-    assert body["failures"]["notes"] == ["not_found"]
-    assert len(body["verification_vs_recall"]) == 1
-
-
-def test_charts_confidence_404_without_a_run(client):
-    assert client.get("/charts/reviews/R1/confidence").status_code == 404
-
-
-def test_charts_confidence_splits_by_verification(client, conn, runs_dir):
-    _write_run(runs_dir, "20260101T000000Z-aaa", {"mode": "screen", "reviews_completed": ["R1"]})
-    _screened(conn)
-    body = client.get("/charts/reviews/R1/confidence").json()
-    assert body["n_verified"] == 1 and body["n_unverified"] == 1
-    assert body["mean_verified"] == pytest.approx(0.9)
-    assert body["mean_unverified"] == pytest.approx(0.8)
-    assert len(body["bin_labels"]) == 10
-
-
-def test_charts_recall_curve_404_without_a_run(client):
-    assert client.get("/charts/reviews/R1/recall-curve").status_code == 404
-
-
-def test_charts_recall_curve_is_monotonic(client, conn, runs_dir):
-    _write_run(runs_dir, "20260101T000000Z-aaa", {"mode": "screen", "reviews_completed": ["R1"]})
-    _screened(conn)
-    body = client.get("/charts/reviews/R1/recall-curve").json()
-    assert body["n_included"] == 1
-    assert all(b >= a for a, b in zip(body["y"], body["y"][1:]))
-    assert body["y"][-1] == pytest.approx(1.0)
-    assert len(body["random_baseline"]) == len(body["x"])
-
-
-def test_charts_extraction_404_without_an_extraction_run(client):
-    assert client.get("/charts/reviews/R1/extraction").status_code == 404
-
-
-def test_charts_gaps_is_empty_without_a_gap_run(client):
-    body = client.get("/charts/gaps").json()
-    assert body["rates"] == []
-    assert body["recall_source"]  # the recorded provenance string is always present
-
-
-def test_charts_semantic_map_reports_a_missing_cache_as_unavailable_not_an_error(client, tmp_path, monkeypatch):
-    """An absent embedding cache is normal for a review no dense config has
-    run on. The panel needs a reason to show, not a 500."""
-    monkeypatch.setattr(app_module, "EMBEDDINGS_DIR", tmp_path / "nope")
-    resp = client.get("/charts/reviews/R1/semantic-map")
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["available"] is False
-    assert "no cached embeddings" in body["reason"]
-
-
-def test_charts_performance_separates_cached_from_live(client, conn, runs_dir):
-    _write_run(runs_dir, "20260101T000000Z-aaa", {"mode": "screen", "reviews_completed": ["R1"]})
-    _screened(conn)
-    body = client.get("/charts/performance", params={"review": "R1"}).json()
-    assert body["latency"]["n"] == 2
-    assert body["latency"]["mean_ms"] == pytest.approx(1500.0)
-    assert body["cache"]["live_calls"] == 2
-    assert body["cache"]["cached_calls"] == 0
-
-
-def test_chart_routes_never_return_ground_truth(client, conn, runs_dir):
-    """Rule 4 at the boundary: label_included is read inside slr/eval to
-    compute recall and prevalence, but no chart route may hand a per-record
-    label back to a caller.
-    """
-    _write_run(runs_dir, "20260101T000000Z-aaa", {"mode": "screen", "reviews_completed": ["R1"]})
-    _screened(conn)
-    for path in [
-        "/charts/corpus",
-        "/charts/trust",
-        "/charts/gaps",
-        "/charts/reviews/R1/confidence",
-        "/charts/reviews/R1/recall-curve",
-    ]:
-        assert "label_included" not in client.get(path).text, path
 
 
 def test_fulltext_note_says_how_much_of_the_paper_was_read(client, monkeypatch):
@@ -737,44 +259,58 @@ def _fulltext_project(client):
 # --------------------------------------------------------------------------
 
 
-def test_reviews_report_whether_specter2_vectors_are_cached(client, monkeypatch, tmp_path):
-    """Three of the six reviews were never embedded -- week 9 only needed three
-    to clear its exit test. A caller has to be able to tell, or a dense query
-    silently turns into minutes of CPU inside one request."""
-    monkeypatch.setattr(app_module, "EMBEDDINGS_DIR", tmp_path)
-    assert client.get("/reviews").json()[0]["embeddings_cached"] is False
+def test_suggest_returns_ranked_papers_with_relevance_and_gaps(client, monkeypatch):
+    import slr.services.suggest as suggest_module
+    from slr.services.gap import GapExtraction
+    from slr.services.screen import Decision
+    from slr.services.suggest import SuggestResult, Suggestion
 
-    (tmp_path / "R1__specter2.npz").write_bytes(b"not really an npz, but it exists")
-    assert client.get("/reviews").json()[0]["embeddings_cached"] is True
+    def decision(work_id, status, verified):
+        return Decision(work_id=work_id, review="_discover", decision=status, confidence=0.8,
+                        evidence_span="a genuinely long quote here", span_verified=verified,
+                        verify_note="exact_after_normalisation" if verified else "not_found",
+                        from_cache=False, tokens_in=1, tokens_out=1, cost_usd=0.0, latency_ms=1)
+
+    def gap(work_id, stated):
+        return GapExtraction(work_id=work_id, review="_discover",
+                             value="gap_stated" if stated else "not_stated",
+                             evidence_span="effects remain unknown" if stated else None,
+                             span_verified=stated, verify_note="exact_after_normalisation",
+                             from_cache=False, tokens_in=1, tokens_out=1, cost_usd=0.0, latency_ms=1)
+
+    def fake_suggest(conn, question, **kwargs):
+        assert question == "vitamin D and asthma"
+        assert kwargs["n"] == 2
+        row = lambda i: {"work_id": f"W{i}", "title": f"Paper {i}", "abstract": "abs", "year": 2020,
+                         "doi": f"10.1/{i}", "source_url": None}
+        return SuggestResult(
+            question=question, n_candidates=40, ranking="specter2", ranking_note="Ranked by SPECTER2.",
+            suggestions=[
+                Suggestion(row(1), 0.9, decision("W1", "include", True), gap("W1", True), 0.7),
+                Suggestion(row(2), 0.8, decision("W2", "include", False), gap("W2", False)),
+            ],
+        )
+
+    monkeypatch.setattr(suggest_module, "suggest", fake_suggest)
+    monkeypatch.setattr(app_module, "suggest_embedder", lambda: None)
+
+    resp = client.post("/suggest", json={"query": "vitamin D and asthma", "n": 2})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["n_candidates"] == 40 and body["ranking"] == "specter2"
+    assert body["n_included"] == 1, "an unverified include is a referral, not a yes"
+    assert body["n_referred"] == 1
+    assert body["n_gaps"] == 1
+    first = body["papers"][0]
+    assert first["relevance"] == 0.9 and first["gap_match"] == 0.7
+    assert first["doi"] == "10.1/1"
+    assert first["gap"]["quote"] == "effects remain unknown"
 
 
-def test_query_names_the_missing_package_instead_of_returning_a_bare_500(client, monkeypatch):
-    """SPECTER2 needs `adapters`, dense search needs `faiss`. Both are install
-    states, not bugs. The response has to name the missing piece."""
-
-    def explode(*_args, **_kwargs):
-        raise ImportError("No module named 'adapters'", name="adapters")
-
-    monkeypatch.setattr(app_module.retrieve, "rank", explode)
-    response = client.post("/query", json={"review": "R1", "strategy": "dense", "top_n": 3})
-    assert response.status_code == 503
-    detail = response.json()["detail"]
-    assert "adapters" in detail
-    assert "bm25" in detail  # and says what does work
+def test_suggest_rejects_an_empty_question_and_too_many_papers(client):
+    assert client.post("/suggest", json={"query": ""}).status_code == 422
+    assert client.post("/suggest", json={"query": "q", "n": 100}).status_code == 422
 
 
-def test_query_explains_any_other_ranking_failure(client, monkeypatch):
-    def explode(*_args, **_kwargs):
-        raise RuntimeError("CUDA out of memory")
-
-    monkeypatch.setattr(app_module.retrieve, "rank", explode)
-    response = client.post("/query", json={"review": "R1", "strategy": "rerank", "top_n": 3})
-    assert response.status_code == 503
-    detail = response.json()["detail"]
-    assert "RuntimeError" in detail and "CUDA out of memory" in detail
-
-
-def test_a_bad_strategy_name_is_still_a_400_not_a_503(client):
-    """The broad handler must not swallow the cheap validation that precedes it."""
-    response = client.post("/query", json={"review": "R1", "strategy": "nonsense", "top_n": 3})
-    assert response.status_code == 400
+def test_export_needs_a_signed_in_owner(client):
+    assert client.post("/projects/someone-elses/export").status_code == 401

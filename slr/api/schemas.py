@@ -12,32 +12,6 @@ from pydantic import BaseModel, Field
 from slr.api.deps import MAX_LIVE_SCREEN
 
 
-class ReviewSummary(BaseModel):
-    review: str
-    domain: str | None
-    n_records: int
-    n_included: int
-    prevalence: float
-    criteria_status: str
-    screen_run: str | None
-    extract_run: str | None
-    gap_run: str | None
-    # Whether SPECTER2 vectors are already on disk for this review. False means a
-    # dense/hybrid/rerank query has to embed the whole review first -- minutes of
-    # CPU inside one request. The caller is told rather than left to wait and guess.
-    embeddings_cached: bool
-
-
-class PaperSummary(BaseModel):
-    work_id: str
-    title: str | None
-    year: int | None
-    venue: str | None
-    decision: str | None  # include | exclude | unverified | error | None (unscreened)
-    confidence: float | None
-    span_verified: bool | None
-
-
 class FieldValue(BaseModel):
     status: str  # verified | not_stated | unverified | missing
     value: str | None = None
@@ -51,100 +25,6 @@ class GapValue(BaseModel):
     rating: str | None = None  # valid | invalid | None (unrated)
     kind: str | None = None  # open | motivating | None
     note: str | None = None
-
-
-class PaperDetail(PaperSummary):
-    doi: str | None
-    screen_quote: str | None
-    screen_note: str | None
-    study_design: FieldValue
-    sample_size: FieldValue
-    country: FieldValue
-    key_finding: FieldValue
-    gap: GapValue
-
-
-class OverrideRequest(BaseModel):
-    run_id: str
-    review: str
-    work_id: str
-    decision: str = Field(pattern="^(include|exclude)$")
-    rationale: str | None = None
-
-
-class OverrideResult(BaseModel):
-    model_config = {"protected_namespaces": ()}
-
-    work_id: str
-    model_decision: str | None
-    model_verified: bool
-    human_decision: str
-    changed: bool
-
-
-class OverrideSummaryOut(BaseModel):
-    n_overrides: int
-    n_changed: int
-    n_confirmed: int
-    override_rate: float | None
-    by_model_decision: dict[str, int]
-
-
-class QueryRequest(BaseModel):
-    review: str
-    strategy: str = "bm25"
-    query_text: str | None = None
-    top_n: int = Field(default=20, ge=1, le=200)
-
-
-class RankedPaper(BaseModel):
-    rank: int
-    work_id: str
-    title: str | None
-    year: int | None
-
-
-class ScreenRequest(BaseModel):
-    review: str
-    work_ids: list[str] = Field(min_length=1, max_length=MAX_LIVE_SCREEN)
-    model: str = "qwen2.5:7b-instruct"
-    prompt_version: str = "screen_v1"
-
-
-class ScreenResult(BaseModel):
-    work_id: str
-    decision: str
-    confidence: float | None
-    quote: str | None
-    span_verified: bool
-    verify_note: str
-    from_cache: bool
-
-
-class GapStatementOut(BaseModel):
-    work_id: str
-    title: str | None
-    status: str
-    quote: str | None
-    rating: str | None
-    kind: str | None
-
-
-class DiscoverRequest(BaseModel):
-    project_id: str | None = Field(default=None, max_length=100)
-    query: str = Field(min_length=1)
-    limit: int = Field(default=5, ge=1, le=10)
-    # Optional. Given, every result is screened against it and only verified
-    # includes are extracted. Omitted, nothing is screened -- the system does
-    # not invent an include/exclude with no criteria to judge against.
-    criteria: str | None = Field(default=None, max_length=4000)
-    # Look each paper up in Europe PMC and read its body, not just the
-    # abstract. Slower, and most papers won't have open-access full text.
-    fulltext: bool = False
-    # Ask the model for extra search terms before searching. Off by default:
-    # measured over the six reviews it helps on three and hurts on three, so
-    # it is offered, not applied.
-    expand: bool = False
 
 
 class ExpansionOut(BaseModel):
@@ -240,6 +120,11 @@ class DiscoverPaperOut(BaseModel):
     gap: GapValue | None = None
     # None when no criteria were supplied.
     decision: ScreenDecisionOut | None = None
+    # Set by POST /suggest only. Cosine similarity to the question (SPECTER2),
+    # and of the stated gap to the question. Ranking signals, not measurements.
+    relevance: float | None = None
+    gap_match: float | None = None
+    doi: str | None = None
 
     # --- full text, when it was asked for and Europe PMC had it ----------
     # Model-extracted, each with a verified quote. Same rules as any other
@@ -265,15 +150,6 @@ class DiscoverPaperOut(BaseModel):
     assets_note: str = ""
 
 
-class LiveReviewerAction(BaseModel):
-    work_id: str = Field(min_length=1, max_length=500)
-    decision: Literal["include", "exclude", "pending"]
-    rationale: str = Field(default="", max_length=4000)
-    technique: str = Field(default="", max_length=120)
-    domain: str = Field(default="", max_length=120)
-    quote: str = Field(default="", max_length=12000)
-
-
 class DiscoverSessionOut(BaseModel):
     """One ad-hoc review session: the papers, plus the session's own counts.
 
@@ -295,6 +171,18 @@ class DiscoverSessionOut(BaseModel):
     papers: list[DiscoverPaperOut]
     # None unless the caller asked for expansion.
     expansion: ExpansionOut | None = None
+    # Set by POST /suggest only: how many candidates were ranked, and how.
+    n_candidates: int | None = None
+    ranking: str | None = None
+    ranking_note: str | None = None
+
+
+class SuggestRequest(BaseModel):
+    """A research question, answered with the papers most worth reading."""
+
+    project_id: str | None = Field(default=None, max_length=100)
+    query: str = Field(min_length=1, max_length=1000)
+    n: int = Field(default=20, ge=1, le=25)
 
 
 class FullTextPaperOut(BaseModel):
@@ -314,6 +202,7 @@ class FullTextPaperOut(BaseModel):
     # not-indexed are facts about the paper, not failures of the system.
     note: str = ""
     found: bool = False
+    pmcid: str | None = None
     coverage: list[dict] = Field(default_factory=list)
     evidence: dict[str, list[dict]] = Field(default_factory=dict)
     supplements: list[dict] = Field(default_factory=list)
