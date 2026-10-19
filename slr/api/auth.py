@@ -34,7 +34,7 @@ def current_account(account=Depends(optional_account)):
     return account
 
 def config():
-    return {"client_id": os.getenv("GOOGLE_CLIENT_ID", ""), "client_secret": os.getenv("GOOGLE_CLIENT_SECRET", ""), "redirect_uri": os.getenv("GOOGLE_REDIRECT_URI", "http://127.0.0.1:8000/auth/google/callback"), "dashboard": os.getenv("DASHBOARD_URL", "http://127.0.0.1:8501/Run_a_Review")}
+    return {"client_id": os.getenv("GOOGLE_CLIENT_ID", ""), "client_secret": os.getenv("GOOGLE_CLIENT_SECRET", ""), "redirect_uri": os.getenv("GOOGLE_REDIRECT_URI", "http://127.0.0.1:8000/auth/google/callback"), "dashboard": os.getenv("DASHBOARD_URL", "http://127.0.0.1:8501/")}
 
 @router.get("/config")
 def auth_config():

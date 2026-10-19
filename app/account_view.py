@@ -4,6 +4,29 @@ import streamlit as st
 from api_client import API_URL, account_request, read_live_session
 
 
+def _google_configured():
+    try:
+        return account_request("GET", "/auth/config")["configured"]
+    except httpx.HTTPError:
+        return False
+
+
+def _google_button():
+    """Continue with Google, in this tab.
+
+    ``st.link_button`` always opens a new tab, so sign-in used to leave the
+    app open in one window and finish in another. Google's consent page
+    refuses to be framed, so it cannot live inside the dialog either; going
+    there in this tab and coming straight back is the one way to keep the
+    whole thing in a single window.
+    """
+    st.markdown(
+        f"<a class='br-google' href='{API_URL}/auth/google/start' target='_self'>"
+        "Continue with Google</a>",
+        unsafe_allow_html=True,
+    )
+
+
 def render_account():
     ticket = st.query_params.get("login_ticket")
     if ticket:
@@ -16,32 +39,25 @@ def render_account():
         except httpx.HTTPError:
             st.error("Sign-in expired. Please try Google sign-in again.")
         del st.query_params["login_ticket"]
-        if st.session_state.get("google_account"):
-            st.switch_page("Home.py")
         st.rerun()
     account = st.session_state.get("google_account")
-    with st.popover(account["name"] if account else "Sign in", use_container_width=False):
-        if account:
-            st.caption(account["email"])
-            if st.button("Sign out"):
-                try:
-                    account_request("POST", "/auth/logout")
-                except httpx.HTTPError:
-                    pass
-                for key in list(st.session_state):
-                    if key not in ("research_theme",):
-                        del st.session_state[key]
-                st.rerun()
-        else:
-            st.write("Sign in with Google to save and reopen your reviews.")
+    if not account:
+        if st.button("Sign in"):
+            sign_in_dialog()
+        return
+    with st.popover(account["name"], use_container_width=False):
+        st.caption(account["email"])
+        if st.button("Sign out"):
             try:
-                configured = account_request("GET", "/auth/config")["configured"]
+                account_request("POST", "/auth/logout")
             except httpx.HTTPError:
-                configured = False
-            if configured:
-                st.link_button("Continue with Google", API_URL + "/auth/google/start")
-            else:
-                st.info("Google sign-in setup is pending. Add OAuth credentials to the local .env file and restart the API.")
+                pass
+            for key in list(st.session_state):
+                if key not in ("research_theme",):
+                    del st.session_state[key]
+            # Signed out on purpose: don't greet them with the sign-in dialog.
+            st.session_state["welcome_shown"] = True
+            st.rerun()
 
 
 #: The mark, drawn here rather than shipped as an image file: an open page
@@ -61,8 +77,8 @@ LOGO = """
 WELCOME_POINTS = [
     (
         "Search real literature",
-        "Type a topic and it searches OpenAlex live, then screens what it finds against "
-        "criteria you write yourself.",
+        "Ask a research question and it searches OpenAlex live, then suggests the papers "
+        "closest to it, with any research gaps their authors state.",
     ),
     (
         "Every answer carries its sentence",
@@ -70,83 +86,84 @@ WELCOME_POINTS = [
         "paper. Anything else is handed back to you to read.",
     ),
     (
-        "Measured, not asserted",
-        "The same pipeline was run over 12,598 papers whose correct answers were already "
-        "published. The Validation pages show the results, including the bad ones.",
+        "You choose what to read",
+        "Pick the suggestions worth a deeper look and it reads them in full, laying out "
+        "methods, results, tables and limitations side by side.",
     ),
 ]
 
 
-def render_welcome():
-    """The front door for anyone not signed in.
+@st.dialog("Welcome to Beyond Retrieval", width="large")
+def sign_in_dialog():
+    """Sign in, or carry on as a guest, in a dialog over the app.
 
-    Deliberately a sign-in page rather than a wall: the tool is usable as a
-    guest, and the page says what signing in adds instead of implying an
-    account is required. Nothing here calls the model or the database.
+    It used to be a full page that hid the app until a visitor chose. A
+    dialog says the same thing without standing in the way: closing it is
+    the same as choosing to continue as a guest. Nothing here calls the
+    model or the database.
     """
-    if st.session_state.get("google_account") or st.session_state.get("guest_access"):
-        return
-
     st.markdown(
         """
         <style>
-        .br-login { text-align: center; margin: 1.5rem auto 0.5rem; }
-        .br-login h1 { margin: .4rem 0 .2rem; font-size: 2.6rem; letter-spacing: -.035em; }
-        .br-login .br-tagline { color: #4a5a54; font-size: 1.08rem; margin-bottom: .2rem; }
+        .br-login { text-align: center; margin: .2rem auto .6rem; }
+        .br-login .br-tagline { color: #4a5a54; font-size: 1.02rem; }
         .br-point { background:#ffffff; border:1px solid #dce2d9; border-radius:6px;
-                    padding:1rem 1.1rem; height:100%; }
-        .br-point b { display:block; margin-bottom:.35rem; color:#203c36; }
-        .br-point span { color:#4a5a54; font-size:.93rem; line-height:1.55; }
+                    padding:.8rem .9rem; height:100%; }
+        .br-point b { display:block; margin-bottom:.3rem; color:#203c36; }
+        .br-point span { color:#4a5a54; font-size:.88rem; line-height:1.5; }
+        a.br-google { display:block; text-align:center; padding:.55rem 1rem; border-radius:6px;
+                      background:#28665f; color:#ffffff !important; text-decoration:none !important;
+                      font-weight:600; margin:.4rem 0; }
+        a.br-google:hover { background:#1f524c; }
         </style>
         """,
         unsafe_allow_html=True,
     )
-
     st.markdown(
         f"<div class='br-login'>{LOGO}"
-        "<h1>Beyond Retrieval</h1>"
         "<div class='br-tagline'>Find the papers that matter, and check every decision "
         "for yourself.</div></div>",
         unsafe_allow_html=True,
     )
-
-    columns = st.columns(len(WELCOME_POINTS), gap="medium")
+    columns = st.columns(len(WELCOME_POINTS), gap="small")
     for column, (heading, detail) in zip(columns, WELCOME_POINTS):
         with column:
             st.markdown(
                 f"<div class='br-point'><b>{heading}</b><span>{detail}</span></div>",
                 unsafe_allow_html=True,
             )
-
     st.write("")
-    left, middle, right = st.columns([1, 2, 1])
-    with middle:
-        try:
-            configured = account_request("GET", "/auth/config")["configured"]
-        except httpx.HTTPError:
-            configured = False
-        if configured:
-            st.link_button(
-                "Continue with Google",
-                API_URL + "/auth/google/start",
-                type="primary",
-                use_container_width=True,
-            )
-        else:
-            st.info(
-                "Google sign-in setup is pending. Add OAuth credentials to the local .env "
-                "file and restart the API."
-            )
-        if st.button("Continue as a guest", type="secondary", use_container_width=True):
-            st.session_state["guest_access"] = True
-            st.rerun()
-        st.caption(
-            "Signing in saves your projects and unlocks full-text retrieval. Guests can "
-            "search, screen and extract from abstracts. Your work stays on this machine: "
-            "the screening model runs locally, so a review costs nothing to run."
+    if _google_configured():
+        _google_button()
+    else:
+        st.info(
+            "Google sign-in setup is pending. Add OAuth credentials to the local .env "
+            "file and restart the API."
         )
-        st.caption("MSE907 capstone · Pehesara Gunawardena")
-    st.stop()
+    if st.button("Continue as a guest", type="secondary", use_container_width=True):
+        st.session_state["guest_access"] = True
+        st.rerun()
+    st.caption(
+        "Signing in saves your projects and unlocks full-text retrieval. Guests can "
+        "search and see suggestions from abstracts. The model runs locally, so a search "
+        "costs nothing."
+    )
+
+
+def render_welcome():
+    """Greet a visitor who isn't signed in, once per session, with the dialog.
+
+    Once only: a dialog closes on the next interaction outside it, and that
+    is taken as "continue as a guest" rather than reopened on every rerun.
+    """
+    if (
+        st.session_state.get("google_account")
+        or st.session_state.get("guest_access")
+        or st.session_state.get("welcome_shown")
+    ):
+        return
+    st.session_state["welcome_shown"] = True
+    sign_in_dialog()
 
 
 def activate_project(project):
