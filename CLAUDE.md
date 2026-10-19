@@ -1587,6 +1587,59 @@ are missing one.
 
 Three tests added. 522 passing (was 519).
 
+**19 October 2026, second entry — full text could not be reported at all,
+and nobody had noticed (rule 7).** Asked to run a full-text extraction, the
+first thing to establish was how. The answer: only through
+`POST /discover/fulltext` and the Run a Review page. There was **no CLI
+harness**, so a full-text run wrote **no run directory** — no config, no
+commit hash, no metrics.
+
+Under rule 2 that means no full-text figure was reportable. Not the coverage
+share, not per-field verification, not the truncation finding. Everything the
+7 October notes record about full text came from one-off dashboard sessions
+and `scripts/inspect_fulltext.py` printing to a terminal, which rule 2 says
+does not exist. The feature had been built, demonstrated and written up
+without ever being made reportable, and the gap was invisible because the
+dashboard made it *look* finished.
+
+This matters more now than it would have a week ago: the supervisor asked for
+full text to stay a small demonstration **and** to be validated against a
+manually annotated reference set with precision, recall and F1 per field.
+The second is impossible without an artefact to annotate against.
+
+`slr/eval/fulltext_harness.py` (+ `FullTextConfig`, `configs/fulltext_demo.yaml`)
+closes it. Per paper it records the five extracted fields with their
+verification status, **and** three things the dashboard showed but never
+stored: why there is no full text when there isn't (`paywalled`,
+`not_indexed`, `no_pmc` are facts about Europe PMC's holdings, not extraction
+failures), whether a paper flagged open access returned only a stub
+(`fragment`), and **how much of the paper the model actually saw** — a field
+marked `not_stated` may simply be in the truncated two thirds. The caveat is
+written into `metrics.json`, not left to a reader, the same device as
+`PolicyResult.comparable`.
+
+Records carry `review="_fulltext"`, never a real review name, and a
+field validator rejects any config whose review collides with `SUBSET` — the
+same boundary `_discover` keeps, now enforced rather than conventional.
+
+The demo config names four papers chosen so the run exercises every outcome
+rather than the happy path: PMC10248995 (the complete paper, 16 tables),
+PMC7508247 (the open-access stub), PMC8056687 (the PRISMA editorial that is
+mostly back matter), and one paper Europe PMC does not hold.
+
+Verified end to end offline against the mock provider — all six artefact
+files written, four outcomes recorded, truncation share computed. **Not yet
+run live**: Europe PMC and Ollama are both unreachable from where this was
+built, so the real run is one command on the author's machine.
+
+Also fixed while here: `ExtractConfig.api_key()` returned a key only for
+`gemini`, so an `openai` config fell through to the provider's own env
+lookup — working by luck rather than design. And `run_index`'s kind markers
+were ordered such that `-gapconsensus-` would have been labelled `gap` and
+`-fulltext-` labelled `extract`; both now have a test.
+
+535 tests passing (was 522): 12 for the harness, 1 for the marker ordering.
+
 ## Next: close out week 11, run the week 12 usability check, submit ethics
 
 Immediate: minute the week 11 go/no-go decision with the supervisor using

@@ -223,6 +223,8 @@ class ExtractConfig(BaseModel):
     def api_key(self) -> str | None:
         if self.provider == "gemini":
             return os.getenv("GEMINI_API_KEY")
+        if self.provider == "openai":
+            return os.getenv("OPENAI_API_KEY")
         return None
 
 
@@ -231,6 +233,122 @@ def load_extract_config(path: str | Path) -> ExtractConfig:
     text = path.read_text(encoding="utf-8")
     raw = yaml.safe_load(text) or {}
     cfg = ExtractConfig(**raw)
+    cfg.source_path = path
+    cfg.source_text = text
+    return cfg
+
+
+# --------------------------------------------------------------------------
+# Full-text extraction
+#
+# Separate from ExtractConfig because the input is different in kind.
+# Extraction and gap discovery read a prior screening run's verified
+# includes -- records already in the `work` table, with ground truth
+# beside them. Full-text extraction reads papers named by DOI or PMCID,
+# fetched live from Europe PMC, which the evaluation corpus knows nothing
+# about. There is no screening run to inherit from and no label to score
+# against, so a config that pretended otherwise would invite a figure
+# nobody can check.
+# --------------------------------------------------------------------------
+
+FULLTEXT_REVIEW = "_fulltext"
+"""Review label for live full-text records.
+
+Follows ``_discover``'s precedent exactly: never a real review name, so a
+full-text record cannot be mistaken for part of the evaluation corpus, and
+``SUBSET`` validation would reject any reported config pointing at it.
+"""
+
+
+class FullTextConfig(BaseModel):
+    """Full-text extraction over papers named by DOI or PMCID.
+
+    The supervisor's October note asked that full text be kept as future work
+    or a small demonstration, *and* that it be validated against a manually
+    annotated reference set with precision, recall and F1 per field. Both of
+    those need the run to leave an artefact: until this config existed, full
+    text could only be driven through the dashboard, which writes no run
+    directory, so under rule 2 no full-text figure was reportable at all.
+    """
+
+    name: str
+    targets: list[str] = Field(
+        default_factory=list,
+        description="DOIs or PMCIDs, one paper each. A PMCID is used directly; "
+        "anything else is looked up as a DOI, then by title.",
+    )
+    review: str = FULLTEXT_REVIEW
+
+    provider: Literal["gemini", "mock", "ollama", "openai"] = "mock"
+    model: str = "mock-1"
+    prompt_version: str = "extract_fulltext_v1"
+    temperature: float = 0.0
+    max_output_tokens: int = 1024
+    max_retries: int = 3
+    seed: int | None = 42
+    max_records: int | None = None
+    max_prompt_chars: int = Field(
+        24_000,
+        description="How much of a paper's prose the model is shown. Recorded in "
+        "the artefact because a field marked 'not stated' may be in what was cut.",
+    )
+
+    ceiling_usd: float = 1.0
+    usd_per_1m_input: float = 0.10
+    usd_per_1m_output: float = 0.40
+
+    db_path: Path = Path("data/slr.db")
+    runs_dir: Path = Path("runs")
+    prompts_dir: Path = Path("prompts")
+    cache_enabled: bool = True
+
+    source_path: Path | None = None
+    source_text: str | None = None
+
+    @field_validator("review")
+    @classmethod
+    def _review_stays_outside_the_corpus(cls, value: str) -> str:
+        if value in SUBSET:
+            raise ValueError(
+                f"review must not be an evaluation-corpus review ({value!r}). "
+                f"Live full-text records carry {FULLTEXT_REVIEW!r} so they cannot "
+                "be mistaken for benchmark data -- the same boundary '_discover' keeps."
+            )
+        return value
+
+    @field_validator("targets")
+    @classmethod
+    def _targets_are_not_blank(cls, value: list[str]) -> list[str]:
+        cleaned = [t.strip() for t in value if t and t.strip()]
+        if not cleaned:
+            raise ValueError("targets must name at least one DOI or PMCID")
+        return cleaned
+
+    @property
+    def config_hash(self) -> str:
+        payload = self.source_text or json.dumps(
+            self.model_dump(mode="json", exclude={"source_path", "source_text"}),
+            sort_keys=True,
+        )
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:10]
+
+    @property
+    def prompt_path(self) -> Path:
+        return self.prompts_dir / f"{self.prompt_version}.txt"
+
+    def api_key(self) -> str | None:
+        if self.provider == "gemini":
+            return os.getenv("GEMINI_API_KEY")
+        if self.provider == "openai":
+            return os.getenv("OPENAI_API_KEY")
+        return None
+
+
+def load_fulltext_config(path: str | Path) -> FullTextConfig:
+    path = Path(path)
+    text = path.read_text(encoding="utf-8")
+    raw = yaml.safe_load(text) or {}
+    cfg = FullTextConfig(**raw)
     cfg.source_path = path
     cfg.source_text = text
     return cfg

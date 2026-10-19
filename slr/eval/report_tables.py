@@ -209,8 +209,10 @@ def run_index(runs_dir: Path) -> list[dict]:
         name = directory.name
         # The harness kind is in the directory name, between timestamp and hash.
         kind = "screen"
-        for marker in ("extract", "gapconsensus", "gaprecall", "gap", "ablation",
-                       "typology", "ftcoverage", "expand"):
+        # Order matters: the longer markers come first so "-gapconsensus-" is
+        # not claimed by "gap", and "-fulltext-" is not claimed by "extract".
+        for marker in ("fulltext", "ftcoverage", "gapconsensus", "gaprecall",
+                       "extract", "gap", "ablation", "typology", "expand"):
             if f"-{marker}-" in name:
                 kind = marker
                 break

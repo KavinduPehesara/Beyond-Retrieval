@@ -73,3 +73,28 @@ def test_build_writes_the_index_beside_the_results(tmp_path):
     assert (out / "run_index.md").exists()
     assert (out / "run_index.csv").exists()
     assert "typology" in (out / "run_index.md").read_text(encoding="utf-8")
+
+
+def test_longer_kind_markers_are_not_claimed_by_shorter_ones(tmp_path):
+    """'-gapconsensus-' must not be read as 'gap', and '-fulltext-' must not
+    be read as 'extract'. Both would mislabel a run in the index."""
+    from slr.eval.report_tables import run_index
+
+    runs = tmp_path / "runs"
+    for name in (
+        "20261019T000000000000Z-fulltext-aaaaaaaaaa",
+        "20261019T000000000000Z-gapconsensus-bbbbbbbbbb",
+        "20261019T000000000000Z-gaprecall-cccccccccc",
+        "20261019T000000000000Z-gap-dddddddddd",
+        "20261019T000000000000Z-extract-eeeeeeeeee",
+        "20261019T000000000000Z-ftcoverage-ffffffffff",
+    ):
+        (runs / name).mkdir(parents=True)
+        (runs / name / "metrics.json").write_text("{}")
+
+    kinds = {r["run"].split("-")[1]: r["kind"] for r in run_index(runs)}
+    assert kinds == {
+        "fulltext": "fulltext", "gapconsensus": "gapconsensus",
+        "gaprecall": "gaprecall", "gap": "gap",
+        "extract": "extract", "ftcoverage": "ftcoverage",
+    }
