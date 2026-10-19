@@ -127,3 +127,28 @@ def test_an_empty_question_is_refused(conn):
         suggest(conn, "  ", provider=_FakeProvider(), screen_template=SCREEN, gap_template=GAP,
                 meter=Meter(ceiling_usd=1.0, usd_per_1m_input=0.0, usd_per_1m_output=0.0),
                 candidates=ROWS)
+
+
+def test_each_answer_is_committed_as_it_arrives(tmp_path):
+    """The cache is written per answer and committed straight away, so a
+    second request is never locked out for the length of this one, and an
+    answer survives the request rather than rolling back with it."""
+    db = tmp_path / "shared.db"
+    conn = connect(db, check_same_thread=False)
+    seen_by_other = []
+
+    class _Watching(_FakeProvider):
+        def complete(self, prompt, **kw):
+            other = connect(db)
+            seen_by_other.append(other.execute("SELECT COUNT(*) FROM cached_response").fetchone()[0])
+            # A second writer must not be locked out mid-request.
+            other.execute("BEGIN IMMEDIATE"); other.rollback(); other.close()
+            return super().complete(prompt, **kw)
+
+    suggest(conn, "vitamin D for asthma in children", provider=_Watching(), screen_template=SCREEN,
+            gap_template=GAP, meter=Meter(ceiling_usd=1.0, usd_per_1m_input=0.0, usd_per_1m_output=0.0),
+            candidates=ROWS, n=2, embedder=_BagOfWords())
+    conn.close()
+    assert seen_by_other == [0, 1, 2, 3]
+    other = connect(db)
+    assert other.execute("SELECT COUNT(*) FROM cached_response").fetchone()[0] == 4

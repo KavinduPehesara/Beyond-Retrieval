@@ -331,6 +331,8 @@ def discover_fulltext(req: FullTextRequest, conn: sqlite3.Connection = Depends(g
             raise HTTPException(409, str(exc)) from exc
         except BudgetExceeded as exc:
             raise HTTPException(402, str(exc)) from exc
+        # Per paper, not per request: see the same commit in suggest.py.
+        conn.commit()
 
         by_field = {r.field_name: r for r in rows}
         for name in (

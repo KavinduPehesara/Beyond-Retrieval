@@ -170,6 +170,11 @@ def suggest(
             seed=42,
             use_cache=use_cache,
         )
+        # Commit each cached answer as it arrives. Left open, this one
+        # transaction held SQLite's write lock for the whole request (minutes),
+        # so a second search failed with "database is locked" -- and the
+        # answers rolled back with the request instead of being cached.
+        conn.commit()
         gap = extract_gap(
             row,
             provider=provider,
@@ -182,6 +187,7 @@ def suggest(
             seed=42,
             use_cache=use_cache,
         )
+        conn.commit()
         suggestions.append(Suggestion(row=row, similarity=score, decision=decision, gap=gap))
 
     # Only a gap whose quote verified is compared with the question: an

@@ -25,7 +25,10 @@ def get_conn() -> sqlite3.Connection:
     # check_same_thread=False: this connection is opened by this dependency's
     # own threadpool dispatch and used by the route body's separate one --
     # see the note on slr.db.connect.
-    conn = connect(DB_PATH, check_same_thread=False)
+    # timeout=30: two searches can run at once (two tabs), and each commits
+    # its cache writes as they arrive; a write waits its turn rather than
+    # failing after SQLite's default 5 seconds.
+    conn = connect(DB_PATH, check_same_thread=False, timeout=30.0)
     try:
         yield conn
     finally:

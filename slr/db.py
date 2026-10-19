@@ -191,7 +191,9 @@ END;
 """
 
 
-def connect(db_path: str | Path, *, check_same_thread: bool = True) -> sqlite3.Connection:
+def connect(
+    db_path: str | Path, *, check_same_thread: bool = True, timeout: float = 5.0
+) -> sqlite3.Connection:
     """Open the database, creating it and the schema if absent.
 
     ``check_same_thread=False`` is for the API only: a request's connection
@@ -203,7 +205,7 @@ def connect(db_path: str | Path, *, check_same_thread: bool = True) -> sqlite3.C
     """
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(db_path, check_same_thread=check_same_thread)
+    conn = sqlite3.connect(db_path, check_same_thread=check_same_thread, timeout=timeout)
     conn.row_factory = sqlite3.Row
     _check_schema_version(conn, db_path)
     # Existing databases must open without taking the writer lock. A live
