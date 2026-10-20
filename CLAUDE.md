@@ -119,6 +119,19 @@ slr/
     discover.py             OpenAlex live search -> extract.py/gap.py, unchanged.
                          review="_discover", never written to `work` --
                          outside the evaluation corpus by construction.
+    suggest.py              THE PRODUCT PATH. Question -> OpenAlex pool ->
+                         SPECTER2 ranking -> screen + gap-check the top n,
+                         each answer gated by the same span verifier ->
+                         stated gaps ranked by closeness to the question, so
+                         a researcher sees whether others already call it
+                         open. relevance_criteria() turns the question itself
+                         into screen_v1's inclusion rule: no new prompt, no
+                         new code path.
+    export.py               a finished project -> summary.md, data.json,
+                         tables as CSV, figures
+    fulltext_categories.py  the eight categories shown per paper. Heading and
+                         keyword selection is labelled as source evidence,
+                         not as understanding.
   adapters/
     fulltext.py            Europe PMC: DOI -> open-access JATS XML -> sections,
                          tables, equations, figure captions. Tables and
@@ -166,33 +179,38 @@ slr/
     asreview_report.py     turns a finished `asreview simulate` into the
                          same ranking_metrics() figure every other
                          strategy uses -- week 14, pulled forward
+    fulltext_harness.py    CLI -> runs/<ts>-fulltext-<hash>/. Papers named by
+                         DOI or PMCID, not a prior screening run: there is no
+                         `work` row and no label. Records availability per
+                         paper (paywalled/not_indexed/fragment are facts about
+                         Europe PMC, not extraction failures) and how much of
+                         the paper the model saw.
+    gap_consensus.py       two or three gap arms -> per-review Gwet AC1, PABAK,
+                         and both combination policies. Agreement is
+                         consistency, not correctness; the caveat is in the
+                         artefact.
+    expansion_eval.py      query expansion with and without terms
   api/
-    app.py                 FastAPI routes -- reads a run directory or the
-                         live tables, or calls a service function directly.
-                         POST /query/screen is the one route that writes.
-                         8 /charts/* routes wrap eval/charts.py.
+    app.py                 FastAPI. 11 routes, all product: /suggest,
+                         /discover/fulltext, /projects/*, /health, assets.
+                         No /charts/*, no /reviews/*, no /overrides -- see the
+                         20 October restructure note.
     runs_index.py           "current" run per review per harness kind
     deps.py                 DB_PATH/RUNS_DIR/PROMPTS_DIR, get_conn
     schemas.py              pydantic request/response models
-app/
-  Home.py                 the front door: "What are you researching?" --
-                         deliberately not the six-review table, which made
-                         the tool demo as a report about six old reviews
+    auth.py                 Google OIDC: PKCE, nonce, browser-bound state,
+                         one-use ticket, hashed 24h sessions
+app/                       ONE page. The product, nothing else.
+  Home.py                 ask a question -> suggested papers with a relevance
+                         badge and whether other authors name the question as
+                         an open gap -> pick up to 5 -> full text, categorised
+                         -> export. No reported figure anywhere: there is no
+                         ground truth for a question typed a minute ago, and
+                         the page says so.
   api_client.py            thin httpx wrapper, one function per route
-  plots.py                 Altair builders, one per chart. Draws only --
-                         every number comes from /charts/* via charts.py
-  pages/1_Run_a_Review.py         THE PRODUCT. Live literature, the user's
-                                 own criteria, screened + extracted +
-                                 gap-checked. No reported figure: no ground
-                                 truth exists for an ad-hoc topic.
-  pages/2_Validation_Trust.py     the RQ1 table + corpus + trust charts
-  pages/3_Validation_Screening.py rank + live-screen up to 15 -- the week 12
-                                 query exit test runs here
-  pages/4_Validation_Decisions.py
-  pages/5_Validation_Extraction.py
-  pages/6_Validation_Gaps.py
-                         Every validation page carries a banner saying it is
-                         evidence, not the tool. A test asserts all five do.
+  fulltext_view.py         the eight category panels + assets
+  account_view.py          sign-in dialog, project library, theme
+  research_style.py        shared styling
 prompts/screen_v1.txt    prompt template, versioned by filename
 prompts/screen_v2.txt    step-by-step + one-sentence reasoning (week 10, underperformed v1)
 prompts/screen_v3.txt    terse, minimal rules (week 10, underperformed v1)
@@ -219,8 +237,9 @@ configs/ingest_all.yaml  all six reviews, screening disabled -- the fresh-clone/
 data/embeddings/         SPECTER2 vectors cached per review (gitignored)
 data/asreview/           per-review CSV exports for the ASReview baseline (gitignored, SYNERGY text)
 scripts/reproduce.sh     venv -> pinned install -> pytest -> ingest -> smoke harness, one command
-tests/                   376 tests
+tests/                   39 files, 480 tests
 reports/results.{csv,md} generated from runs/
+reports/run_index.{csv,md}  every run directory, kind and commit sha
 ```
 
 **Verified on real data (commit 421e415, 15 September 2026):**
@@ -1639,6 +1658,112 @@ were ordered such that `-gapconsensus-` would have been labelled `gap` and
 `-fulltext-` labelled `extract`; both now have a test.
 
 535 tests passing (was 522): 12 for the harness, 1 for the marker ordering.
+
+**19 October 2026, third entry — the first live full-text run, and two
+failure types the typology has no category for (rule 7).**
+`runs/20261019T075155482274Z-fulltext-49ee59577e`, commit `227c1be`, clean
+tree, 4 papers, 78 seconds, 6,460 tokens in / 778 out, **$0** on local Ollama.
+The first full-text figures in this project that trace to a run directory
+rather than a terminal.
+
+**One prediction in the config was simply wrong.** `10.1038/s41586-020-2649-2`
+(Array programming with NumPy) was listed as the "Europe PMC does not hold
+this" case. It holds it: `PMC7759461`, 21,455 characters. So availability came
+out 3 `full` + 1 `fragment`, `usable_share` 0.75, and the config comment has
+been corrected.
+
+**4 of 20 field slots verified — but that number alone misreads the run.** Nine
+of the twenty are *correct* non-answers: PMC8056687 (the PRISMA editorial)
+returned `not_stated` on all five, which is right, an editorial has no primary
+outcome or effect size; and its body is now 4,236 characters across one
+section rather than the nine-section version the 7 October note describes, so
+**the back-matter filter is doing its job**. PMC7508247 (the stub) returned
+four `not_stated` and one verified effect size quoting a real confidence
+interval verbatim, from 1,058 characters. So: 4 verified, 9 correct refusals,
+7 genuine failures.
+
+**New failure type 1: the model describes instead of quoting.** All four of
+NumPy's failures are the model's own prose about the paper, written into a slot
+that must hold a quote — *"The paper is a review and does not describe any
+statistical methods."* For two fields that is effectively a `not_stated`
+answer put in the evidence slot instead of the value slot. This is **not**
+`echoed_criteria` (it quotes nothing from the prompt) and not `fabricated` in
+the dishonest sense (it invents no evidence); it is the model answering in
+commentary when asked for a span. `error_typology.py` has no category for it.
+
+**New failure type 2: one span reused across fields.** PMC10248995 has the
+identical span *"Non-randomized studies, case reports and series, primary and
+secondary studies"* in `effect_size`, `statistical_methods` and
+`sample_characteristics`, all `partial_match_only`; and `primary_outcome` and
+`limitations` both verified against the same span, *"Types of research
+evidence"*, with different values. Both verified spans are section headings
+rather than prose — a guidance document's "sections" are largely table
+captions, which `build_source` prioritises without knowing the difference.
+
+Both types need a category before the typology's figures are quoted for full
+text, and neither can be folded into the existing five without making those
+five mean something different. Recorded now rather than at write-up, while the
+run is in front of me.
+
+**Truncation confirmed on real data at the figure the 7 October note
+predicted**: 24,000 of 75,211 characters, 32%.
+
+**20 October 2026 — the app is the product now, and the validation UI is
+gone.** Asked what the dashboard was for, the honest answer was that it was
+two things at once: a research tool, and a report about the six benchmark
+reviews. The 4 October restructure had already said the six reviews are
+"nothing" for the product and then kept five panels of them anyway. This
+finishes that thought.
+
+**What the app is.** One page. Ask a research question → OpenAlex pool
+filtered to records with an abstract → ranked by SPECTER2 closeness → the top
+n screened and gap-checked, every answer gated by the same span verifier →
+stated gaps ranked by closeness to the question, so a researcher can see
+whether other authors already name their question as open → pick up to five →
+full text, categorised → export as `summary.md`, `data.json`, CSVs and
+figures. `slr/services/suggest.py` is the whole path, and its one real trick is
+`relevance_criteria()`: the question becomes `screen_v1`'s inclusion rule, so
+"is this relevant to me?" needed no new prompt and no new code path. The
+architecture's second real test, after ad-hoc criteria in week 13, and it
+passed the same way.
+
+**What went.** Six `app/pages/*`, `app/plots.py`, and every validation route:
+8 `/charts/*`, all `/reviews/*`, `/overrides`. `slr/api/app.py` is 388 lines
+and 11 routes, all product; `api_client.py` is 8 functions. The product now
+imports **nothing** from `slr/eval` — the only mention left is a comment
+pointing at it.
+
+**What deliberately did not go, and why it must not.** `slr/eval` is intact,
+23 modules. The app does not need it; **the report is made of it**. Every RQ1
+and RQ2 answer — verification rates, the ablation, the 97.8% criteria echoes,
+gap precision and recall, the ASReview comparison — is `slr/eval` output. Two
+deliverables in one repository: the app is the artefact, `slr/eval` is the
+evidence that the artefact works. Week 15 should say that explicitly rather
+than leaving an examiner to wonder why a product repo contains a benchmark
+harness.
+
+**Three guard tests went with the pages, and that is the part worth flagging
+rather than glossing.** Each was written with a stated reason about not
+letting the UI overclaim: the "validation evidence, not the tool" banner
+assertion, the three-shortfalls-on-Home assertion, and the "Needs your eye"
+assertion. The third **survived in substance** — `Home.py` now reads *"The
+model's reason wasn't found in the abstract, so its call is withheld. Read
+this one yourself."* — but has no test. The other two are gone outright, and
+with them the front page's statement of the project's three recorded
+shortfalls. A landing page that only claims success is still a sales page;
+if the shortfalls are not coming back to the UI, week 15 has to carry them
+instead.
+
+**Two loose ends.** `slr/eval/charts.py` and its 28 tests are intact but
+nothing renders them — fourteen charts, a week of October work, now
+reachable only as data. And week 12's exit test ("someone other than the
+author completes a query unassisted") was defined against
+`3_Validation_Screening.py`, which no longer exists; it needs restating
+against the one-page flow before it can be passed.
+
+480 tests passing (was 535): `test_api.py` −564 lines as the validation
+routes went, `test_streamlit_pages.py` −1,055, `test_live_workspace.py`
+deleted, `test_suggest.py` and `test_export.py` +300.
 
 ## Next: close out week 11, run the week 12 usability check, submit ethics
 
