@@ -291,6 +291,7 @@ if ft and ft.get("papers"):
                 "Relevance": label,
                 "Similarity": round(s["relevance"], 2) if s.get("relevance") is not None else None,
                 "Full text": "yes" if p.get("found") else "no",
+                "Gaps stated": len(p.get("gaps") or []) if p.get("found") else None,
                 **{name: field_text(p.get(field)) for field, name in FULLTEXT_FIELDS},
             }
         )

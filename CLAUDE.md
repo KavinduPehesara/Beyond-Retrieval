@@ -1765,6 +1765,49 @@ against the one-page flow before it can be passed.
 routes went, `test_streamlit_pages.py` −1,055, `test_live_workspace.py`
 deleted, `test_suggest.py` and `test_export.py` +300.
 
+**22 October 2026 — gaps from the full paper, and a fourth instance of the
+same failure.** Gap discovery read abstracts only, which is where its
+measured figures come from — and where most papers say nothing. The
+sentence a researcher wants ("we did not examine whether X") lives in the
+Discussion. `slr/services/gap_fulltext.py` now reads the body after a
+paper is retrieved, and the page shows the result above the category
+panels.
+
+**The first live run reproduced this project's recurring failure exactly.**
+Asked to find gaps in 23,716 characters of a real paper (PMC11795328), the
+model proposed four. Three verified — the sentences were genuinely in the
+paper — and all three were *results* sentences ("no significant association
+was found with age"), summarised as though they were gaps. The fourth was
+invented and failed verification. The one sentence in the paper that does
+state a gap was missed entirely. Criteria echoes, table cells,
+competing-interests statements, and now this: **the span verifier answers
+"is this sentence real?", never "does this sentence say what you claim".**
+
+**Fixed the way the other three were: control what the model may use.**
+`candidate_sentences` finds the forward-looking sentences deterministically
+("further research is needed", "we did not examine", "remains unclear",
+"no study has"), and the model is shown only those, with one job — say in a
+line what each means. `gap_fulltext_v2` quotes from that list or is
+discarded. A paper with no such sentence is never sent to the model at all:
+there is nothing to choose between, and asking invites invention.
+
+Same paper, after: 1 candidate offered, 1 proposed, 1 shown —
+*"This limitation further underscores the need for future studies to
+consider the influence of social and environmental contexts on cancer
+outcomes."*, placed in Limitations. Two counters are reported beside the
+gaps, because both failures are worth seeing: `gaps_withheld` (the quote
+was not in the paper) and `gaps_unsupported` (the quote was real but states
+no gap).
+
+**Not yet measured.** Abstract gap discovery has precision 87.8% over 74
+rated statements; this has none. The honest claim today is mechanical: every
+gap shown is a sentence found word for word in the paper, in a section
+named. Precision and recall need the week 11 treatment — rate a sample by
+hand — before any figure is quoted. Recall is the one to watch: the cue list
+is fixed vocabulary, so a gap phrased unusually is invisible to it.
+
+505 tests passing (was 480): 24 for the service, one for the route.
+
 ## Next: close out week 11, run the week 12 usability check, submit ethics
 
 Immediate: minute the week 11 go/no-go decision with the supervisor using

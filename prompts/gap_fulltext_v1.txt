@@ -1,0 +1,41 @@
+You are reading the body of a research paper to find the places where the
+authors say something is still unknown: a question their work does not
+answer, a limitation that future work should address, or a direction they
+explicitly recommend for further research.
+
+TITLE:
+{title}
+
+PAPER:
+{body}
+
+Find up to five such statements. Authors usually put them in the Discussion,
+the Limitations section, or the final paragraph of the Conclusion. Typical
+wording includes "further research is needed", "remains unclear", "we did
+not examine", "future studies should", and "no study has yet".
+
+Return JSON with exactly one field:
+
+  gaps   a list of up to five objects, each with:
+
+           value           one short sentence, in your own words, saying
+                            what is still unknown
+           evidence_span   the authors' own sentence saying it, copied
+                            EXACTLY from the paper above
+
+Rules:
+
+1. Each quotation must be copied character for character from the text
+   above. Do not paraphrase, join two sentences, or tidy the wording.
+2. Quote what the authors say is still needed or still unknown. A sentence
+   describing what this paper did, or what it found, is not a gap — even
+   when it mentions previous work being limited.
+3. A limitation of this study counts only when the authors frame it as
+   something left for future work to resolve.
+4. Do not repeat the same statement twice in different words.
+5. If the paper states none, return an empty list. An empty list is a
+   correct answer and a common one. Do not invent a gap to fill the list.
+
+Every quotation is checked automatically against the paper. One that cannot
+be found word for word is discarded, and the statement it supported is not
+shown to the researcher.

@@ -89,6 +89,43 @@ def _figures(paper, heat_maps):
     st.caption("Heat maps are identified from captions only. Pixel interpretation and plotted-value digitization are not performed.")
 
 
+def _stated_gaps(paper):
+    """What the authors say is still unknown, in their own words.
+
+    Shown above the category panels because it is usually the reason a
+    researcher opened the paper at all. The quote leads and the model's
+    one-line summary follows it, so the sentence the authors wrote is what
+    the eye lands on.
+    """
+    gaps = paper.get("gaps") or []
+    note = paper.get("gaps_note") or ""
+    withheld = paper.get("gaps_withheld") or 0
+
+    st.markdown("**Gaps the authors state in this paper**")
+    if gaps:
+        for gap in gaps:
+            st.markdown(f"> {gap['quote']}")
+            where = f" · {gap['section']}" if gap.get("section") else ""
+            st.caption(f"{gap.get('value', '')}{where}")
+    elif note == "none_stated":
+        st.caption("The authors state no gap in the text that was read. Most papers do not.")
+    elif note == "no_body_text":
+        st.caption("No body text was retrieved, so there was nothing to read for gaps.")
+    elif note:
+        st.caption("The gap check could not be completed for this paper.")
+    unsupported = paper.get("gaps_unsupported") or 0
+    if withheld:
+        st.caption(
+            f"{withheld} further statement(s) withheld: the quoted sentence was not found "
+            f"in the paper, so it is not shown."
+        )
+    if unsupported:
+        st.caption(
+            f"{unsupported} further statement(s) withheld: the quoted sentence is in the "
+            f"paper but states a result rather than something still unknown."
+        )
+
+
 def render_categories(paper):
     key_prefix = str(paper.get("fulltext_ui_key") or paper.get("work_id") or paper.get("title") or "fulltext")
     with st.expander("From the full paper", expanded=True):
@@ -102,6 +139,7 @@ def render_categories(paper):
                 st.markdown(f"**{category['label']}** — {status} · {category['count']} items")
         st.download_button("Download all source evidence (JSON)", json.dumps(paper, ensure_ascii=False, indent=2),
                            "fulltext-evidence.json", "application/json", key=key_prefix + "-evidence")
+        _stated_gaps(paper)
         for index, category in enumerate(coverage, 1):
             key = category["key"]
             st.subheader(f"{index}. {category['label']}")

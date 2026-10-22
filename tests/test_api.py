@@ -216,6 +216,68 @@ def test_a_short_paper_does_not_claim_to_be_truncated(client, monkeypatch):
     assert "was shown the first" not in body["papers"][0]["note"]
 
 
+def test_gaps_stated_in_the_body_are_returned_with_their_section(client, monkeypatch):
+    """Reading the full paper reports the gaps its authors state.
+
+    The abstract stage finds at most one gap and usually none; the sentence
+    a researcher wants is in the Discussion, which only this stage reads.
+    """
+    project_id = _fulltext_project(client)
+    from slr.adapters import fulltext as ftmod
+    from slr.adapters.fulltext import Availability, parse_jats
+    from slr.adapters.llm import Completion
+
+    quote = "Further research is needed to establish whether the effect persists."
+    paper = parse_jats(
+        "<article><body>"
+        "<sec><title>Results</title><p>Symptoms fell by four points.</p></sec>"
+        f"<sec><title>Discussion</title><p>{quote} We did not study older adults.</p></sec>"
+        "</body></article>"
+    )
+    monkeypatch.setattr(
+        ftmod, "get_full_text",
+        lambda doi=None, title=None: (paper, Availability(found=True, pmcid="PMC9", is_open_access=True)),
+    )
+
+    class _Provider:
+        name, model = "fake", "fake-1"
+
+        def complete(self, prompt, **kw):
+            if "gaps" in prompt or "still unknown" in prompt:
+                return Completion(
+                    text=json.dumps(
+                        {
+                            "gaps": [
+                                {"value": "Durability unknown", "evidence_span": quote},
+                                {"value": "Invented", "evidence_span": "No trial has studied cats."},
+                            ]
+                        }
+                    ),
+                    tokens_in=1,
+                    tokens_out=1,
+                )
+            payload = {
+                name: {"value": "not_stated", "evidence_span": ""}
+                for name in (
+                    "primary_outcome", "effect_size", "statistical_methods",
+                    "sample_characteristics", "limitations",
+                )
+            }
+            return Completion(text=json.dumps(payload), tokens_in=1, tokens_out=1)
+
+    monkeypatch.setattr(app_module, "build_provider", lambda *a, **k: _Provider())
+    body = client.post(
+        "/discover/fulltext",
+        json={"project_id": project_id, "papers": [{"work_id": "W1", "title": "A trial", "doi": "10.1/x"}]},
+    ).json()
+
+    entry = body["papers"][0]
+    assert [g["quote"] for g in entry["gaps"]] == [quote], "only the real sentence survives"
+    assert entry["gaps"][0]["section"] == "Discussion"
+    assert entry["gaps_withheld"] == 1, "the invented one is counted, not shown"
+    assert entry["gaps_note"] == "found"
+
+
 def test_unavailable_fulltext_returns_all_eight_source_statuses(client, monkeypatch):
     project_id = _fulltext_project(client)
     from slr.adapters import fulltext as ftmod

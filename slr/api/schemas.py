@@ -185,6 +185,20 @@ class SuggestRequest(BaseModel):
     n: int = Field(default=20, ge=1, le=25)
 
 
+class StatedGapOut(BaseModel):
+    """One gap the authors state in the body of their paper.
+
+    ``quote`` is their sentence, found word for word in the text the model
+    was shown; ``section`` is where in the paper it was found, so a reader
+    can tell the authors describing their own unfinished work from them
+    summarising someone else's.
+    """
+
+    value: str
+    quote: str
+    section: str | None = None
+
+
 class FullTextPaperOut(BaseModel):
     """One paper's full-text result, from stage two."""
 
@@ -209,6 +223,13 @@ class FullTextPaperOut(BaseModel):
     equation_details: list[dict] = Field(default_factory=list)
     source_url: str | None = None
     assets_note: str = ""
+    # Gaps stated in the body. Empty is a real answer: most papers state
+    # none, and an invented one is withheld rather than shown.
+    gaps: list[StatedGapOut] = Field(default_factory=list)
+    gaps_note: str = ""
+    gaps_withheld: int = 0
+    # Quoted a sentence that is really in the paper but states no gap.
+    gaps_unsupported: int = 0
 
 
 class FullTextSessionOut(BaseModel):

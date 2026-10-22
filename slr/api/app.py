@@ -29,6 +29,7 @@ from slr.api.auth import router as auth_router
 from slr.api.deps import PROMPTS_DIR, get_conn
 from slr.api.schemas import (
     DiscoverPaperOut,
+    StatedGapOut,
     DiscoverSessionOut,
     FieldValue,
     FigureOut,
@@ -279,9 +280,11 @@ def discover_fulltext(req: FullTextRequest, conn: sqlite3.Connection = Depends(g
     from slr.adapters.fulltext import get_full_text
     from slr.services.discover import DISCOVER_REVIEW
     from slr.services.extract_fulltext import extract_fulltext_record
+    from slr.services.gap_fulltext import find_gaps, load_prompt_template as load_gap_prompt
 
     provider = build_provider("ollama", "qwen2.5:7b-instruct")
     template = load_fulltext_prompt(PROMPTS_DIR / "extract_fulltext_v1.txt")
+    gap_template = load_gap_prompt(PROMPTS_DIR / "gap_fulltext_v2.txt")
     meter = Meter(ceiling_usd=0.0, usd_per_1m_input=0.0, usd_per_1m_output=0.0)
 
     out: list[FullTextPaperOut] = []
@@ -344,6 +347,33 @@ def discover_fulltext(req: FullTextRequest, conn: sqlite3.Connection = Depends(g
         ):
             if name in by_field:
                 setattr(entry, name, _field_value_from_extraction(by_field[name]))
+
+        # The gaps the authors state in the body. A separate call from the
+        # five fields above: it asks a different question, returns a list
+        # rather than one value per field, and a paper stating none is a
+        # real and common answer.
+        try:
+            gap_result = find_gaps(
+                full_text,
+                work_id=target.work_id,
+                review=DISCOVER_REVIEW,
+                provider=provider,
+                template=gap_template,
+                meter=meter,
+                conn=conn,
+            )
+        except CacheMismatch as exc:
+            raise HTTPException(409, str(exc)) from exc
+        except BudgetExceeded as exc:
+            raise HTTPException(402, str(exc)) from exc
+        conn.commit()
+        entry.gaps = [
+            StatedGapOut(value=g.value, quote=g.evidence_span, section=g.section)
+            for g in gap_result.gaps
+        ]
+        entry.gaps_note = gap_result.note
+        entry.gaps_withheld = gap_result.n_withheld
+        entry.gaps_unsupported = gap_result.n_unsupported
 
         verified = sum(1 for r in rows if r.span_verified)
         if full_text.is_fragment:

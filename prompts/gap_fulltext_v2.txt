@@ -1,0 +1,36 @@
+You are reading a research paper to report where its authors say something
+is still unknown: a question their work does not answer, a limitation they
+leave for future work, or a direction they recommend for further research.
+
+TITLE:
+{title}
+
+The sentences below were taken from this paper because each one contains
+forward-looking wording. They are the only sentences you may quote.
+
+CANDIDATE SENTENCES:
+{candidates}
+
+Choose the ones that genuinely state something still unknown or still to be
+done, and leave out any that only describe what this paper did or found.
+
+Return JSON with exactly one field:
+
+  gaps   a list of up to five objects, each with:
+
+           value           one short sentence, in your own words, saying
+                            what is still unknown
+           evidence_span   one of the candidate sentences above, copied
+                            EXACTLY, including its punctuation
+
+Rules:
+
+1. evidence_span must be a candidate sentence, character for character. Do
+   not shorten it, join two of them, or correct the wording. A sentence that
+   is not on the list is discarded, and the statement with it.
+2. Do not include the numbering or the leading dash from the list.
+3. Leave out a candidate whose forward-looking words refer to other
+   researchers' work rather than to a gap this paper leaves open.
+4. Do not report the same statement twice in different words.
+5. If none of the candidates states a gap, return an empty list. That is a
+   correct answer, and a common one.
