@@ -59,7 +59,16 @@ def criteria_prompt_version(base: str, criteria: str) -> str:
 
 def reconstruct_abstract(inverted_index: dict[str, list[int]] | None) -> str | None:
     """OpenAlex stores abstracts as {word: [positions]} instead of plain
-    text (a side effect of how they're licensed to redistribute it)."""
+    text (a side effect of how they're licensed to redistribute it).
+
+    The positions are not guaranteed to be contiguous. Walking
+    ``range(max + 1)`` assumed they were, and a single hole raised KeyError
+    out of the search — observed live on 23 October 2026, where one record
+    in the results for a probiotics question was missing position 807 and
+    took the whole query down with a 500. Reading the positions that exist,
+    in order, is both correct and incapable of failing that way: a gap costs
+    one word, not the search.
+    """
     if not inverted_index:
         return None
     positions: dict[int, str] = {}
@@ -68,7 +77,7 @@ def reconstruct_abstract(inverted_index: dict[str, list[int]] | None) -> str | N
             positions[i] = word
     if not positions:
         return None
-    return " ".join(positions[i] for i in range(max(positions) + 1))
+    return " ".join(positions[i] for i in sorted(positions))
 
 
 def _duplicate_keys(work: dict) -> list[tuple]:

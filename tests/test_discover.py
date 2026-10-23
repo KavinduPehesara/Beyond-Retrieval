@@ -33,6 +33,18 @@ def test_reconstruct_abstract_handles_repeated_words():
     assert reconstruct_abstract(inverted) == "the cat and the dog"
 
 
+def test_reconstruct_abstract_survives_a_gap_in_the_positions():
+    """OpenAlex does not guarantee contiguous positions.
+
+    Found live on 23 October 2026: one record in a search for probiotics
+    was missing position 807, and walking range(max + 1) raised KeyError
+    out of search_openalex, so the whole question failed with a 500. A
+    hole should cost one word, not the search.
+    """
+    inverted = {"the": [0], "cat": [1], "sat": [4]}  # positions 2 and 3 missing
+    assert reconstruct_abstract(inverted) == "the cat sat"
+
+
 def test_reconstruct_abstract_of_none_is_none():
     assert reconstruct_abstract(None) is None
     assert reconstruct_abstract({}) is None
