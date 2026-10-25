@@ -1,6 +1,6 @@
 # Beyond Retrieval
 
-An LLM-supported dashboard for literature review and research gap detection.
+An LLM-supported tool for literature review and research gap suggestion.
 
 Every screening decision the system makes carries a verbatim quote from the
 paper it came from, and that quote is checked against the source before the
@@ -62,7 +62,7 @@ surface the research gaps authors state in their own papers?
 
 Week 12 of 15 (hardening into week 13). All six reviews are ingested and
 screened; dense/hybrid/rerank retrieval, prompt and model-tier comparisons,
-the overridable mechanism, gap discovery, data extraction, a FastAPI backend
+the overridable mechanism, gap suggestion, data extraction, a FastAPI backend
 and a 5-panel Streamlit dashboard are all built and verified against real
 data. Full detail, every run directory, and every negative result: `CLAUDE.md`.
 
@@ -72,7 +72,7 @@ data. Full detail, every run directory, and every negative result: `CLAUDE.md`.
 | 7–8 | Walking skeleton, then the evaluation harness | Passed |
 | 9 | Dense retrieval (SPECTER2, FAISS, RRF fusion, reranking) | Passed |
 | 10 | Prompt variants, model tiers, overridable mechanism, agreement | Passed |
-| 11 | Gap discovery | Built, numbers ready (87.8% precision); go/no-go not yet minuted with the supervisor |
+| 11 | Gap suggestion | Built, numbers ready (87.8% precision); go/no-go not yet minuted with the supervisor |
 | 12 | FastAPI backend, 5 Streamlit panels | Built and verified end-to-end; usability exit test (a second person, unassisted) not yet run |
 | 13 | Usability evaluation, hardening, reproduction script | In progress — ethics application for the human study not yet submitted |
 | 14–15 | Final baselines, ASReview comparison, report, submission | Not started |
@@ -275,8 +275,8 @@ Code in this repository is released under the MIT License. See `LICENSE`.
 
 ## Citing
 
-> Gunawardena, P. (2026). *Beyond Retrieval: An LLM-Supported Dashboard for
-> Literature Review and Research Gap Detection.* Capstone project, Master of
+> Gunawardena, P. (2026). *Beyond Retrieval: An LLM-Supported Tool for
+> Literature Discovery and Research Gap Suggestion.* Capstone project, Master of
 > Software Engineering, MSE907.
 
 ---
