@@ -127,9 +127,16 @@ with st.form("question"):
             + "; ".join(f"{p['label']} — {p['note']}" for p in blocked)
         )
     n = st.slider("Papers to suggest", min_value=5, max_value=25, value=20)
+    # Measured: about half a minute for 20 on a hosted model, a few minutes
+    # on the local one, which is slower per call but costs nothing.
+    pace = (
+        "a few minutes for 20"
+        if st.session_state.get("provider") == "ollama"
+        else "about half a minute for 20"
+    )
     st.caption(
         "Searches OpenAlex live, ranks what comes back by how close it is to your question, "
-        "then has the chosen model check the top papers. Expect a few minutes for 20."
+        f"then has the chosen model check the top papers. Expect {pace}."
     )
     asked = st.form_submit_button("Find papers", type="primary")
 
