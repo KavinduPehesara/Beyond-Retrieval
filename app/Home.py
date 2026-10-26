@@ -24,6 +24,7 @@ from api_client import (
     providers,
     read_live_session,
     suggest,
+    suggest_watched,
 )
 from fulltext_view import render_categories
 
@@ -147,24 +148,43 @@ if asked:
     if st.session_state.get("google_account") and not st.session_state.get("active_project"):
         st.warning("Create or open a research project above first, so the results are saved.")
         st.stop()
-    with st.spinner(f"Searching and checking the {n} closest papers..."):
-        try:
-            st.session_state["session"] = suggest(question.strip(), n=n)
-            st.session_state.pop("fulltext", None)
-            st.session_state.pop("picked", None)
-            st.session_state.pop("export", None)
-        except httpx.HTTPStatusError as exc:
-            code = exc.response.status_code
-            if code == 502:
-                st.error("Couldn't reach OpenAlex. Check your internet connection and try again.")
-            elif code == 409:
-                st.error("A cached answer didn't match this request, so the search was stopped. Try again.")
-            else:
-                st.error(f"Request failed: {exc.response.text}")
-            st.stop()
-        except httpx.HTTPError:
-            st.error(model_timeout_message())
-            st.stop()
+    bar = st.progress(0, text="Searching OpenAlex for papers close to your question...")
+
+    def show(percent: int, stage: str, done: int, total: int) -> None:
+        # Say what is happening, and for the long stage how far through it
+        # is, because "7 of 20 checked" is the only honest reassurance a
+        # page can give while a model works.
+        wording = {
+            "starting": "Starting...",
+            "searching": "Searching OpenAlex for papers close to your question...",
+            "ranking": "Ranking what came back against your question...",
+            "screening": f"Checking paper {min(done + 1, total)} of {total}..."
+            if done < total
+            else f"Checked all {total} papers; finishing up...",
+            "done": "Done.",
+        }.get(stage, "Working...")
+        bar.progress(min(percent, 100), text=wording)
+
+    try:
+        st.session_state["session"] = suggest_watched(question.strip(), n, show)
+        st.session_state.pop("fulltext", None)
+        st.session_state.pop("picked", None)
+        st.session_state.pop("export", None)
+        bar.empty()
+    except httpx.HTTPStatusError as exc:
+        bar.empty()
+        code = exc.response.status_code
+        if code == 502:
+            st.error("Couldn't reach OpenAlex. Check your internet connection and try again.")
+        elif code == 409:
+            st.error("A cached answer didn't match this request, so the search was stopped. Try again.")
+        else:
+            st.error(f"Request failed: {exc.response.text}")
+        st.stop()
+    except (httpx.HTTPError, TimeoutError):
+        bar.empty()
+        st.error(model_timeout_message())
+        st.stop()
 
 session = st.session_state.get("session")
 if not session:

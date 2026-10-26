@@ -8,6 +8,7 @@ never touch the database or a run directory themselves.
 from __future__ import annotations
 
 import os
+import time
 
 import httpx
 import streamlit as st
@@ -43,27 +44,60 @@ def providers() -> dict:
         return {"default": "", "providers": []}
 
 
+def _suggest_payload(query: str, n: int) -> dict:
+    payload: dict = {"query": query, "n": n}
+    if st.session_state.get("active_project"):
+        payload["project_id"] = st.session_state["active_project"]
+    if st.session_state.get("provider"):
+        payload["provider"] = st.session_state["provider"]
+    return payload
+
+
 def suggest(query: str, n: int = 20) -> dict:
     """Papers most worth reading for one research question, best first.
 
     Each comes with a relevance verdict and any stated research gap, both
     backed by a quote verified in the abstract.
     """
-    payload: dict = {"query": query, "n": n}
-    if st.session_state.get("active_project"):
-        payload["project_id"] = st.session_state["active_project"]
-    if st.session_state.get("provider"):
-        payload["provider"] = st.session_state["provider"]
     r = _client().post(
         "/suggest",
         headers=auth_headers(),
-        json=payload,
-        # A live OpenAlex search, a SPECTER2 pass, then two local model
-        # calls per suggested paper.
+        json=_suggest_payload(query, n),
+        # A live OpenAlex search, a SPECTER2 pass, then two model calls per
+        # suggested paper.
         timeout=1800.0,
     )
     r.raise_for_status()
     return r.json()
+
+
+def suggest_watched(query: str, n: int, on_progress) -> dict:
+    """The same search, reporting how far along it is while it runs.
+
+    ``on_progress(percent, stage, done, total)`` is called as the job moves.
+    Falls back to the single blocking call if this deployment has no job
+    route, so an older backend still answers rather than failing.
+    """
+    started = _client().post(
+        "/suggest/start", headers=auth_headers(), json=_suggest_payload(query, n), timeout=30.0
+    )
+    if started.status_code == 404:
+        return suggest(query, n)
+    started.raise_for_status()
+    job_id = started.json()["job_id"]
+
+    # Polled rather than streamed: Streamlit redraws the page top to bottom,
+    # so a short poll is both simpler and all the page can actually paint.
+    deadline = time.time() + 1800
+    while time.time() < deadline:
+        r = _client().get(f"/jobs/{job_id}", timeout=30.0)
+        r.raise_for_status()
+        body = r.json()
+        on_progress(body["percent"], body["stage"], body["done"], body["total"])
+        if body["finished"]:
+            return body["result"]
+        time.sleep(0.6)
+    raise TimeoutError("The search ran longer than half an hour and was abandoned.")
 
 def discover_fulltext(papers: list[dict]) -> dict:
     """Stage two: read the full text of the papers the reviewer chose.

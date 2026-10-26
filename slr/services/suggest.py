@@ -23,6 +23,7 @@ never written to ``work``, the same boundary ``discover.py`` keeps.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import numpy as np
@@ -119,6 +120,7 @@ def suggest(
     screen_prompt_version: str = "screen_v1",
     gap_prompt_version: str = "gap_v1",
     use_cache: bool = True,
+    on_progress: Callable[[str, int, int], None] | None = None,
 ) -> SuggestResult:
     """Search, rank by closeness to ``question``, then judge the top ``n``.
 
@@ -127,10 +129,26 @@ def suggest(
     result says so in ``ranking_note``: a slower ranking is not a reason to
     return nothing, but a different one must not be passed off as the same.
     ``candidates`` replaces the OpenAlex call, for tests.
+
+    ``on_progress(stage, done, total)`` is called as work completes, so a
+    caller can show how far along it is rather than a spinner that means
+    only "something is happening". It is called after each paper is judged,
+    which is the only point at which real progress is known: the stages
+    before it are single steps of unpredictable length.
     """
     if not question or not question.strip():
         raise ValueError("question must not be empty")
 
+    def progress(stage: str, done: int, total: int) -> None:
+        if on_progress is None:
+            return
+        try:
+            on_progress(stage, done, total)
+        except Exception:
+            # A caller's progress display must never take down the search.
+            pass
+
+    progress("searching", 0, 0)
     rows = (
         candidates
         if candidates is not None
@@ -139,6 +157,7 @@ def suggest(
 
     scores: list[float | None] = [None] * len(rows)
     ranking, note = "openalex", "Ranked by OpenAlex's search relevance."
+    progress("ranking", 0, 0)
     if embedder is not None and rows:
         try:
             scores = similarities(question, [_paper_text(r) for r in rows], embedder)
@@ -156,6 +175,7 @@ def suggest(
     criteria = relevance_criteria(question)
     version = criteria_prompt_version(screen_prompt_version, criteria)
     suggestions: list[Suggestion] = []
+    progress("screening", 0, len(top))
     for row, score in top:
         decision = screen_record(
             row,
@@ -189,6 +209,7 @@ def suggest(
         )
         conn.commit()
         suggestions.append(Suggestion(row=row, similarity=score, decision=decision, gap=gap))
+        progress("screening", len(suggestions), len(top))
 
     # Only a gap whose quote verified is compared with the question: an
     # unverified one is not a statement anyone made.

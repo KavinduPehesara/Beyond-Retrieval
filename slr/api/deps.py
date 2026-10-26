@@ -21,6 +21,16 @@ EMBEDDINGS_DIR = Path(os.environ.get("SLR_EMBEDDINGS_DIR", "data/embeddings"))
 MAX_LIVE_SCREEN = 15  # a live query is answered in a browser session, not left running
 
 
+def new_conn() -> sqlite3.Connection:
+    """A connection for work that outlives the request that started it.
+
+    A job keeps running after its start request has returned, by which time
+    that request's own connection is closed, so background work opens its
+    own and closes it itself.
+    """
+    return connect(DB_PATH, check_same_thread=False, timeout=30.0)
+
+
 def get_conn() -> sqlite3.Connection:
     # check_same_thread=False: this connection is opened by this dependency's
     # own threadpool dispatch and used by the route body's separate one --

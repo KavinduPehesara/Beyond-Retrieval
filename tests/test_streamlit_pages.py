@@ -104,7 +104,7 @@ def test_home_asks_for_a_research_question():
 
 def test_an_empty_question_is_refused(monkeypatch):
     called = []
-    monkeypatch.setattr(api_client, "suggest", lambda *a, **kw: called.append(1))
+    monkeypatch.setattr(api_client, "suggest_watched", lambda *a, **kw: called.append(1))
     at = _home()
     _button(at, "Find papers").click().run()
     assert not called
@@ -113,11 +113,11 @@ def test_an_empty_question_is_refused(monkeypatch):
 def test_asking_a_question_shows_ranked_suggestions(monkeypatch):
     seen = {}
 
-    def fake_suggest(query, n=20):
+    def fake_suggest_watched(query, n, on_progress):
         seen.update(query=query, n=n)
         return SESSION
 
-    monkeypatch.setattr(api_client, "suggest", fake_suggest)
+    monkeypatch.setattr(api_client, "suggest_watched", fake_suggest_watched)
     at = _home()
     at.text_area[0].input("vitamin D and asthma in children")
     _button(at, "Find papers").click().run()
@@ -127,6 +127,32 @@ def test_asking_a_question_shows_ranked_suggestions(monkeypatch):
     assert "#1 · \U0001f7e2 Addresses your question — Vitamin D trial in asthmatic children" in md
     assert "Check it yourself — A paper whose reason did not verify" in md
     assert "Probably off-topic — Vitamin D and bone density" in md
+
+
+def test_the_page_says_how_far_the_search_has_got(monkeypatch):
+    """A spinner says only that something is happening.
+
+    The page shows papers judged out of papers to judge, which is the only
+    reassurance it can give honestly while a model works.
+    """
+    shown = []
+
+    def fake_suggest_watched(query, n, on_progress):
+        on_progress(10, "screening", 0, 3)
+        on_progress(40, "screening", 1, 3)
+        on_progress(100, "done", 3, 3)
+        shown.append(True)
+        return SESSION
+
+    monkeypatch.setattr(api_client, "suggest_watched", fake_suggest_watched)
+    at = _home()
+    at.text_area[0].input("vitamin D and asthma in children")
+    _button(at, "Find papers").click().run()
+
+    assert not at.exception
+    assert shown, "the page never ran the watched search"
+    # The answer still arrives; progress is reporting, not replacing it.
+    assert at.session_state["session"] == SESSION
 
 
 def test_an_unverified_reason_is_never_shown_as_one():

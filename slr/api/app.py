@@ -24,10 +24,10 @@ from fastapi.responses import FileResponse
 
 from slr.adapters import fulltext_assets
 from slr.adapters.llm import BudgetExceeded, CacheMismatch
-from slr.api import providers
+from slr.api import jobs, providers
 from slr.api.auth import current_account, optional_account
 from slr.api.auth import router as auth_router
-from slr.api.deps import PROMPTS_DIR, get_conn
+from slr.api.deps import PROMPTS_DIR, get_conn, new_conn
 from slr.api.schemas import (
     DiscoverPaperOut,
     StatedGapOut,
@@ -182,14 +182,11 @@ def _gap_value_from_extraction(g) -> GapValue:
 suggest_embedder = live_review._embedder
 
 
-@app.post("/suggest", response_model=DiscoverSessionOut)
-def suggest_route(req: SuggestRequest, conn: sqlite3.Connection = Depends(get_conn), account=Depends(optional_account)):
-    """A research question in; the papers most worth reading out.
+def _suggest_session(req: SuggestRequest, conn, account, report) -> dict:
+    """The work behind POST /suggest, shared with the watchable job form.
 
-    Searches OpenAlex, ranks the pool by SPECTER2 similarity to the question,
-    then for the top ``n`` checks relevance and stated gaps, each against a
-    quote verified in the abstract. The researcher picks from these which to
-    read in full (``POST /discover/fulltext``). Nothing here is scored.
+    ``report(stage, done, total)`` is handed through to the service so a
+    caller watching a job can see papers being judged one at a time.
     """
     from slr.services.suggest import relevance_criteria, suggest
 
@@ -215,6 +212,7 @@ def suggest_route(req: SuggestRequest, conn: sqlite3.Connection = Depends(get_co
             meter=meter,
             n=req.n,
             embedder=suggest_embedder(),
+            on_progress=report,
         )
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
@@ -270,6 +268,61 @@ def suggest_route(req: SuggestRequest, conn: sqlite3.Connection = Depends(get_co
     if req.project_id:
         return live_review.save_search(req.project_id, account["id"], session.model_dump())
     return session.model_dump()
+
+
+def _no_progress(stage: str, done: int, total: int) -> None:
+    """For callers that wait on the answer and have nowhere to show progress."""
+
+
+@app.post("/suggest", response_model=DiscoverSessionOut)
+def suggest_route(req: SuggestRequest, conn: sqlite3.Connection = Depends(get_conn), account=Depends(optional_account)):
+    """A research question in; the papers most worth reading out.
+
+    Searches OpenAlex, ranks the pool by SPECTER2 similarity to the question,
+    then for the top ``n`` checks relevance and stated gaps, each against a
+    quote verified in the abstract. The researcher picks from these which to
+    read in full (``POST /discover/fulltext``). Nothing here is scored.
+
+    This answers in one request, which means the caller waits with no idea
+    how far along it is. ``POST /suggest/start`` does the same work as a job
+    that can be watched.
+    """
+    return _suggest_session(req, conn, account, _no_progress)
+
+
+@app.post("/suggest/start")
+def suggest_start(req: SuggestRequest, account=Depends(optional_account)):
+    """The same search, as a job the caller can watch.
+
+    Returns immediately with a job id; ``GET /jobs/{job_id}`` reports how
+    many papers have been judged and carries the answer once it is done.
+    """
+
+    def work(report):
+        # The request that started this job is already over, and its
+        # connection with it, so the job opens its own.
+        conn = new_conn()
+        try:
+            return _suggest_session(req, conn, account, report)
+        finally:
+            conn.close()
+
+    return jobs.start(work).snapshot()
+
+
+@app.get("/jobs/{job_id}")
+def job_status(job_id: str):
+    """How far along a job is, and its answer once there is one."""
+    job = jobs.get(job_id)
+    if job is None:
+        raise HTTPException(404, "No such job. It may have finished long enough ago to be forgotten.")
+    body = job.snapshot()
+    if job.finished and job.error:
+        raise HTTPException(job.status_code, job.error)
+    if job.finished:
+        body["result"] = job.result
+        jobs.forget(job_id)
+    return body
 
 
 @app.post("/discover/fulltext", response_model=FullTextSessionOut)
