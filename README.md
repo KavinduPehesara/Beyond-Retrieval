@@ -60,11 +60,14 @@ surface the research gaps authors state in their own papers?
 
 ## Status
 
-Week 12 of 15 (hardening into week 13). All six reviews are ingested and
-screened; dense/hybrid/rerank retrieval, prompt and model-tier comparisons,
-the overridable mechanism, gap suggestion, data extraction, a FastAPI backend
-and a 5-panel Streamlit dashboard are all built and verified against real
-data. Full detail, every run directory, and every negative result: `CLAUDE.md`.
+Week 13 of 15. All six reviews are ingested and screened;
+dense/hybrid/rerank retrieval, prompt and model-tier comparisons, the
+overridable mechanism, gap suggestion, data extraction and full-text reading
+are built and verified against real data. The interface is one page: a
+question in, suggested papers out, full text on the ones you pick. You choose
+which AI answers -- the local model, Gemini or ChatGPT, behind one provider
+interface -- so a suggested gap need not be taken on one model's word. Full
+detail, every run directory, and every negative result: `CLAUDE.md`.
 
 | Weeks | Deliverable | State |
 |---|---|---|
@@ -143,7 +146,20 @@ Bring up the dashboard (needs at least one review ingested and screened):
 
 ```bash
 uvicorn slr.api.app:app              # backend, localhost:8000
-streamlit run app/Home.py            # dashboard, localhost:8501 -- needs the API running
+streamlit run app/Home.py            # the app, localhost:8501 -- needs the API running
+```
+
+Which AI answers is chosen in the app. The local model needs Ollama running
+and costs nothing; `GEMINI_API_KEY` or `OPENAI_API_KEY` in `.env` adds Gemini
+or ChatGPT, which answer in about a second a call instead of ten.
+`BUDGET_CEILING_USD` caps what a paid provider may spend before a run aborts.
+A provider whose key is missing is offered but refused, never silently
+swapped for another.
+
+Before a live demonstration:
+
+```bash
+python scripts/preflight.py --paid   # API, providers, OpenAlex, Europe PMC
 ```
 
 Each run writes `runs/<timestamp>-<config-hash>/`:
