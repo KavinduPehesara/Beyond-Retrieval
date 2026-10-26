@@ -10,9 +10,15 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
+from slr.adapters.llm import Meter
 from slr.api import app as app_module
 from slr.api.deps import get_conn
 from slr.db import connect
+
+
+def _free_meter() -> Meter:
+    """A meter for a stand-in provider: nothing to spend, nothing to stop."""
+    return Meter(ceiling_usd=0.0, usd_per_1m_input=0.0, usd_per_1m_output=0.0)
 
 
 @pytest.fixture()
@@ -169,7 +175,9 @@ def test_fulltext_note_says_how_much_of_the_paper_was_read(client, monkeypatch):
             }
             return Completion(text=json.dumps(payload), tokens_in=1, tokens_out=1)
 
-    monkeypatch.setattr(app_module, "build_provider", lambda *a, **k: _Provider())
+    monkeypatch.setattr(
+        app_module.providers, "build", lambda key=None: (_Provider(), _free_meter(), None)
+    )
 
     body = client.post(
         "/discover/fulltext",
@@ -208,7 +216,9 @@ def test_a_short_paper_does_not_claim_to_be_truncated(client, monkeypatch):
             }
             return Completion(text=json.dumps(payload), tokens_in=1, tokens_out=1)
 
-    monkeypatch.setattr(app_module, "build_provider", lambda *a, **k: _Provider())
+    monkeypatch.setattr(
+        app_module.providers, "build", lambda key=None: (_Provider(), _free_meter(), None)
+    )
     body = client.post(
         "/discover/fulltext",
         json={"project_id": project_id, "papers": [{"work_id": "W1", "title": "Short", "doi": "10.1/x"}]},
@@ -265,7 +275,9 @@ def test_gaps_stated_in_the_body_are_returned_with_their_section(client, monkeyp
             }
             return Completion(text=json.dumps(payload), tokens_in=1, tokens_out=1)
 
-    monkeypatch.setattr(app_module, "build_provider", lambda *a, **k: _Provider())
+    monkeypatch.setattr(
+        app_module.providers, "build", lambda key=None: (_Provider(), _free_meter(), None)
+    )
     body = client.post(
         "/discover/fulltext",
         json={"project_id": project_id, "papers": [{"work_id": "W1", "title": "A trial", "doi": "10.1/x"}]},

@@ -33,6 +33,16 @@ def health() -> bool:
         return False
 
 
+def providers() -> dict:
+    """The models this deployment can answer with, and which are usable now."""
+    try:
+        r = _client().get("/providers", timeout=10.0)
+        r.raise_for_status()
+        return r.json()
+    except httpx.HTTPError:
+        return {"default": "", "providers": []}
+
+
 def suggest(query: str, n: int = 20) -> dict:
     """Papers most worth reading for one research question, best first.
 
@@ -42,6 +52,8 @@ def suggest(query: str, n: int = 20) -> dict:
     payload: dict = {"query": query, "n": n}
     if st.session_state.get("active_project"):
         payload["project_id"] = st.session_state["active_project"]
+    if st.session_state.get("provider"):
+        payload["provider"] = st.session_state["provider"]
     r = _client().post(
         "/suggest",
         headers=auth_headers(),
@@ -61,7 +73,12 @@ def discover_fulltext(papers: list[dict]) -> dict:
     """
     r = _client().post(
         "/discover/fulltext",
-        json={"papers": papers, "include_assets": True, "project_id": st.session_state.get("active_project")},
+        json={
+            "papers": papers,
+            "include_assets": True,
+            "project_id": st.session_state.get("active_project"),
+            "provider": st.session_state.get("provider") or None,
+        },
         headers=auth_headers(),
         # A Europe PMC lookup, a document fetch and a long model call per
         # paper, on local inference.

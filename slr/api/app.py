@@ -23,7 +23,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from slr.adapters import fulltext_assets
-from slr.adapters.llm import BudgetExceeded, CacheMismatch, Meter, build_provider
+from slr.adapters.llm import BudgetExceeded, CacheMismatch
+from slr.api import providers
 from slr.api.auth import current_account, optional_account
 from slr.api.auth import router as auth_router
 from slr.api.deps import PROMPTS_DIR, get_conn
@@ -81,6 +82,17 @@ def fulltext_asset(pmcid: str, asset_id: str):
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/providers")
+def list_providers():
+    """The models this deployment can answer with, and which are usable now.
+
+    The interface offers all of them and says why an unusable one cannot be
+    picked, rather than hiding it: a reader of the report should be able to
+    see that the second vendor is wired, not merely described.
+    """
+    return {"default": providers.default_key(), "providers": providers.catalogue()}
 
 
 @app.post("/projects")
@@ -189,8 +201,10 @@ def suggest_route(req: SuggestRequest, conn: sqlite3.Connection = Depends(get_co
         except KeyError as exc:
             raise HTTPException(404, "Project not found") from exc
 
-    provider = build_provider("ollama", "qwen2.5:7b-instruct")
-    meter = Meter(ceiling_usd=0.0, usd_per_1m_input=0.0, usd_per_1m_output=0.0)
+    try:
+        provider, meter, _choice = providers.build(req.provider)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
     try:
         result = suggest(
             conn,
@@ -250,6 +264,8 @@ def suggest_route(req: SuggestRequest, conn: sqlite3.Connection = Depends(get_co
         n_candidates=result.n_candidates,
         ranking=result.ranking,
         ranking_note=result.ranking_note,
+        answered_by=_choice.label,
+        model=_choice.model,
     )
     if req.project_id:
         return live_review.save_search(req.project_id, account["id"], session.model_dump())
@@ -282,10 +298,12 @@ def discover_fulltext(req: FullTextRequest, conn: sqlite3.Connection = Depends(g
     from slr.services.extract_fulltext import extract_fulltext_record
     from slr.services.gap_fulltext import find_gaps, load_prompt_template as load_gap_prompt
 
-    provider = build_provider("ollama", "qwen2.5:7b-instruct")
+    try:
+        provider, meter, _choice = providers.build(req.provider)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
     template = load_fulltext_prompt(PROMPTS_DIR / "extract_fulltext_v1.txt")
     gap_template = load_gap_prompt(PROMPTS_DIR / "gap_fulltext_v2.txt")
-    meter = Meter(ceiling_usd=0.0, usd_per_1m_input=0.0, usd_per_1m_output=0.0)
 
     out: list[FullTextPaperOut] = []
     for target in req.papers:

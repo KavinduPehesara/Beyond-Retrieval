@@ -16,7 +16,15 @@ from __future__ import annotations
 
 import httpx
 import streamlit as st
-from api_client import API_URL, discover_fulltext, export_project, health, read_live_session, suggest
+from api_client import (
+    API_URL,
+    discover_fulltext,
+    export_project,
+    health,
+    providers,
+    read_live_session,
+    suggest,
+)
 from fulltext_view import render_categories
 
 st.set_page_config(page_title="Beyond Retrieval", page_icon="\U0001f4da", layout="wide")
@@ -44,6 +52,16 @@ RELEVANCE_BADGE = {
     "check": ("\U0001f7e1", "Check it yourself"),
     "not_relevant": ("⚪", "Probably off-topic"),
 }
+
+
+def model_timeout_message() -> str:
+    """Why a model call timed out, in terms of the model actually chosen."""
+    if st.session_state.get("provider") == "ollama":
+        return "The model didn't respond in time. Is Ollama running?"
+    return (
+        "The model didn't respond in time. Check your connection, or pick a "
+        "different AI above and try again."
+    )
 
 
 def relevance_label(paper: dict) -> str:
@@ -78,16 +96,40 @@ render_library()
 # Step 1 -- the question
 # ---------------------------------------------------------------------------
 
+catalogue = providers()
+usable = [p for p in catalogue.get("providers") or [] if p["configured"]]
+blocked = [p for p in catalogue.get("providers") or [] if not p["configured"]]
+if usable and not st.session_state.get("provider"):
+    default = catalogue.get("default")
+    st.session_state["provider"] = next(
+        (p["key"] for p in usable if p["key"] == default), usable[0]["key"]
+    )
+
 with st.form("question"):
     question = st.text_area(
         "What is your research question?",
         height=90,
         placeholder="e.g. Does vitamin D supplementation reduce the risk of asthma attacks in children?",
     )
+    if usable:
+        keys = [p["key"] for p in usable]
+        labels = {p["key"]: p for p in usable}
+        st.session_state["provider"] = st.radio(
+            "Which AI answers",
+            keys,
+            index=keys.index(st.session_state["provider"]) if st.session_state.get("provider") in keys else 0,
+            horizontal=True,
+            format_func=lambda k: f"{labels[k]['label']} ({labels[k]['model']})",
+        )
+    if blocked:
+        st.caption(
+            "Not configured here: "
+            + "; ".join(f"{p['label']} — {p['note']}" for p in blocked)
+        )
     n = st.slider("Papers to suggest", min_value=5, max_value=25, value=20)
     st.caption(
         "Searches OpenAlex live, ranks what comes back by how close it is to your question, "
-        "then has the local model check the top papers. Expect a few minutes for 20."
+        "then has the chosen model check the top papers. Expect a few minutes for 20."
     )
     asked = st.form_submit_button("Find papers", type="primary")
 
@@ -114,13 +156,13 @@ if asked:
                 st.error(f"Request failed: {exc.response.text}")
             st.stop()
         except httpx.HTTPError:
-            st.error("The model didn't respond in time. Is Ollama running?")
+            st.error(model_timeout_message())
             st.stop()
 
 session = st.session_state.get("session")
 if not session:
     st.info(
-        "Needs Ollama running locally (`ollama pull qwen2.5:7b-instruct`). "
+        "Pick the AI that answers above, then ask a question. "
         "Full-text reading needs you to sign in and open a project."
     )
     st.stop()
@@ -147,8 +189,12 @@ m[0].metric("Candidates ranked", session.get("n_candidates") or len(papers))
 m[1].metric("Suggested", len(papers))
 m[2].metric("Address your question", len(relevant), help="The model said yes and its quote was found in the abstract.")
 m[3].metric("State a research gap", len(gaps))
-if session.get("ranking_note"):
-    st.caption(session["ranking_note"])
+answered_by = session.get("answered_by")
+notes = [session.get("ranking_note") or ""]
+if answered_by:
+    notes.append(f"Screened by {answered_by} ({session.get('model')}).")
+if any(notes):
+    st.caption(" ".join(n for n in notes if n))
 
 with st.container(border=True):
     st.markdown("**Is your question an open gap?**")
@@ -241,7 +287,7 @@ if st.button(
         except httpx.HTTPStatusError as exc:
             st.error(f"Request failed: {exc.response.text}")
         except httpx.HTTPError:
-            st.error("The model didn't respond in time. Is Ollama running?")
+            st.error(model_timeout_message())
 
 ft = st.session_state.get("fulltext")
 if ft and ft.get("papers"):
@@ -324,5 +370,5 @@ st.divider()
 st.caption(
     "Nothing on this page is scored: there is no answer sheet for a question you just typed. "
     "Every claim is shown with the sentence it rests on, so you can check it. "
-    "Runs on a local model, so a search costs nothing."
+    "The same question can be put to a second AI, so a suggested gap is not taken on one model's word."
 )

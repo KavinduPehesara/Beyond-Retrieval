@@ -51,6 +51,7 @@ class FullTextRequest(BaseModel):
     papers: list["FullTextTarget"] = Field(min_length=1, max_length=10)
     include_assets: bool = False
     project_id: str | None = Field(default=None, max_length=100)
+    provider: str | None = Field(default=None, max_length=20)
 
 
 class FullTextTarget(BaseModel):
@@ -175,6 +176,11 @@ class DiscoverSessionOut(BaseModel):
     n_candidates: int | None = None
     ranking: str | None = None
     ranking_note: str | None = None
+    # Which model answered. Stated because the same question put to a second
+    # vendor is a different claim, and a reader should not have to guess
+    # which one produced what is on screen.
+    answered_by: str | None = None
+    model: str | None = None
 
 
 class SuggestRequest(BaseModel):
@@ -183,6 +189,7 @@ class SuggestRequest(BaseModel):
     project_id: str | None = Field(default=None, max_length=100)
     query: str = Field(min_length=1, max_length=1000)
     n: int = Field(default=20, ge=1, le=25)
+    provider: str | None = Field(default=None, max_length=20)
 
 
 class StatedGapOut(BaseModel):
