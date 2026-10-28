@@ -189,12 +189,43 @@ def test_stated_gaps_are_shown_against_the_question():
     assert "similarity 0.81" in captions
 
 
-def test_full_text_needs_a_selection_and_a_project():
+def test_the_page_says_what_the_search_cost():
+    """RQ2 asks what the tool costs; the page should not make that a mystery.
+
+    A cached answer is not paid for twice, so the call counts have to be
+    there or a repeat looks like a cheaper model rather than a free one.
+    """
+    priced = _home({"session": {**SESSION, "answered_by": "Gemini", "model": "gemini-3.5-flash-lite",
+                                "cost_usd": 0.0045, "model_calls": 40, "cached_calls": 17}})
+    said = " ".join(c.value for c in priced.caption)
+    assert "Screened by Gemini (gemini-3.5-flash-lite)." in said
+    assert "40 model calls, 17 from an earlier run: US$0.0045 for the other 23." in said
+
+    free = _home({"session": {**SESSION, "answered_by": "Local model", "model": "qwen2.5:7b-instruct",
+                              "cost_usd": 0.0, "model_calls": 40, "cached_calls": 0}})
+    said = " ".join(c.value for c in free.caption)
+    assert "40 model calls: no cost, the model runs on this machine." in said
+
+    # A rehearsed question is answered entirely from cache. Saying so stops
+    # a free repeat reading as a free model.
+    repeated = _home({"session": {**SESSION, "answered_by": "Gemini", "model": "gemini-3.5-flash-lite",
+                                  "cost_usd": 0.0, "model_calls": 40, "cached_calls": 40}})
+    said = " ".join(c.value for c in repeated.caption)
+    assert "all answered from an earlier run: nothing new was spent." in said
+
+
+def test_a_guest_is_asked_to_sign_in_rather_than_shown_a_dead_button():
+    """One thing to act on, not a greyed control under a message."""
     at = _home({"session": SESSION})
+    assert not [b for b in at.button if b.label.startswith("Extract full text")]
+    assert "Sign in" in " ".join(i.value for i in at.info)
+
+
+def test_a_signed_in_reader_with_nothing_picked_sees_the_button_disabled():
+    at = _home({"session": SESSION, **_signed_in()})
     button = next(b for b in at.button if b.label.startswith("Extract full text"))
-    assert button.disabled  # nothing picked, and a guest
-    info = " ".join(i.value for i in at.info)
-    assert "Sign in" in info
+    assert button.disabled
+    assert button.label == "Extract full text from 0 paper(s)"
 
 
 def test_selected_papers_are_sent_for_full_text(monkeypatch):

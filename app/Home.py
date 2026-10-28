@@ -55,6 +55,30 @@ RELEVANCE_BADGE = {
 }
 
 
+def run_cost_note(session: dict) -> str:
+    """What this search cost, and why a repeat costs less.
+
+    An answer already in the cache is not paid for twice, so the figure
+    falls on a second run of the same question. Saying how many calls were
+    served from cache keeps that from looking like a cheaper model.
+    """
+    calls = session.get("model_calls")
+    if not calls:
+        return ""
+    cost = session.get("cost_usd") or 0.0
+    cached = session.get("cached_calls") or 0
+    if cached >= calls:
+        # Every answer was already held. Worth saying outright, or a free
+        # repeat reads as a free model.
+        return f"{calls} model calls, all answered from an earlier run: nothing new was spent."
+    if cost <= 0:
+        return f"{calls} model calls: no cost, the model runs on this machine."
+    priced = calls - cached
+    if cached:
+        return f"{calls} model calls, {cached} from an earlier run: US${cost:.4f} for the other {priced}."
+    return f"{calls} model calls: US${cost:.4f}."
+
+
 def model_timeout_message() -> str:
     """Why a model call timed out, in terms of the model actually chosen."""
     if st.session_state.get("provider") == "ollama":
@@ -231,6 +255,7 @@ answered_by = session.get("answered_by")
 notes = [session.get("ranking_note") or ""]
 if answered_by:
     notes.append(f"Screened by {answered_by} ({session.get('model')}).")
+    notes.append(run_cost_note(session))
 if any(notes):
     st.caption(" ".join(n for n in notes if n))
 
@@ -311,10 +336,12 @@ else:
         "life sciences. Each paper takes a lookup, a download and a long model call."
     )
 
-if st.button(
+# A guest has already been told to sign in; a dead button under that
+# message is one more thing on screen that cannot be acted on.
+if (signed_in and has_project) and st.button(
     f"Extract full text from {len(chosen)} paper(s)",
     type="primary",
-    disabled=not chosen or too_many or not signed_in or not has_project,
+    disabled=not chosen or too_many,
 ):
     targets = [{"work_id": p["work_id"], "title": p["title"], "doi": p.get("doi")} for p in chosen]
     titles = [p["title"] or p["work_id"] for p in chosen]

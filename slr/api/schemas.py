@@ -181,6 +181,12 @@ class DiscoverSessionOut(BaseModel):
     # which one produced what is on screen.
     answered_by: str | None = None
     model: str | None = None
+    # What this search cost, which is the only honest way to answer "what
+    # does running it cost" -- a cached answer is free, so the number falls
+    # on a repeat and the call counts say why.
+    cost_usd: float | None = None
+    model_calls: int | None = None
+    cached_calls: int | None = None
 
 
 class SuggestRequest(BaseModel):

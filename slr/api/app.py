@@ -264,6 +264,9 @@ def _suggest_session(req: SuggestRequest, conn, account, report) -> dict:
         ranking_note=result.ranking_note,
         answered_by=_choice.label,
         model=_choice.model,
+        cost_usd=round(meter.spend_usd, 6),
+        model_calls=meter.calls,
+        cached_calls=meter.cached_calls,
     )
     if req.project_id:
         return live_review.save_search(req.project_id, account["id"], session.model_dump())
