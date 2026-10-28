@@ -83,3 +83,47 @@ def test_a_reopened_project_still_holds_the_gaps_read_from_the_body(client):
     # The counts behind the quotes survive too: a reader of the saved
     # project can still see what was withheld.
     assert paper["gaps_unsupported"] == 1
+
+
+def test_exporting_a_project_returns_a_zip_a_researcher_can_open(client, monkeypatch):
+    """The last thing the tool does, and the only one that leaves the screen.
+
+    PDF fetching is turned off here: whether a publisher serves a file is
+    not what this route is responsible for.
+    """
+    import io
+    import zipfile
+
+    from slr.services import export as export_service
+
+    real_build = export_service.build_export
+    monkeypatch.setattr(
+        export_service, "build_export",
+        lambda session, **kw: real_build(session, **{**kw, "fetch_pdfs": False}),
+    )
+
+    login(client, "owner")
+    sid = client.post("/projects", json={"name": "Probiotics"}).json()["session_id"]
+    owner = accounts.authenticate(client.headers["Authorization"].split()[1])["id"]
+    live_review.save_search(sid, owner, dict(
+        query="Do probiotics help?",
+        papers=[dict(work_id="W1", title="A probiotic trial", decision=dict(
+            status="include", quote="we randomised 120 adults", span_verified=True))],
+    ))
+    live_review.save_fulltext(sid, owner, dict(papers=[dict(
+        work_id="W1", title="A probiotic trial", found=True, note="full text from PMC1",
+        gaps=[{"value": "Optimal dose unknown", "section": "Conclusion",
+               "quote": "Further research should establish the optimal dose."}],
+    )]))
+
+    r = client.post(f"/projects/{sid}/export")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "application/zip"
+
+    with zipfile.ZipFile(io.BytesIO(r.content)) as zf:
+        assert zf.testzip() is None, "the zip is corrupt"
+        names = zf.namelist()
+        summary = next(n for n in names if n.endswith("summary.md"))
+        assert "Further research should establish the optimal dose." in zf.read(summary).decode()
+        assert any(n.endswith("README.txt") for n in names)
+        assert any(n.endswith("summary.csv") for n in names)
