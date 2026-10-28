@@ -41,7 +41,10 @@ def _session():
              "figures": [{"label": "Figure 1", "caption": "Flow", "mentions": ["see Figure 1"],
                           "images": [{"name": "fig1.png", "download_url": f"/fulltext/assets/PMC1/{ASSET_ID}"}]}],
              "coverage": [{"key": "methods", "label": "Methods", "status": "extracted", "count": 1, "note": ""}],
-             "evidence": {"methods": [{"source": "Methods", "quote": "We recruited 80 children."}]}},
+             "evidence": {"methods": [{"source": "Methods", "quote": "We recruited 80 children."}]},
+             "gaps": [{"value": "Long-term effect is unknown", "section": "Discussion",
+                       "quote": "Further research is needed to establish whether the effect persists."}],
+             "gaps_note": "found"},
         ]},
     }
 
@@ -132,6 +135,45 @@ def test_data_json_carries_the_abstract_and_full_text(assets):
     payload = json.loads(next(v for k, v in files.items() if k.endswith("01 - Vitamin D a trial in children/data.json")))
     assert payload["abstract"] == "An abstract."
     assert payload["full_text"]["tables"][0]["label"] == "Table 1"
+
+
+def test_the_gaps_a_paper_states_in_its_body_reach_the_folder(assets):
+    """The researcher sees them on screen; the export must keep them.
+
+    These are what the abstract stage cannot see, so an export without
+    them loses the newest thing the tool found.
+    """
+    name, blob = build_export(_session(), client=assets, fetch_pdfs=False)
+    with zipfile.ZipFile(io.BytesIO(blob)) as zf:
+        summary = next(n for n in zf.namelist() if n.endswith("summary.md") and "01 - " in n)
+        text = zf.read(summary).decode()
+        rows = list(csv.reader(io.StringIO(
+            zf.read(next(n for n in zf.namelist() if n.endswith("summary.csv"))).decode()
+        )))
+
+    assert "## Gaps the authors state in this paper" in text
+    assert "Further research is needed to establish whether the effect persists." in text
+    assert "Long-term effect is unknown · Discussion" in text
+
+    header, first = rows[0], rows[1]
+    assert "Gaps stated in the body" in header
+    body_column = header.index("Gaps stated in the body")
+    assert "Further research is needed" in first[body_column]
+    # The abstract-level gap keeps its own column, since they answer
+    # different questions.
+    assert "long-term effects remain unknown" in first[header.index("Gap stated in the abstract")]
+
+
+def test_a_paper_with_no_stated_gap_says_so_rather_than_leaving_a_hole(assets):
+    session = _session()
+    paper = next(p for p in session["fulltext"]["papers"] if p.get("found"))
+    paper["gaps"] = []
+    paper["gaps_note"] = "none_stated"
+    _name, blob = build_export(session, client=assets, fetch_pdfs=False)
+    with zipfile.ZipFile(io.BytesIO(blob)) as zf:
+        summary = next(n for n in zf.namelist() if n.endswith("summary.md") and "01 - " in n)
+        text = zf.read(summary).decode()
+    assert "None stated in the body." in text
 
 
 def test_only_cached_assets_are_copied(tmp_path):

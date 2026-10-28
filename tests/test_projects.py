@@ -55,3 +55,31 @@ def test_saves_search_history_and_combines_fulltext(client):
     assert saved["project_name"] == "A"
     assert saved["search_history"][0]["query"] == "First"
     assert saved["search_history"][0]["fulltext"]["n_requested"] == 2
+
+
+def test_a_reopened_project_still_holds_the_gaps_read_from_the_body(client):
+    """What the researcher keeps must survive closing the browser.
+
+    The gaps a paper states in its body are the newest thing the tool
+    finds, and they arrive after the search that created the project, so
+    the round trip through the store is worth pinning.
+    """
+    login(client, "owner")
+    sid = client.post("/projects", json={"name": "Probiotics"}).json()["session_id"]
+    owner = accounts.authenticate(client.headers["Authorization"].split()[1])["id"]
+
+    live_review.save_search(sid, owner, dict(query="Do probiotics help?", papers=[dict(work_id="W1")]))
+    live_review.save_fulltext(sid, owner, dict(papers=[dict(
+        work_id="W1", found=True,
+        gaps=[{"value": "Optimal dose unknown", "section": "Conclusion",
+               "quote": "Further research should establish the optimal dose."}],
+        gaps_note="found", gaps_withheld=0, gaps_unsupported=1,
+    )]))
+
+    reopened = client.get("/discover/sessions/" + sid).json()
+    paper = reopened["fulltext"]["papers"][0]
+    assert paper["gaps"][0]["quote"] == "Further research should establish the optimal dose."
+    assert paper["gaps"][0]["section"] == "Conclusion"
+    # The counts behind the quotes survive too: a reader of the saved
+    # project can still see what was withheld.
+    assert paper["gaps_unsupported"] == 1

@@ -207,13 +207,31 @@ def paper_markdown(rank: int, suggestion: dict, paper: dict, pdf_note: str) -> s
     lines.append("")
 
     gap = suggestion.get("gap") or {}
-    lines.append("## Research gap the authors state")
+    lines.append("## Research gap stated in the abstract")
     lines.append(f'"{gap["quote"]}"' if gap.get("status") == "gap_stated" else "None stated in the abstract.")
     lines.append("")
 
     lines.append("## From the full paper")
     lines.append(paper.get("note") or ("Full text found." if paper.get("found") else "No full text."))
     lines.append("")
+
+    # The gaps the authors state in the body, which the abstract stage
+    # cannot see. On screen these sit above the extracted fields, and a
+    # folder the researcher keeps should hold what the screen showed.
+    if paper.get("found"):
+        lines.append("## Gaps the authors state in this paper")
+        stated = paper.get("gaps") or []
+        for body_gap in stated:
+            lines.append(f'"{body_gap.get("quote")}"')
+            said = body_gap.get("value")
+            where = body_gap.get("section")
+            trailer = " · ".join(x for x in (said, where) if x)
+            if trailer:
+                lines.append(f"— {trailer}")
+            lines.append("")
+        if not stated:
+            lines.append(f"None stated in the body. {paper.get('gaps_note') or ''}".strip())
+            lines.append("")
     for field, label in FULLTEXT_FIELDS:
         item = paper.get(field)
         if not item:
@@ -275,7 +293,8 @@ def build_export(
     client = client or httpx.Client(headers={"User-Agent": USER_AGENT})
 
     summary = [["Rank", "Folder", "Title", "Year", "DOI", "Relevance", "Similarity", "Full text",
-                "PDF saved", *(label for _, label in FULLTEXT_FIELDS), "Stated research gap"]]
+                "PDF saved", *(label for _, label in FULLTEXT_FIELDS),
+                "Gap stated in the abstract", "Gaps stated in the body"]]
     buffer = io.BytesIO()
     try:
         with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -316,6 +335,9 @@ def build_export(
                         zf.write(path, f"{folder}/supplementary/{safe_name(name, 80)}")
 
                 gap = s.get("gap") or {}
+                # Each body gap on its own line within the cell, so a
+                # spreadsheet shows the sentences rather than a count.
+                body_gaps = "\n".join(f'"{g.get("quote")}"' for g in paper.get("gaps") or [])
                 summary.append([
                     rank, folder.rsplit("/", 1)[-1], paper.get("title"), s.get("year"), s.get("doi"),
                     RELEVANCE_TEXT[relevance_label(s)] if s else "",
@@ -323,6 +345,7 @@ def build_export(
                     "yes" if paper.get("found") else "no", "yes" if pdf else "no",
                     *(field_text(paper.get(f)) for f, _ in FULLTEXT_FIELDS),
                     gap.get("quote") if gap.get("status") == "gap_stated" else "",
+                    body_gaps,
                 ])
 
             zf.writestr(f"{root}/summary.csv", _csv(summary))
@@ -332,6 +355,8 @@ def build_export(
                 f"Papers: {len(papers)}\n\n"
                 "Each numbered folder is one paper you selected. summary.md is the readable "
                 "version; data.json holds the same data for other tools.\n\n"
+                "summary.md also lists the research gaps each paper's authors state in its "
+                "body, quoted and placed in the section they came from.\n\n"
                 "Every value extracted by the model was checked against the paper: it is shown "
                 "only when its supporting quote was found word for word. 'withheld' means the "
                 "model proposed a value but its quote was not found, so the value is not given. "
