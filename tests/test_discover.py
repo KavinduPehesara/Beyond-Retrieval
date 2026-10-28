@@ -496,3 +496,70 @@ def test_search_openalex_strips_the_wildcards_openalex_refuses():
     assert seen == ["Does vitamin D reduce asthma"]
     with pytest.raises(ValueError):
         search_openalex("??", client=client)
+
+
+# --------------------------------------------------------------------------
+# Where a paper can be read, when this tool cannot read it
+# --------------------------------------------------------------------------
+
+
+def _oa_client(payload, *, status=200):
+    import httpx
+
+    def handler(request):
+        return httpx.Response(status, json=payload)
+
+    return httpx.Client(transport=httpx.MockTransport(handler))
+
+
+def test_an_open_access_copy_elsewhere_is_reported_with_its_host():
+    """Europe PMC holds a subset; a free copy often sits somewhere else."""
+    from slr.services.discover import open_access_copy
+
+    client = _oa_client({
+        "best_oa_location": {
+            "pdf_url": "https://repo.example.ac.uk/paper.pdf",
+            "source": {"display_name": "Example University Repository"},
+        },
+        "open_access": {"is_oa": True, "oa_url": "https://repo.example.ac.uk/paper"},
+    })
+    found = open_access_copy("https://openalex.org/W123", client=client)
+
+    assert found.url == "https://repo.example.ac.uk/paper.pdf"
+    assert found.host == "Example University Repository"
+    assert found.is_pdf is True
+
+
+def test_a_landing_page_counts_when_there_is_no_pdf():
+    from slr.services.discover import open_access_copy
+
+    client = _oa_client({
+        "best_oa_location": {"landing_page_url": "https://journal.example/article", "source": {}},
+        "open_access": {"is_oa": True},
+    })
+    found = open_access_copy("https://openalex.org/W123", client=client)
+    assert found.url == "https://journal.example/article"
+    assert found.is_pdf is False
+    assert found.host  # falls back to the host name in the URL
+
+
+def test_a_paper_with_no_free_copy_reports_none_rather_than_guessing():
+    from slr.services.discover import open_access_copy
+
+    client = _oa_client({"best_oa_location": None, "open_access": {"is_oa": False}})
+    assert open_access_copy("https://openalex.org/W123", client=client) is None
+
+
+def test_a_lookup_failure_is_not_an_error_the_researcher_has_to_see():
+    """The paper still has no full text; a failed lookup adds nothing."""
+    from slr.services.discover import open_access_copy
+
+    client = _oa_client({}, status=500)
+    assert open_access_copy("https://openalex.org/W123", client=client) is None
+
+
+def test_something_that_is_not_an_openalex_id_is_not_looked_up():
+    from slr.services.discover import open_access_copy
+
+    assert open_access_copy("not-a-work-id") is None
+    assert open_access_copy("") is None

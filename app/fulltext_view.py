@@ -130,7 +130,12 @@ def render_categories(paper):
     key_prefix = str(paper.get("fulltext_ui_key") or paper.get("work_id") or paper.get("title") or "fulltext")
     with st.expander("From the full paper", expanded=True):
         st.caption(paper.get("fulltext_note") or paper.get("note") or "")
-        if paper.get("source_url"):
+        # Europe PMC holds only the biomedical open-access subset, so most
+        # papers cannot be read here. Where a free copy exists elsewhere,
+        # offer it: the researcher's next step is a link, not a dead end.
+        if not paper.get("found") and paper.get("oa_url"):
+            st.link_button(f"Read it free at {paper.get('oa_host') or 'the publisher'}", paper["oa_url"])
+        elif paper.get("source_url"):
             st.link_button("Open source paper", paper["source_url"])
         coverage = paper["coverage"]
         with st.popover("View source coverage"):

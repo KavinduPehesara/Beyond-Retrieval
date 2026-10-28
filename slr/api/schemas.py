@@ -7,7 +7,7 @@ Field names match what the services already produce (``span_verified``,
 from __future__ import annotations
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from slr.api.deps import MAX_LIVE_SCREEN
 
@@ -159,6 +159,13 @@ class DiscoverSessionOut(BaseModel):
     recall or accuracy here, only what was found and what verified.
     """
 
+    # ``model`` and ``model_calls`` describe the language model that
+    # answered, not this schema. Pydantic reserves the ``model_`` prefix for
+    # its own methods and warns about it; those are the honest names for a
+    # reader of the API, so the warning is turned off rather than the fields
+    # bent around it.
+    model_config = ConfigDict(protected_namespaces=())
+
     session_id: str | None = None
     query: str
     criteria: str | None
@@ -230,6 +237,10 @@ class FullTextPaperOut(BaseModel):
     note: str = ""
     found: bool = False
     pmcid: str | None = None
+    # Where the paper can be read when this tool cannot read it itself.
+    # A dead end is worth turning into a link if one exists.
+    oa_url: str | None = None
+    oa_host: str | None = None
     coverage: list[dict] = Field(default_factory=list)
     evidence: dict[str, list[dict]] = Field(default_factory=dict)
     supplements: list[dict] = Field(default_factory=list)

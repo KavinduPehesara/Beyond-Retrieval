@@ -21,7 +21,9 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 from dataclasses import dataclass
+from urllib.parse import urlparse
 
 import httpx
 
@@ -440,3 +442,55 @@ def _attach_full_text(
         f"full text from {availability.pmcid}: {verified} of {len(paper.fulltext)} "
         f"fields verified, {len(paper.tables)} tables, {len(paper.equations)} equations"
     )
+
+
+@dataclass
+class OpenAccessCopy:
+    """Where a paper can be read, when this tool cannot read it itself."""
+
+    url: str
+    host: str
+    is_pdf: bool
+
+
+def open_access_copy(work_id: str, *, client: httpx.Client | None = None) -> OpenAccessCopy | None:
+    """An open-access copy of a paper held somewhere other than Europe PMC.
+
+    Europe PMC holds the biomedical open-access subset, which leaves most
+    of a typical result list unreadable here. OpenAlex knows where else a
+    copy sits, and a researcher told "no full text" can at least be told
+    "but it is free to read there" rather than hitting a dead end.
+
+    Returns None when there is no open-access copy, which is a fact about
+    the paper rather than a failure worth reporting as one.
+    """
+    work = (work_id or "").rsplit("/", 1)[-1]
+    if not re.fullmatch(r"W\d+", work):
+        return None
+
+    owns_client = client is None
+    client = client or httpx.Client(timeout=20)
+    params = {"select": "best_oa_location,open_access"}
+    mailto = os.getenv("OPENALEX_MAILTO")
+    if mailto:
+        params["mailto"] = mailto
+    try:
+        response = client.get(f"{OPENALEX_WORKS_URL}/{work}", params=params)
+        response.raise_for_status()
+        data = response.json()
+    except (httpx.HTTPError, ValueError):
+        return None
+    finally:
+        if owns_client:
+            client.close()
+
+    location = data.get("best_oa_location") or {}
+    url = location.get("pdf_url") or location.get("landing_page_url")
+    if not url:
+        url = (data.get("open_access") or {}).get("oa_url")
+    if not url:
+        return None
+
+    source = location.get("source") or {}
+    host = source.get("display_name") or urlparse(url).netloc or "an open-access host"
+    return OpenAccessCopy(url=url, host=host, is_pdf=bool(location.get("pdf_url")))

@@ -342,7 +342,7 @@ def _fulltext_session(req: FullTextRequest, conn, account, report) -> dict:
     except KeyError as exc:
         raise HTTPException(404, "Project not found") from exc
     from slr.adapters.fulltext import get_full_text
-    from slr.services.discover import DISCOVER_REVIEW
+    from slr.services.discover import DISCOVER_REVIEW, open_access_copy
     from slr.services.extract_fulltext import extract_fulltext_record
     from slr.services.gap_fulltext import find_gaps, load_prompt_template as load_gap_prompt
 
@@ -375,6 +375,14 @@ def _fulltext_session(req: FullTextRequest, conn, account, report) -> dict:
 
         if full_text is None:
             entry.note = availability.reason or "no full text available"
+            # Europe PMC holds the biomedical open-access subset, so most
+            # papers end here. Say where it can be read instead, when
+            # somewhere exists: the researcher's next step is a link, not
+            # a dead end.
+            elsewhere = open_access_copy(target.work_id)
+            if elsewhere:
+                entry.oa_url, entry.oa_host = elsewhere.url, elsewhere.host
+                entry.note += f". A free copy is held by {elsewhere.host}"
             entry.coverage = unavailable_categories(entry.note)
             out.append(entry)
             report("reading", len(out), len(req.papers))
