@@ -181,7 +181,10 @@ def test_full_text_needs_a_selection_and_a_project():
 
 def test_selected_papers_are_sent_for_full_text(monkeypatch):
     sent = []
-    monkeypatch.setattr(api_client, "discover_fulltext", lambda targets: sent.extend(targets))
+    monkeypatch.setattr(
+        api_client, "discover_fulltext_watched",
+        lambda targets, on_progress: sent.extend(targets),
+    )
     monkeypatch.setattr(api_client, "read_live_session", lambda sid: {"fulltext": FULLTEXT})
     at = _home({"session": SESSION, **_signed_in()})
     at.checkbox(key="pick-W1").check()
@@ -194,6 +197,30 @@ def test_selected_papers_are_sent_for_full_text(monkeypatch):
     assert not at.exception
     assert [t["work_id"] for t in sent] == ["W1", "W3"]
     assert sent[0]["doi"] == "10.1/W1"
+
+
+def test_the_page_names_the_paper_it_is_reading(monkeypatch):
+    """Reading is the slowest thing the tool does, and a spinner says least.
+
+    Each paper is a lookup, a download and two long model calls, so the
+    page reports which one of how many it is on.
+    """
+    reported = []
+
+    def fake_watched(targets, on_progress):
+        on_progress(10, "reading", 0, len(targets))
+        on_progress(55, "reading", 1, len(targets))
+        reported.append(len(targets))
+
+    monkeypatch.setattr(api_client, "discover_fulltext_watched", fake_watched)
+    monkeypatch.setattr(api_client, "read_live_session", lambda sid: {"fulltext": FULLTEXT})
+    at = _home({"session": SESSION, **_signed_in()})
+    at.checkbox(key="pick-W1").check()
+    at.run()
+    next(b for b in at.button if b.label.startswith("Extract full text")).click().run()
+
+    assert not at.exception
+    assert reported == [1], "the page never ran the watched reading"
 
 
 def test_full_text_results_are_compared_and_withhold_unverified_values():

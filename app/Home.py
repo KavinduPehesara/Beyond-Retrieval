@@ -18,7 +18,7 @@ import httpx
 import streamlit as st
 from api_client import (
     API_URL,
-    discover_fulltext,
+    discover_fulltext_watched,
     export_project,
     health,
     providers,
@@ -306,15 +306,31 @@ if st.button(
     disabled=not chosen or too_many or not signed_in or not has_project,
 ):
     targets = [{"work_id": p["work_id"], "title": p["title"], "doi": p.get("doi")} for p in chosen]
-    with st.spinner(f"Fetching and reading {len(targets)} paper(s)..."):
-        try:
-            discover_fulltext(targets)
-            st.session_state.pop("export", None)
-            st.session_state["fulltext"] = read_live_session(st.session_state["active_project"]).get("fulltext")
-        except httpx.HTTPStatusError as exc:
-            st.error(f"Request failed: {exc.response.text}")
-        except httpx.HTTPError:
-            st.error(model_timeout_message())
+    titles = [p["title"] or p["work_id"] for p in chosen]
+    reading = st.progress(0, text=f"Looking up {len(targets)} paper(s) in Europe PMC...")
+
+    def show_reading(percent: int, stage: str, done: int, total: int) -> None:
+        # Name the paper being read. Each one takes a lookup, a download and
+        # two long model calls, so without this the page is still for
+        # minutes with nothing to say for itself.
+        if done >= total:
+            text = f"Read all {total}; finishing up..."
+        else:
+            name = titles[done] if done < len(titles) else ""
+            text = f"Reading paper {done + 1} of {total}: {name[:60]}..."
+        reading.progress(min(percent, 100), text=text)
+
+    try:
+        discover_fulltext_watched(targets, show_reading)
+        st.session_state.pop("export", None)
+        st.session_state["fulltext"] = read_live_session(st.session_state["active_project"]).get("fulltext")
+        reading.empty()
+    except httpx.HTTPStatusError as exc:
+        reading.empty()
+        st.error(f"Request failed: {exc.response.text}")
+    except (httpx.HTTPError, TimeoutError):
+        reading.empty()
+        st.error(model_timeout_message())
 
 ft = st.session_state.get("fulltext")
 if ft and ft.get("papers"):

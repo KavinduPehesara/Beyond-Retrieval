@@ -325,20 +325,12 @@ def job_status(job_id: str):
     return body
 
 
-@app.post("/discover/fulltext", response_model=FullTextSessionOut)
-def discover_fulltext(req: FullTextRequest, conn: sqlite3.Connection = Depends(get_conn), account=Depends(current_account)):
-    """Stage two: read the full text of papers the reviewer chose.
+def _fulltext_session(req: FullTextRequest, conn, account, report) -> dict:
+    """The work behind POST /discover/fulltext, shared with its job form.
 
-    Screening on abstracts is stage one (`POST /discover`); this is what a
-    systematic review does next, and splitting them is not only faster but
-    closer to the method. PRISMA defines title/abstract screening and
-    full-text review as separate stages for the same reason: a human
-    decides what is worth the deeper read.
-
-    Nothing here is persisted and nothing is scored. There is no ground
-    truth for an extracted effect size, so this reports what verified and
-    never how often it was right -- the validation pages are where that
-    question is answered.
+    ``report(stage, done, total)`` is called as each paper is finished, so
+    a caller watching a job can say which paper is being read rather than
+    showing a spinner for the minutes this can take.
     """
     if not req.project_id:
         raise HTTPException(400, "Create or choose a named research project first")
@@ -359,6 +351,7 @@ def discover_fulltext(req: FullTextRequest, conn: sqlite3.Connection = Depends(g
     gap_template = load_gap_prompt(PROMPTS_DIR / "gap_fulltext_v2.txt")
 
     out: list[FullTextPaperOut] = []
+    report("reading", 0, len(req.papers))
     for target in req.papers:
         entry = FullTextPaperOut(work_id=target.work_id, title=target.title)
         entry.coverage = unavailable_categories("Full text has not been retrieved.")
@@ -368,17 +361,20 @@ def discover_fulltext(req: FullTextRequest, conn: sqlite3.Connection = Depends(g
             entry.note = str(exc)
             entry.coverage = unavailable_categories(entry.note)
             out.append(entry)
+            report("reading", len(out), len(req.papers))
             continue
         except httpx.HTTPError as exc:
             entry.note = f"Europe PMC request failed: {exc}"
             entry.coverage = unavailable_categories(entry.note)
             out.append(entry)
+            report("reading", len(out), len(req.papers))
             continue
 
         if full_text is None:
             entry.note = availability.reason or "no full text available"
             entry.coverage = unavailable_categories(entry.note)
             out.append(entry)
+            report("reading", len(out), len(req.papers))
             continue
 
         entry.found = True
@@ -478,6 +474,7 @@ def discover_fulltext(req: FullTextRequest, conn: sqlite3.Connection = Depends(g
                     f"part that was cut"
                 )
         out.append(entry)
+        report("reading", len(out), len(req.papers))
 
     result = FullTextSessionOut(
         n_requested=len(req.papers),
@@ -485,5 +482,40 @@ def discover_fulltext(req: FullTextRequest, conn: sqlite3.Connection = Depends(g
         papers=out,
     )
 
+    # Saved merged with anything read earlier, but this call answers with
+    # what this call read, which is what the page asked for.
     live_review.save_fulltext(req.project_id, account["id"], result.model_dump())
-    return result
+    return result.model_dump()
+
+
+@app.post("/discover/fulltext", response_model=FullTextSessionOut)
+def discover_fulltext(req: FullTextRequest, conn: sqlite3.Connection = Depends(get_conn), account=Depends(current_account)):
+    """Stage two: read the full text of papers the reviewer chose.
+
+    Screening on abstracts is stage one; this is what a systematic review
+    does next, and splitting them is not only faster but closer to the
+    method. PRISMA defines title/abstract screening and full-text review as
+    separate stages for the same reason: a human decides what is worth the
+    deeper read.
+
+    Nothing here is scored. There is no ground truth for an extracted
+    effect size, so this reports what verified and never how often it was
+    right. ``POST /discover/fulltext/start`` does the same work as a job
+    that can be watched, which matters because each paper is a lookup, a
+    download and two long model calls.
+    """
+    return _fulltext_session(req, conn, account, _no_progress)
+
+
+@app.post("/discover/fulltext/start")
+def discover_fulltext_start(req: FullTextRequest, account=Depends(current_account)):
+    """The same reading, as a job the caller can watch."""
+
+    def work(report):
+        conn = new_conn()
+        try:
+            return _fulltext_session(req, conn, account, report)
+        finally:
+            conn.close()
+
+    return jobs.start(work).snapshot()

@@ -86,8 +86,15 @@ def suggest_watched(query: str, n: int, on_progress) -> dict:
     started.raise_for_status()
     job_id = started.json()["job_id"]
 
-    # Polled rather than streamed: Streamlit redraws the page top to bottom,
-    # so a short poll is both simpler and all the page can actually paint.
+    return _watch(job_id, on_progress, "The search")
+
+
+def _watch(job_id: str, on_progress, what: str) -> dict:
+    """Follow a job to its answer, reporting progress as it moves.
+
+    Polled rather than streamed: Streamlit redraws the page top to bottom,
+    so a short poll is both simpler and all the page can actually paint.
+    """
     deadline = time.time() + 1800
     while time.time() < deadline:
         r = _client().get(f"/jobs/{job_id}", timeout=30.0)
@@ -97,7 +104,32 @@ def suggest_watched(query: str, n: int, on_progress) -> dict:
         if body["finished"]:
             return body["result"]
         time.sleep(0.6)
-    raise TimeoutError("The search ran longer than half an hour and was abandoned.")
+    raise TimeoutError(f"{what} ran longer than half an hour and was abandoned.")
+
+def _fulltext_payload(papers: list[dict]) -> dict:
+    return {
+        "papers": papers,
+        "include_assets": True,
+        "project_id": st.session_state.get("active_project"),
+        "provider": st.session_state.get("provider") or None,
+    }
+
+
+def discover_fulltext_watched(papers: list[dict], on_progress) -> dict:
+    """Read the chosen papers, reporting which one is being read.
+
+    Each paper is a Europe PMC lookup, a document download and two long
+    model calls, so this is the slowest thing the tool does and the one a
+    spinner tells you least about.
+    """
+    started = _client().post(
+        "/discover/fulltext/start", headers=auth_headers(), json=_fulltext_payload(papers), timeout=30.0
+    )
+    if started.status_code == 404:
+        return discover_fulltext(papers)
+    started.raise_for_status()
+    return _watch(started.json()["job_id"], on_progress, "Reading the papers")
+
 
 def discover_fulltext(papers: list[dict]) -> dict:
     """Stage two: read the full text of the papers the reviewer chose.
