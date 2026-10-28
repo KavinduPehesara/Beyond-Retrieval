@@ -155,6 +155,24 @@ def test_the_page_says_how_far_the_search_has_got(monkeypatch):
     assert at.session_state["session"] == SESSION
 
 
+def test_nothing_found_and_nothing_readable_are_told_apart():
+    """Two different failures used to read identically.
+
+    Nothing matching the wording is the researcher's to fix; matches with
+    no redistributable abstract is the index's limit, and telling them to
+    reword a perfectly good question wastes their time.
+    """
+    nothing = _home({"session": {**SESSION, "papers": [], "n_candidates": 0}})
+    said = " ".join(w.value for w in nothing.warning)
+    assert "found nothing" in said
+    assert "abstract" not in said
+
+    unreadable = _home({"session": {**SESSION, "papers": [], "n_candidates": 37}})
+    said = " ".join(w.value for w in unreadable.warning)
+    assert "37 papers" in said
+    assert "none had an abstract" in said
+
+
 def test_an_unverified_reason_is_never_shown_as_one():
     at = _home({"session": SESSION})
     md = " ".join(m.value for m in at.markdown)

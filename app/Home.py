@@ -196,10 +196,21 @@ if not session:
 
 papers = session.get("papers") or []
 if not papers:
-    st.warning(
-        "No results had an abstract to check. OpenAlex can only share abstracts for about half "
-        "of what it indexes. Try different wording."
-    )
+    # Two different failures used to read the same way. Nothing matching
+    # the wording is the researcher's problem to fix; matches without a
+    # redistributable abstract is the index's limit, and blaming the
+    # wording for it sends them rewriting a question that was fine.
+    if not session.get("n_candidates"):
+        st.warning(
+            f"OpenAlex found nothing for “{session['query']}”. Try fewer or more common words — "
+            "it matches the words you use, not the meaning."
+        )
+    else:
+        st.warning(
+            f"OpenAlex found {session['n_candidates']} papers, but none had an abstract this tool "
+            "may read. It can only share abstracts for about half of what it indexes, and a paper "
+            "without one cannot be checked against your question. Try different wording."
+        )
     st.stop()
 
 # ---------------------------------------------------------------------------
