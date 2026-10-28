@@ -173,6 +173,35 @@ def test_nothing_found_and_nothing_readable_are_told_apart():
     assert "none had an abstract" in said
 
 
+def test_each_suggestion_says_whether_it_can_be_read_in_full():
+    """Told before the pick, not after, and nothing removed for it."""
+    session = {**SESSION, "papers": [
+        {**SESSION["papers"][0], "fulltext_status": "held"},
+        {**SESSION["papers"][1], "fulltext_status": "elsewhere",
+         "oa_host": "World Journal of Gastroenterology"},
+        {**SESSION["papers"][2], "fulltext_status": "none"},
+    ]}
+    at = _home({"session": session})
+    captions = " ".join(c.value for c in at.caption)
+
+    assert "readable in full" in captions
+    assert "free copy at World Journal of Gastroenterology" in captions
+    assert "abstract only" in captions
+    # All three are still on the list: a paywall is not a judgement about
+    # the research.
+    md = " ".join(m.value for m in at.markdown)
+    for paper in session["papers"]:
+        assert paper["title"] in md
+
+
+def test_a_failed_availability_lookup_shows_no_badge_at_all():
+    at = _home({"session": {**SESSION, "papers": [
+        {**SESSION["papers"][0], "fulltext_status": "unknown"}]}})
+    captions = " ".join(c.value for c in at.caption)
+    assert "readable in full" not in captions
+    assert "abstract only" not in captions
+
+
 def test_an_unverified_reason_is_never_shown_as_one():
     at = _home({"session": SESSION})
     md = " ".join(m.value for m in at.markdown)

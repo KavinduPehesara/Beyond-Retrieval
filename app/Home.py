@@ -55,6 +55,24 @@ RELEVANCE_BADGE = {
 }
 
 
+def readability_note(paper: dict) -> str:
+    """Whether this paper can be read in full, said before it is picked.
+
+    Nothing is hidden on this basis: a paper that cannot be read is still
+    suggested, because relevance and convenience are different things and
+    the publisher's paywall is not a judgement about the research.
+    """
+    status = paper.get("fulltext_status")
+    if status == "held":
+        return "\U0001f4d6 readable in full"
+    if status == "elsewhere":
+        host = paper.get("oa_host") or "another site"
+        return f"abstract only — free copy at {host[:40]}"
+    if status == "none":
+        return "abstract only"
+    return ""
+
+
 def run_cost_note(session: dict) -> str:
     """What this search cost, and why a repeat costs less.
 
@@ -185,6 +203,7 @@ if asked:
             "screening": f"Checking paper {min(done + 1, total)} of {total}..."
             if done < total
             else f"Checked all {total} papers; finishing up...",
+            "checking": "Seeing which of them can be read in full...",
             "done": "Done.",
         }.get(stage, "Working...")
         bar.progress(min(percent, 100), text=wording)
@@ -300,7 +319,8 @@ for rank, paper in enumerate(papers, 1):
                 bits.append(f"similarity {paper['relevance']:.2f}")
             if paper.get("source_url"):
                 bits.append(f"[view paper]({paper['source_url']})")
-            st.caption(" · ".join(bits))
+            bits.append(readability_note(paper))
+            st.caption(" · ".join(b for b in bits if b))
             if d.get("quote") and d.get("span_verified"):
                 st.markdown(f"Why: “{d['quote']}”")
             elif d.get("quote"):

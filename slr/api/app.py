@@ -188,6 +188,7 @@ def _suggest_session(req: SuggestRequest, conn, account, report) -> dict:
     ``report(stage, done, total)`` is handed through to the service so a
     caller watching a job can see papers being judged one at a time.
     """
+    from slr.services.availability import readability_of_each
     from slr.services.suggest import relevance_criteria, suggest
 
     if req.project_id:
@@ -247,6 +248,18 @@ def _suggest_session(req: SuggestRequest, conn, account, report) -> dict:
                 gap_match=s.gap_similarity,
             )
         )
+    # Whether each paper can be read in full, before the reviewer picks one
+    # rather than after. Nothing is removed on this basis: see the note in
+    # slr/services/availability.py for why filtering was rejected.
+    report("checking", 0, 0)
+    try:
+        for paper, readable in zip(papers, readability_of_each([p.model_dump() for p in papers])):
+            paper.fulltext_status = readable.status
+            paper.oa_url, paper.oa_host = readable.url, readable.host
+    except Exception:
+        # A result list without badges is still a result list.
+        pass
+
     decisions = [p.decision for p in papers]
     session = DiscoverSessionOut(
         query=req.query,

@@ -126,6 +126,12 @@ class DiscoverPaperOut(BaseModel):
     relevance: float | None = None
     gap_match: float | None = None
     doi: str | None = None
+    # Whether the full paper can be read, checked before the reviewer picks
+    # rather than after: "held" in Europe PMC, free "elsewhere", "none"
+    # found, or "unknown" when the lookup itself failed.
+    fulltext_status: str | None = None
+    oa_url: str | None = None
+    oa_host: str | None = None
 
     # --- full text, when it was asked for and Europe PMC had it ----------
     # Model-extracted, each with a verified quote. Same rules as any other
