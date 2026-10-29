@@ -33,7 +33,7 @@ from pathlib import Path
 from slr.adapters.llm import BudgetExceeded, CacheMismatch, Meter, build_provider
 from slr.config import ExtractConfig, load_extract_config
 from slr.db import connect
-from slr.eval.harness import DirtyTree, _write_json, _write_text, git_state
+from slr.eval.harness import DirtyTree, _write_json, _write_text, as_run, git_state
 from slr.services.gap import extract_gap, load_prompt_template, persist, to_jsonl
 
 
@@ -178,7 +178,10 @@ def _run(conn, cfg: ExtractConfig, sha: str, dirty: bool) -> Path:
     }
 
     _write_text(run_dir / "config.yaml", cfg.source_text or "")
-    _write_json(run_dir / "resolved_config.json", cfg.model_dump(mode="json", exclude={"source_path", "source_text"}))
+    _write_json(
+        run_dir / "resolved_config.json",
+        as_run(cfg.model_dump(mode="json", exclude={"source_path", "source_text"}), provider),
+    )
     _write_text(run_dir / "git_sha.txt", f"{sha}{'-dirty' if dirty else ''}\n")
     _write_json(run_dir / "metrics.json", results)
     _write_json(run_dir / "run.json", run_info)

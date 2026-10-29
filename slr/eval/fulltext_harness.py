@@ -49,7 +49,7 @@ from slr.adapters.fulltext import fetch_full_text, find_availability, normalise_
 from slr.adapters.llm import BudgetExceeded, CacheMismatch, Meter, build_provider
 from slr.config import FullTextConfig, load_fulltext_config
 from slr.db import connect
-from slr.eval.harness import DirtyTree, git_state
+from slr.eval.harness import DirtyTree, as_run, git_state
 from slr.services.extract_fulltext import (
     build_source,
     extract_fulltext_record,
@@ -292,7 +292,7 @@ def _run(conn, cfg: FullTextConfig, sha: str, dirty: bool) -> Path:
     _write_text(run_dir / "config.yaml", cfg.source_text or "")
     _write_json(
         run_dir / "resolved_config.json",
-        cfg.model_dump(mode="json", exclude={"source_path", "source_text"}),
+        as_run(cfg.model_dump(mode="json", exclude={"source_path", "source_text"}), provider),
     )
     _write_text(run_dir / "git_sha.txt", f"{sha}{'-dirty' if dirty else ''}\n")
     _write_json(run_dir / "metrics.json", results)

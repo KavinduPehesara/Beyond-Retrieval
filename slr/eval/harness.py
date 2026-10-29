@@ -115,6 +115,25 @@ def _write_json(path: Path, payload: dict) -> None:
     _write_text(path, json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
 
 
+def as_run(cfg_dump: dict, provider) -> dict:
+    """The configuration as the run actually applied it.
+
+    A run directory is the evidence behind every reported figure, so it has
+    to say what happened rather than what was asked for. The gpt-5 family
+    rejects any temperature but its default, so the provider sends none; a
+    resolved config still reading ``temperature: 0.0`` would claim a
+    determinism that run never had.
+    """
+    resolved = dict(cfg_dump)
+    if getattr(provider, "reasons_before_answering", False):
+        resolved["temperature"] = None
+        resolved["temperature_note"] = (
+            "not sent: this model family accepts only its default temperature, "
+            "so this arm does not run at temperature zero"
+        )
+    return resolved
+
+
 def run(cfg: Config, *, require_clean: bool = False) -> Path:
     """Execute one configuration. Returns the run directory."""
     sha, dirty = git_state(cfg.runs_dir)
@@ -349,7 +368,7 @@ def _run(conn, cfg: Config, sha: str, dirty: bool) -> Path:
     _write_text(run_dir / "config.yaml", cfg.source_text or "")
     _write_json(
         run_dir / "resolved_config.json",
-        cfg.model_dump(mode="json", exclude={"source_path", "source_text"}),
+        as_run(cfg.model_dump(mode="json", exclude={"source_path", "source_text"}), provider),
     )
     _write_text(run_dir / "git_sha.txt", f"{sha}{'-dirty' if dirty else ''}\n")
     _write_json(run_dir / "metrics.json", results)

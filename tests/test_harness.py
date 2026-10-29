@@ -247,3 +247,41 @@ def test_report_tables_from_real_run_directories(corpus):
     assert "‡" in markdown  # the screening run used draft criteria
     csv_text = (corpus / "reports" / "results.csv").read_text(encoding="utf-8")
     assert csv_text.splitlines()[0].startswith("review,n_records,prevalence")
+
+
+def test_a_resolved_config_records_the_temperature_that_was_applied():
+    """A run directory is evidence; it must not claim a setting it never had.
+
+    The gpt-5 family rejects any temperature but its default, so the
+    provider sends none. A resolved config still reading 0.0 would put a
+    determinism claim on a run that could not support one.
+    """
+    from slr.eval.harness import as_run
+
+    class _Reasoning:
+        reasons_before_answering = True
+
+    class _Plain:
+        reasons_before_answering = False
+
+    asked = {"temperature": 0.0, "model": "gpt-5-nano", "seed": 42}
+
+    applied = as_run(asked, _Reasoning())
+    assert applied["temperature"] is None
+    assert "only its default temperature" in applied["temperature_note"]
+    assert applied["seed"] == 42, "everything else is recorded unchanged"
+    assert asked["temperature"] == 0.0, "must not mutate the caller's config"
+
+    unchanged = as_run(asked, _Plain())
+    assert unchanged["temperature"] == 0.0
+    assert "temperature_note" not in unchanged
+
+
+def test_a_provider_that_says_nothing_about_reasoning_is_left_alone():
+    """Mock, Ollama and Gemini have no such property; they must still work."""
+    from slr.eval.harness import as_run
+
+    class _Older:
+        pass
+
+    assert as_run({"temperature": 0.0}, _Older())["temperature"] == 0.0
