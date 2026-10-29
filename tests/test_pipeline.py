@@ -397,3 +397,75 @@ def test_three_models_over_one_record_get_three_cache_entries():
         for model in ("qwen2.5:7b-instruct", "gemini-3.5-flash-lite", "gpt-5-nano")
     }
     assert len(keys) == 3
+
+
+def _fake_openai(monkeypatch, provider):
+    """Capture the payload a provider would send, without a network."""
+    sent = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {
+                "choices": [{"message": {"content": "{}"}}],
+                "usage": {"prompt_tokens": 1, "completion_tokens": 1},
+            }
+
+    def fake_post(path, json=None):
+        sent["payload"] = json
+        return FakeResponse()
+
+    monkeypatch.setattr(provider._client, "post", fake_post)
+    return sent
+
+
+def test_a_reasoning_model_is_not_sent_a_temperature(monkeypatch):
+    """Found live: gpt-5-nano answers 400 to any temperature but its default.
+
+    Sending 0.0 the way the local and Gemini arms do made every call fail
+    with "Unsupported value: 'temperature' does not support 0.0".
+    """
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-not-a-real-key")
+    provider = OpenAIProvider("gpt-5-nano")
+    sent = _fake_openai(monkeypatch, provider)
+
+    provider.complete("anything", temperature=0.0)
+
+    assert "temperature" not in sent["payload"]
+
+
+def test_a_reasoning_model_is_told_not_to_spend_the_budget_thinking(monkeypatch):
+    """Also found live: 448 of 495 output tokens went to invisible reasoning.
+
+    A 64-token budget came back as an empty string with finish_reason
+    "length" -- an answer that looks like a model failure and is really a
+    billing default.
+    """
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-not-a-real-key")
+    provider = OpenAIProvider("gpt-5-nano")
+    sent = _fake_openai(monkeypatch, provider)
+
+    provider.complete("anything")
+
+    assert sent["payload"]["reasoning_effort"] == "minimal"
+
+
+def test_a_plain_model_still_gets_its_temperature(monkeypatch):
+    """The older families accept temperature and reject reasoning_effort."""
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-not-a-real-key")
+    provider = OpenAIProvider("gpt-4o-mini")
+    sent = _fake_openai(monkeypatch, provider)
+
+    provider.complete("anything", temperature=0.0)
+
+    assert sent["payload"]["temperature"] == 0.0
+    assert "reasoning_effort" not in sent["payload"]
+
+
+def test_which_models_count_as_reasoning_ones(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-not-a-real-key")
+    assert OpenAIProvider("gpt-5-nano").reasons_before_answering
+    assert OpenAIProvider("o3-mini").reasons_before_answering
+    assert not OpenAIProvider("gpt-4o-mini").reasons_before_answering

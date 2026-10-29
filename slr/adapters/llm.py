@@ -376,6 +376,23 @@ class OpenAIProvider:
 
     RESPONSE_SCHEMA = GeminiProvider.RESPONSE_SCHEMA
 
+    # Models that reason before answering, discovered the hard way when this
+    # arm was first run for real on 29 October. Two vendor facts about the
+    # family, neither documented where you would look for them:
+    #
+    # * they reject any temperature but the default, so a request at 0.0 is
+    #   a 400, and this arm therefore cannot be run at temperature zero the
+    #   way the local and Gemini arms are;
+    # * they spend output tokens on reasoning nobody sees. Unset, 448 of 495
+    #   output tokens went to reasoning and a 64-token budget returned an
+    #   empty string with finish_reason "length". With reasoning_effort
+    #   minimal the same answer cost 47 tokens.
+    REASONING_FAMILIES = ("gpt-5", "o1", "o3", "o4")
+
+    @property
+    def reasons_before_answering(self) -> bool:
+        return self.model.lower().startswith(self.REASONING_FAMILIES)
+
     def __init__(
         self,
         model: str,
@@ -430,13 +447,22 @@ class OpenAIProvider:
         payload: dict = {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
-            "temperature": temperature,
             "max_completion_tokens": max_tokens,
             "response_format": {
                 "type": "json_schema",
                 "json_schema": {"name": "slr_response", "strict": True, "schema": schema},
             },
         }
+        if self.reasons_before_answering:
+            # Keep the invisible reasoning out of the budget and the bill.
+            # ``temperature`` is not sent at all: this family accepts only
+            # its default, so the determinism the other two arms get from
+            # temperature zero is not available here, and pretending
+            # otherwise would put a reproducibility claim on a run that
+            # cannot support it.
+            payload["reasoning_effort"] = "minimal"
+        else:
+            payload["temperature"] = temperature
         if seed is not None:
             # Best effort on the provider's side, not a guarantee — which is
             # why run-to-run agreement is measured rather than assumed.
