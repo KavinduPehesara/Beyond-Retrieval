@@ -30,10 +30,32 @@ def _read_metrics(run_dir: Path) -> dict | None:
         return None
 
 
+def _is_partial(run_dir: Path) -> bool:
+    """Whether this run deliberately covered only part of a review.
+
+    The project's own rule is to set ``max_records`` while developing, so a
+    five-record smoke run exists to prove a path works, not to report a
+    figure. Without this check the newest such run becomes "current" for
+    its review and every number downstream quietly recomputes from five
+    records -- which is what happened on 29 October, when two provider
+    smoke runs displaced a 114-record one.
+    """
+    path = run_dir / "resolved_config.json"
+    if not path.exists():
+        return False
+    try:
+        config = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    return config.get("max_records") is not None
+
+
 def latest_screen_run(runs_dir: Path, review: str) -> str | None:
     best = None
     for d in _run_dirs(runs_dir):
         if "-extract-" in d.name or "-gap-" in d.name or "-gaprecall-" in d.name:
+            continue
+        if _is_partial(d):
             continue
         data = _read_metrics(d)
         if data and data.get("mode") == "screen" and review in (data.get("reviews_completed") or []):
@@ -46,6 +68,8 @@ def latest_extract_run(runs_dir: Path, review: str) -> str | None:
     for d in _run_dirs(runs_dir):
         if "-extract-" not in d.name:
             continue
+        if _is_partial(d):
+            continue
         data = _read_metrics(d)
         if data and data.get("review") == review:
             best = d.name
@@ -56,6 +80,8 @@ def latest_gap_run(runs_dir: Path, review: str) -> str | None:
     best = None
     for d in _run_dirs(runs_dir):
         if "-gap-" not in d.name or "-gaprecall-" in d.name:
+            continue
+        if _is_partial(d):
             continue
         data = _read_metrics(d)
         if data and data.get("review") == review:
