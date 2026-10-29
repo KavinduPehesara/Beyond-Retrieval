@@ -1,6 +1,6 @@
 # Run index
 
-All 79 run directories under `runs/`. 43 of them have the
+All 101 run directories under `runs/`. 43 of them have the
 screening/baseline metrics schema and appear with full columns in
 `results.md`; the rest are other harness kinds (extraction, gap discovery,
 gap recall, ablation, error typology, query expansion, the ASReview
@@ -35,6 +35,7 @@ directory nothing lists is only half-traceable.
 | `20260924T121711794197Z-extract-69af3c168d` | extract | extract_demo_menon2022 | Menon_2022 | no | `05857d9227` |
 | `20260924T122137987321Z-extract-1d1c17652a` | extract | extract_demo_vanderwaal2022 | van_der_Waal_2022 | no | `05857d9227` |
 | `20261007T075608842798Z-extract-705f89ab33` | extract | extract_demo_nelson2002 | Nelson_2002 | no | `d22dfe0c43` |
+| `20261019T075155482274Z-fulltext-49ee59577e` | fulltext | fulltext_demo | _fulltext | no | `227c1be8fd` |
 | `20260923T102642236622Z-gap-3496ae576f` | gap | gap_demo_nelson2002 | Nelson_2002 | no | `48329dffc2` |
 | `20260923T102816243601Z-gap-80a180d02a` | gap | gap_demo_smid2020 | Smid_2020 | no | `48329dffc2` |
 | `20260923T102825404365Z-gap-8002013514` | gap | gap_demo_valk2021 | van_der_Valk_2021 | no | `48329dffc2` |
@@ -43,6 +44,27 @@ directory nothing lists is only half-traceable.
 | `20260924T101041926525Z-gap-3fe61354b0` | gap | gap_demo_vanderwaal2022 | van_der_Waal_2022 | no | `42d6048e0c` |
 | `20261007T075606020247Z-gap-3496ae576f` | gap | gap_demo_nelson2002 | Nelson_2002 | no | `d22dfe0c43` |
 | `20261007T075607403784Z-gap-80a180d02a` | gap | gap_demo_smid2020 | Smid_2020 | no | `d22dfe0c43` |
+| `20261029T095604559406Z-gap-060ec4b154` | gap | gap_gemini_smoke | Nelson_2002 | no | `0ff5801445` |
+| `20261029T095623455378Z-gap-2b561c6e09` | gap | gap_openai_smoke | Nelson_2002 | no | `0ff5801445` |
+| `20261029T103251280684Z-gap-b572239cbc` | gap | gap_gemini_smid2020 | Smid_2020 | no | `fa3c3c1531` |
+| `20261029T103312049965Z-gap-f50e0e7a22` | gap | gap_gemini_valk2021 | van_der_Valk_2021 | no | `fa3c3c1531` |
+| `20261029T103350538940Z-gap-6937f87deb` | gap | gap_gemini_menon2022 | Menon_2022 | no | `fa3c3c1531` |
+| `20261029T103812617557Z-gap-a0127d7836` | gap | gap_gemini_vanderwaal2022 | van_der_Waal_2022 | no | `fa3c3c1531` |
+| `20261029T104248370154Z-gap-413e200491` | gap | gap_gemini_nelson2002 | Nelson_2002 | no | `fa3c3c1531` |
+| `20261029T104935941632Z-gap-07eb48ee8c` | gap | gap_gemini_radjenovic2013 | Radjenovic_2013 | no | `fa3c3c1531` |
+| `20261029T105931464101Z-gap-bdc11744a1` | gap | gap_openai_smid2020 | Smid_2020 | no | `fa3c3c1531` |
+| `20261029T105948278359Z-gap-c04f76dd92` | gap | gap_openai_valk2021 | van_der_Valk_2021 | no | `fa3c3c1531` |
+| `20261029T110002030041Z-gap-3e41080d97` | gap | gap_openai_menon2022 | Menon_2022 | no | `fa3c3c1531` |
+| `20261029T110123482427Z-gap-4c4465a3b2` | gap | gap_openai_vanderwaal2022 | van_der_Waal_2022 | no | `fa3c3c1531` |
+| `20261029T110257808774Z-gap-92bc0ff13d` | gap | gap_openai_nelson2002 | Nelson_2002 | no | `fa3c3c1531` |
+| `20261029T110456589547Z-gap-6ab5f8683a` | gap | gap_openai_radjenovic2013 | Radjenovic_2013 | no | `fa3c3c1531` |
+| `20261029T110747379724Z-gapconsensus-0904710872` | gapconsensus |  | Nelson_2002 | no | `fa3c3c1531` |
+| `20261029T110756049137Z-gapconsensus-375eb33991` | gapconsensus |  | Smid_2020 | no | `fa3c3c1531` |
+| `20261029T110756255568Z-gapconsensus-20bb586db9` | gapconsensus |  | van_der_Valk_2021 | no | `fa3c3c1531` |
+| `20261029T110756478661Z-gapconsensus-ada53d7b27` | gapconsensus |  | Menon_2022 | no | `fa3c3c1531` |
+| `20261029T110756739454Z-gapconsensus-b69e46d58b` | gapconsensus |  | van_der_Waal_2022 | no | `fa3c3c1531` |
+| `20261029T110756968711Z-gapconsensus-0904710872` | gapconsensus |  | Nelson_2002 | no | `fa3c3c1531` |
+| `20261029T110757205924Z-gapconsensus-96c95eeb0f` | gapconsensus |  | Radjenovic_2013 | no | `fa3c3c1531` |
 | `20260924T120813705057Z-gaprecall-d6901cb0a0` | gaprecall |  | Menon_2022, Nelson_2002, Radjenovic_2013, van_der_Waal_2022 | no | `29daabcc91` |
 | `20260920T154028150604Z-5573f0e390` | incomplete |  |  | no metrics.json | `--` |
 | `20260921T122044137890Z-33c61120f3` | incomplete |  |  | no metrics.json | `--` |

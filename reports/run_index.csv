@@ -66,6 +66,28 @@ run,kind,config,reviews,tabulated,has_metrics,git_sha
 20261007T080659069941Z-33c61120f3,incomplete,,,False,False,
 20261008T153607000708Z-expand-1b48b4b015,expand,,"Menon_2022, Nelson_2002, Radjenovic_2013, Smid_2020, van_der_Valk_2021, van_der_Waal_2022",False,True,34175755ca
 20261008T153931706747Z-expand-29d4a7dc7a,expand,,"Menon_2022, Nelson_2002, Radjenovic_2013, Smid_2020, van_der_Valk_2021, van_der_Waal_2022",False,True,34175755ca
+20261019T075155482274Z-fulltext-49ee59577e,fulltext,fulltext_demo,_fulltext,False,True,227c1be8fd
+20261029T095604559406Z-gap-060ec4b154,gap,gap_gemini_smoke,Nelson_2002,False,True,0ff5801445
+20261029T095623455378Z-gap-2b561c6e09,gap,gap_openai_smoke,Nelson_2002,False,True,0ff5801445
+20261029T103251280684Z-gap-b572239cbc,gap,gap_gemini_smid2020,Smid_2020,False,True,fa3c3c1531
+20261029T103312049965Z-gap-f50e0e7a22,gap,gap_gemini_valk2021,van_der_Valk_2021,False,True,fa3c3c1531
+20261029T103350538940Z-gap-6937f87deb,gap,gap_gemini_menon2022,Menon_2022,False,True,fa3c3c1531
+20261029T103812617557Z-gap-a0127d7836,gap,gap_gemini_vanderwaal2022,van_der_Waal_2022,False,True,fa3c3c1531
+20261029T104248370154Z-gap-413e200491,gap,gap_gemini_nelson2002,Nelson_2002,False,True,fa3c3c1531
+20261029T104935941632Z-gap-07eb48ee8c,gap,gap_gemini_radjenovic2013,Radjenovic_2013,False,True,fa3c3c1531
+20261029T105931464101Z-gap-bdc11744a1,gap,gap_openai_smid2020,Smid_2020,False,True,fa3c3c1531
+20261029T105948278359Z-gap-c04f76dd92,gap,gap_openai_valk2021,van_der_Valk_2021,False,True,fa3c3c1531
+20261029T110002030041Z-gap-3e41080d97,gap,gap_openai_menon2022,Menon_2022,False,True,fa3c3c1531
+20261029T110123482427Z-gap-4c4465a3b2,gap,gap_openai_vanderwaal2022,van_der_Waal_2022,False,True,fa3c3c1531
+20261029T110257808774Z-gap-92bc0ff13d,gap,gap_openai_nelson2002,Nelson_2002,False,True,fa3c3c1531
+20261029T110456589547Z-gap-6ab5f8683a,gap,gap_openai_radjenovic2013,Radjenovic_2013,False,True,fa3c3c1531
+20261029T110747379724Z-gapconsensus-0904710872,gapconsensus,,Nelson_2002,False,True,fa3c3c1531
+20261029T110756049137Z-gapconsensus-375eb33991,gapconsensus,,Smid_2020,False,True,fa3c3c1531
+20261029T110756255568Z-gapconsensus-20bb586db9,gapconsensus,,van_der_Valk_2021,False,True,fa3c3c1531
+20261029T110756478661Z-gapconsensus-ada53d7b27,gapconsensus,,Menon_2022,False,True,fa3c3c1531
+20261029T110756739454Z-gapconsensus-b69e46d58b,gapconsensus,,van_der_Waal_2022,False,True,fa3c3c1531
+20261029T110756968711Z-gapconsensus-0904710872,gapconsensus,,Nelson_2002,False,True,fa3c3c1531
+20261029T110757205924Z-gapconsensus-96c95eeb0f,gapconsensus,,Radjenovic_2013,False,True,fa3c3c1531
 asreview-menon2022,asreview-project,,,False,False,
 asreview-menon_2022-20261002T123311158497Z,asreview,,Menon_2022,False,True,a2bf6b45fe
 asreview-nelson2002,asreview-project,,,False,False,
