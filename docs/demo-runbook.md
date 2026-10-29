@@ -83,6 +83,12 @@ the recording shows the tool at its real speed, not waiting on a first run.
 Then sign out (or open a private window) so the video starts at the front
 door.
 
+Two timing notes. The first search after starting the API spends about 25
+seconds loading SPECTER2, so run one throwaway question before recording.
+And the local model answers in roughly 10 seconds a call when warm but 25
+when cold, against Gemini's 2 — which is why the demonstration runs on
+Gemini and keeps the local model as the fallback.
+
 Close anything with your API keys on screen: `.env`, the terminal where you
 started the servers, and your editor.
 
@@ -94,7 +100,8 @@ started the servers, and your editor.
 | 0:15 | Sign in, open the project | Signing in saves the work and unlocks full text. |
 | 0:30 | Type the question, pick the AI | No eligibility criteria — the question itself becomes the inclusion rule. Name which AI is answering. |
 | 0:40 | The progress bar moving | It says which paper of how many is being checked, because the model takes real time and a spinner tells you nothing. |
-| 1:10 | The four counts, then the list | 50 ranked, 20 suggested, 12 addressing the question, N stating a gap. |
+| 1:10 | The four counts, then the cost line | 50 ranked, 20 suggested, 12 addressing the question, N stating a gap — and underneath, which AI answered and what the run cost. |
+| 1:20 | The grey line under a title | Each paper says whether it can be read in full, or names a site holding a free copy. Measured on this question: 9 readable, 11 free elsewhere, no dead ends. |
 | 1:25 | One paper's "Why" quote | This sentence is in the paper, found word for word. If it could not be found, the verdict is withheld rather than shown with a confidence score. |
 | 1:45 | "Is your question an open gap?" | Other authors saying, in their own words, that this is unstudied. |
 | 2:00 | Tick two papers, Extract | The researcher decides what deserves a deeper read, not the model. |
@@ -113,6 +120,12 @@ They are the project's argument, and a video without them is just a tour:
 - **Verification proves a sentence is real, not that it is relevant.** That
   limit was found four times in this project, and each fix was the same:
   control what the model may quote.
+- **Papers it cannot read are still shown, and said to be unreadable.**
+  Filtering them out was considered and rejected: on this question only 19
+  of 45 candidates are held by Europe PMC, so a list of readable papers
+  would have dropped the systematic reviews at the top — the ones
+  publishers keep paywalled — for less relevant papers that happen to be
+  hosted conveniently.
 
 ## If a take goes wrong
 
