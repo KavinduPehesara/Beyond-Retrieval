@@ -345,3 +345,80 @@ def test_full_text_results_offer_a_download(monkeypatch):
     assert not at.exception
     downloads = at.get("download_button")
     assert any(d.proto.label == "Download folder (.zip)" for d in downloads)
+
+
+# --- two models over the same papers -----------------------------------
+
+
+def _verdict(label, model, status, verified, quote, gap_status="not_stated"):
+    return {"label": label, "model": model, "status": status, "span_verified": verified,
+            "quote": quote, "verify_note": "exact_after_normalisation" if verified else "not_found",
+            "gap_status": gap_status, "gap_quote": None}
+
+
+def _cross_session(agreement, verdicts, **extra):
+    paper = _paper("W9", "A contested paper")
+    paper["agreement"] = agreement
+    paper["verdicts"] = verdicts
+    session = {
+        **SESSION,
+        "papers": [paper],
+        "answered_by": "ChatGPT and Gemini",
+        "model": "gpt-5-nano, gemini-3.5-flash-lite",
+        "cost_usd": 0.0036, "model_calls": 24, "cached_calls": 0,
+        "arms": [
+            {"label": "ChatGPT", "model": "gpt-5-nano", "cost_usd": 0.0005,
+             "model_calls": 12, "cached_calls": 0},
+            {"label": "Gemini", "model": "gemini-3.5-flash-lite", "cost_usd": 0.0031,
+             "model_calls": 12, "cached_calls": 0},
+        ],
+    }
+    session.update(extra)
+    return session
+
+
+def test_a_split_paper_names_which_model_said_what():
+    at = _home({"session": _cross_session("split", [
+        _verdict("ChatGPT", "gpt-5-nano", "exclude", True, "about adults, not children"),
+        _verdict("Gemini", "gemini-3.5-flash-lite", "include", True, "we studied X in children"),
+    ], n_split=1)})
+    page = " ".join(m.value for m in at.markdown) + " ".join(c.value for c in at.caption)
+    assert "Gemini says this addresses your question" in page
+    assert "ChatGPT says it does not" in page
+
+
+def test_a_split_paper_is_not_counted_as_addressing_the_question():
+    at = _home({"session": _cross_session("split", [
+        _verdict("ChatGPT", "gpt-5-nano", "exclude", True, "about adults"),
+        _verdict("Gemini", "gemini-3.5-flash-lite", "include", True, "we studied X in children"),
+    ], n_split=1)})
+    page = " ".join(m.value for m in at.markdown)
+    assert "Check it yourself" in page
+    assert "Addresses your question" not in page
+
+
+def test_an_unverified_second_opinion_is_not_described_as_disagreement():
+    """The two failures must not be worded the same.
+
+    One model saying no is a judgement. One model failing to produce a
+    findable quote is an absence of judgement, and the page has to say which
+    of the two happened.
+    """
+    at = _home({"session": _cross_session("partial", [
+        _verdict("ChatGPT", "gpt-5-nano", "include", True, "we studied X in children"),
+        _verdict("Gemini", "gemini-3.5-flash-lite", "unverified", False, "an invented sentence"),
+    ])})
+    page = " ".join(m.value for m in at.markdown) + " ".join(c.value for c in at.caption)
+    assert "not found in the abstract" in page
+    assert "was not cross-checked" in page
+    assert "says it does not" not in page, "an unverified quote is not a no"
+
+
+def test_the_page_splits_the_cost_by_vendor_and_keeps_the_caveat():
+    at = _home({"session": _cross_session("agreed", [
+        _verdict("ChatGPT", "gpt-5-nano", "include", True, "we studied X in children"),
+        _verdict("Gemini", "gemini-3.5-flash-lite", "include", True, "we studied X in children"),
+    ])})
+    said = " ".join(c.value for c in at.caption)
+    assert "ChatGPT US$0.0005" in said and "Gemini US$0.0031" in said
+    assert "consistency, not correctness" in said

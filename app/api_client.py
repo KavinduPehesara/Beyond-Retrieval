@@ -48,8 +48,6 @@ def _suggest_payload(query: str, n: int) -> dict:
     payload: dict = {"query": query, "n": n}
     if st.session_state.get("active_project"):
         payload["project_id"] = st.session_state["active_project"]
-    if st.session_state.get("provider"):
-        payload["provider"] = st.session_state["provider"]
     return payload
 
 
@@ -111,7 +109,6 @@ def _fulltext_payload(papers: list[dict]) -> dict:
         "papers": papers,
         "include_assets": True,
         "project_id": st.session_state.get("active_project"),
-        "provider": st.session_state.get("provider") or None,
     }
 
 
@@ -143,8 +140,7 @@ def discover_fulltext(papers: list[dict]) -> dict:
             "papers": papers,
             "include_assets": True,
             "project_id": st.session_state.get("active_project"),
-            "provider": st.session_state.get("provider") or None,
-        },
+            },
         headers=auth_headers(),
         # A Europe PMC lookup, a document fetch and a long model call per
         # paper, on local inference.

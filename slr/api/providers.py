@@ -69,6 +69,15 @@ CHOICES: dict[str, Choice] = {
 
 FALLBACK_KEY = "ollama"
 
+#: What the product asks. The local model stays in ``CHOICES`` because every
+#: screening figure in section 11 of the report came from it and the
+#: evaluation harnesses still build it by name -- dropping it from the
+#: catalogue would orphan those numbers. It is simply not one of the things
+#: the product offers: a question goes to both vendors and the interface
+#: shows where they disagree, and a third, slower answer nobody asked for is
+#: not part of that.
+PRODUCT_KEYS: tuple[str, ...] = ("openai", "gemini")
+
 
 def default_key() -> str:
     """The provider used when a request does not name one."""
@@ -140,3 +149,29 @@ def build(key: str | None) -> tuple[Provider, Meter, Choice]:
         usd_per_1m_output=choice.usd_per_1m_output,
     )
     return provider, meter, choice
+
+
+def product_catalogue() -> list[dict]:
+    """The models the product uses, and whether each can run right now."""
+    by_key = {c["key"]: c for c in catalogue()}
+    return [by_key[k] for k in PRODUCT_KEYS if k in by_key]
+
+
+def build_product_arms() -> tuple[list[tuple[Provider, Meter, Choice]], list[Choice]]:
+    """Every configured product model, and the ones that are not configured.
+
+    Returns what can run rather than refusing when one vendor is missing. A
+    cross-check needs two models, but a researcher whose second key expired
+    is better served by one answer plus a note saying so than by an error
+    page -- and the note is what keeps them from reading a single-model
+    result as if it had been checked.
+    """
+    arms: list[tuple[Provider, Meter, Choice]] = []
+    missing: list[Choice] = []
+    for key in PRODUCT_KEYS:
+        choice = CHOICES[key]
+        if not is_configured(choice):
+            missing.append(choice)
+            continue
+        arms.append(build(key))
+    return arms, missing

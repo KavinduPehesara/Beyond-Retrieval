@@ -106,6 +106,38 @@ class ScreenDecisionOut(BaseModel):
     from_cache: bool
 
 
+class ModelVerdictOut(BaseModel):
+    """What one model said about one paper, kept apart from the others.
+
+    The combined answer above is a summary; these are the records it
+    summarises. Someone who wants to know which vendor said what should not
+    have to take the summary's word for it.
+    """
+
+    model_config = ConfigDict(protected_namespaces=())
+
+    label: str
+    model: str
+    status: str
+    span_verified: bool
+    quote: str | None = None
+    verify_note: str = ""
+    gap_status: str = "not_stated"
+    gap_quote: str | None = None
+
+
+class ArmCostOut(BaseModel):
+    """What one vendor was asked, and what it charged for answering."""
+
+    model_config = ConfigDict(protected_namespaces=())
+
+    label: str
+    model: str
+    cost_usd: float
+    model_calls: int
+    cached_calls: int
+
+
 class DiscoverPaperOut(BaseModel):
     work_id: str
     abstract: str = ""
@@ -132,6 +164,15 @@ class DiscoverPaperOut(BaseModel):
     fulltext_status: str | None = None
     oa_url: str | None = None
     oa_host: str | None = None
+    # What each model said, and whether they landed in the same place:
+    # "agreed", "split", or "single" when only one model could run. A split
+    # is not resolved by vote -- it is shown, and the reader decides.
+    verdicts: list[ModelVerdictOut] = []
+    agreement: str | None = None
+    # Which models stated a gap. A gap found by one of two is still shown,
+    # labelled with who found it: the measured weakness of gap suggestion
+    # here is recall, not precision.
+    gap_sources: list[str] = []
 
     # --- full text, when it was asked for and Europe PMC had it ----------
     # Model-extracted, each with a verified quote. Same rules as any other
@@ -200,6 +241,15 @@ class DiscoverSessionOut(BaseModel):
     cost_usd: float | None = None
     model_calls: int | None = None
     cached_calls: int | None = None
+    # One entry per vendor asked, so the total above can be taken apart.
+    arms: list[ArmCostOut] = []
+    # Papers the models disagreed about. Counted separately from referrals
+    # because the cause is different: a referral is a quote that could not be
+    # found, a split is two models that both answered and did not match.
+    n_split: int | None = None
+    # Set when a cross-check was intended but only one model could run, so a
+    # single-model result is never read as a checked one.
+    cross_check_note: str | None = None
 
 
 class SuggestRequest(BaseModel):

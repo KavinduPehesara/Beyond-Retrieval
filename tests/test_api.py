@@ -21,6 +21,26 @@ def _free_meter() -> Meter:
     return Meter(ceiling_usd=0.0, usd_per_1m_input=0.0, usd_per_1m_output=0.0)
 
 
+def _two_fake_arms():
+    """Both product vendors, configured, without needing either API key.
+
+    Shaped like ``providers.build_product_arms``: what can run, and what
+    cannot. The real one reads the environment, which a test must not
+    depend on.
+    """
+    from slr.api.providers import CHOICES
+
+    class _Unused:
+        """Never called: the caller under test stubs the screening itself."""
+
+        name, model = "fake", "fake-1"
+
+    return [
+        (_Unused(), _free_meter(), CHOICES["openai"]),
+        (_Unused(), _free_meter(), CHOICES["gemini"]),
+    ], []
+
+
 @pytest.fixture()
 def conn(tmp_path):
     c = connect(tmp_path / "test.db", check_same_thread=False)
@@ -355,6 +375,8 @@ def test_suggest_returns_ranked_papers_with_relevance_and_gaps(client, monkeypat
     def fake_suggest(conn, question, **kwargs):
         assert question == "vitamin D and asthma"
         assert kwargs["n"] == 2
+        # The product asks both vendors without being told to.
+        assert [a.label for a in kwargs["arms"]] == ["ChatGPT", "Gemini"]
         row = lambda i: {"work_id": f"W{i}", "title": f"Paper {i}", "abstract": "abs", "year": 2020,
                          "doi": f"10.1/{i}", "source_url": None}
         return SuggestResult(
@@ -365,7 +387,8 @@ def test_suggest_returns_ranked_papers_with_relevance_and_gaps(client, monkeypat
             ],
         )
 
-    monkeypatch.setattr(suggest_module, "suggest", fake_suggest)
+    monkeypatch.setattr(app_module.providers, "build_product_arms", _two_fake_arms)
+    monkeypatch.setattr(suggest_module, "suggest_cross_checked", fake_suggest)
     monkeypatch.setattr(app_module, "suggest_embedder", lambda: None)
 
     resp = client.post("/suggest", json={"query": "vitamin D and asthma", "n": 2})

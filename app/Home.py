@@ -98,19 +98,45 @@ def run_cost_note(session: dict) -> str:
 
 
 def model_timeout_message() -> str:
-    """Why a model call timed out, in terms of the model actually chosen."""
-    if st.session_state.get("provider") == "ollama":
-        return "The model didn't respond in time. Is Ollama running?"
-    return (
-        "The model didn't respond in time. Check your connection, or pick a "
-        "different AI above and try again."
-    )
+    """Why a model call timed out."""
+    return "A model didn't respond in time. Check your connection and try again."
+
+
+def disagreement_note(paper: dict) -> str:
+    """Why this paper is not a plain yes, in the models' own terms.
+
+    A split and a partial read the same to a glance and mean different
+    things, so they are never described with the same sentence.
+    """
+    verdicts = paper.get("verdicts") or []
+    if paper.get("agreement") == "split":
+        yes = [v["label"] for v in verdicts if v.get("status") == "include"]
+        no = [v["label"] for v in verdicts if v.get("status") != "include"]
+        return (
+            f"{' and '.join(yes)} says this addresses your question; "
+            f"{' and '.join(no)} says it does not. Read it yourself."
+        )
+    if paper.get("agreement") == "partial":
+        mute = [v["label"] for v in verdicts if not v.get("span_verified")]
+        return (
+            f"{' and '.join(mute)} gave a reason that was not found in the abstract, so its "
+            "call is withheld and this paper was not cross-checked."
+        )
+    return ""
 
 
 def relevance_label(paper: dict) -> str:
-    """Relevant only when the model said include *and* its quote verified."""
+    """Relevant only when the models agreed *and* the quote verified.
+
+    A split verdict lands in "check" alongside an unverified quote. The two
+    get there for different reasons -- one is a quote that could not be
+    found, the other is two models that both answered and did not match --
+    but they ask the same thing of the reader, which is to look.
+    """
     d = paper.get("decision") or {}
     if not d.get("span_verified"):
+        return "check"
+    if paper.get("agreement") in ("split", "partial"):
         return "check"
     return "relevant" if d.get("status") == "include" else "not_relevant"
 
@@ -139,14 +165,12 @@ render_library()
 # Step 1 -- the question
 # ---------------------------------------------------------------------------
 
+# There is no model to choose any more. Every question goes to both
+# vendors and the result says where they disagree, which is the point of
+# asking twice -- a picker would only let someone turn that off.
 catalogue = providers()
 usable = [p for p in catalogue.get("providers") or [] if p["configured"]]
 blocked = [p for p in catalogue.get("providers") or [] if not p["configured"]]
-if usable and not st.session_state.get("provider"):
-    default = catalogue.get("default")
-    st.session_state["provider"] = next(
-        (p["key"] for p in usable if p["key"] == default), usable[0]["key"]
-    )
 
 with st.form("question"):
     question = st.text_area(
@@ -155,14 +179,13 @@ with st.form("question"):
         placeholder="e.g. Does vitamin D supplementation reduce the risk of asthma attacks in children?",
     )
     if usable:
-        keys = [p["key"] for p in usable]
-        labels = {p["key"]: p for p in usable}
-        st.session_state["provider"] = st.radio(
-            "Which AI answers",
-            keys,
-            index=keys.index(st.session_state["provider"]) if st.session_state.get("provider") in keys else 0,
-            horizontal=True,
-            format_func=lambda k: f"{labels[k]['label']} ({labels[k]['model']})",
+        st.caption(
+            "Answered by " + " and ".join(f"{p['label']} ({p['model']})" for p in usable)
+            + (
+                ", and each paper says whether they agreed."
+                if len(usable) > 1
+                else " alone — nothing will be cross-checked."
+            )
         )
     if blocked:
         st.caption(
@@ -173,17 +196,11 @@ with st.form("question"):
     # Quoted per paper, not per run. Inside a form the slider does not rerun
     # the script, so a total worked out from n would still show the previous
     # run's number while the handle visibly sits somewhere else.
-    # Measured: two model calls per paper, about 1.5 s each on a hosted model
-    # and 3-25 s on the local one.
-    pace = (
-        "up to a minute per paper"
-        if st.session_state.get("provider") == "ollama"
-        else "a few seconds per paper"
-    )
+    # Measured: two model calls per paper per vendor, about 1.5 s each.
     st.caption(
         "Searches OpenAlex live, ranks what comes back by how close it is to your question, "
-        f"then has the chosen model check the top papers. Expect {pace}. The first search "
-        "after starting the app also loads the ranking model, which adds about a minute."
+        "then puts the top papers to both models. Expect a few seconds per paper. The first "
+        "search after starting the app also loads the ranking model, which adds about a minute."
     )
     asked = st.form_submit_button("Find papers", type="primary")
 
@@ -236,8 +253,8 @@ if asked:
 session = st.session_state.get("session")
 if not session:
     st.info(
-        "Pick the AI that answers above, then ask a question. "
-        "Full-text reading needs you to sign in and open a project."
+        "Ask a research question above. Full-text reading needs you to sign in "
+        "and open a project."
     )
     st.stop()
 
@@ -269,18 +286,44 @@ st.subheader(f"Suggested papers for: {session['query']}")
 
 relevant = [p for p in papers if relevance_label(p) == "relevant"]
 gaps = [p for p in papers if (p.get("gap") or {}).get("status") == "gap_stated"]
-m = st.columns(4)
+split = [p for p in papers if p.get("agreement") == "split"]
+m = st.columns(5 if split else 4)
 m[0].metric("Candidates ranked", session.get("n_candidates") or len(papers))
 m[1].metric("Suggested", len(papers))
-m[2].metric("Address your question", len(relevant), help="The model said yes and its quote was found in the abstract.")
+m[2].metric(
+    "Address your question",
+    len(relevant),
+    help="Both models said yes and the quote was found in the abstract.",
+)
 m[3].metric("State a research gap", len(gaps))
+if split:
+    m[4].metric(
+        "Models disagree",
+        len(split),
+        help="One model said the paper addresses your question and the other did not. "
+        "Not counted as a yes, and not counted as a no.",
+    )
+if session.get("cross_check_note"):
+    st.warning(session["cross_check_note"])
 answered_by = session.get("answered_by")
 notes = [session.get("ranking_note") or ""]
 if answered_by:
     notes.append(f"Screened by {answered_by} ({session.get('model')}).")
     notes.append(run_cost_note(session))
+    # Per vendor as well as in total: the two differ by enough that one
+    # number hides which of them the money went to.
+    arms = session.get("arms") or []
+    if len(arms) > 1:
+        notes.append(
+            "Split: " + ", ".join(f"{a['label']} US${a['cost_usd']:.4f}" for a in arms) + "."
+        )
 if any(notes):
     st.caption(" ".join(n for n in notes if n))
+if len(session.get("arms") or []) > 1:
+    st.caption(
+        "Agreement between two models measures consistency, not correctness: they can "
+        "agree and both be wrong, and they share a great deal of training data."
+    )
 
 with st.container(border=True):
     st.markdown("**Is your question an open gap?**")
@@ -325,13 +368,30 @@ for rank, paper in enumerate(papers, 1):
                 bits.append(f"[view paper]({paper['source_url']})")
             bits.append(readability_note(paper))
             st.caption(" · ".join(b for b in bits if b))
-            if d.get("quote") and d.get("span_verified"):
+            split = disagreement_note(paper)
+            if split:
+                st.caption(split)
+                for v in paper.get("verdicts") or []:
+                    verdict = "addresses it" if v.get("status") == "include" and v.get("span_verified") else "does not"
+                    if v.get("quote") and v.get("span_verified"):
+                        st.markdown(f"**{v['label']}** — {verdict}: “{v['quote']}”")
+                    else:
+                        st.markdown(f"**{v['label']}** — {verdict}; its quote was not found in the abstract.")
+            elif d.get("quote") and d.get("span_verified"):
                 st.markdown(f"Why: “{d['quote']}”")
             elif d.get("quote"):
                 st.caption("The model's reason wasn't found in the abstract, so its call is withheld. Read this one yourself.")
             gap = paper.get("gap") or {}
             if gap.get("status") == "gap_stated":
-                st.markdown(f"Gap the authors state: “{gap['quote']}”")
+                sources = paper.get("gap_sources") or []
+                # Named when only one model saw it, so a gap that survived
+                # both is not read as the same claim as one that did not.
+                who = (
+                    f" (found by {sources[0]} only)"
+                    if len(sources) == 1 and len(paper.get("verdicts") or []) > 1
+                    else ""
+                )
+                st.markdown(f"Gap the authors state{who}: “{gap['quote']}”")
             if paper.get("abstract"):
                 with st.expander("Abstract"):
                     st.write(paper["abstract"])

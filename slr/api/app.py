@@ -29,6 +29,7 @@ from slr.api.auth import current_account, optional_account
 from slr.api.auth import router as auth_router
 from slr.api.deps import PROMPTS_DIR, get_conn, new_conn
 from slr.api.schemas import (
+    ArmCostOut,
     DiscoverPaperOut,
     StatedGapOut,
     DiscoverSessionOut,
@@ -38,6 +39,7 @@ from slr.api.schemas import (
     FullTextRequest,
     FullTextSessionOut,
     GapValue,
+    ModelVerdictOut,
     ProjectName,
     ScreenDecisionOut,
     SuggestRequest,
@@ -86,13 +88,18 @@ def health():
 
 @app.get("/providers")
 def list_providers():
-    """The models this deployment can answer with, and which are usable now.
+    """The models the product answers with, and which are usable now.
 
-    The interface offers all of them and says why an unusable one cannot be
-    picked, rather than hiding it: a reader of the report should be able to
-    see that the second vendor is wired, not merely described.
+    Both are listed even when one has no key, with the reason: a reader of
+    the report should be able to see that the second vendor is wired, not
+    merely described, and someone whose key expired needs to be told which
+    one went missing rather than quietly getting half a cross-check.
+
+    The local model is deliberately absent. It is still in the catalogue for
+    the evaluation harnesses, which is where its figures come from, but the
+    product asks the two vendors and compares them.
     """
-    return {"default": providers.default_key(), "providers": providers.catalogue()}
+    return {"default": None, "providers": providers.product_catalogue()}
 
 
 @app.post("/projects")
@@ -189,7 +196,7 @@ def _suggest_session(req: SuggestRequest, conn, account, report) -> dict:
     caller watching a job can see papers being judged one at a time.
     """
     from slr.services.availability import readability_of_each
-    from slr.services.suggest import relevance_criteria, suggest
+    from slr.services.suggest import Arm, relevance_criteria, suggest_cross_checked
 
     if req.project_id:
         if not account:
@@ -199,18 +206,35 @@ def _suggest_session(req: SuggestRequest, conn, account, report) -> dict:
         except KeyError as exc:
             raise HTTPException(404, "Project not found") from exc
 
+    # A named provider answers alone -- the harnesses and the comparison
+    # arms rely on being able to ask one model by name. Everything else gets
+    # the cross-check, which is what the product offers.
+    note = None
     try:
-        provider, meter, _choice = providers.build(req.provider)
+        if req.provider:
+            built = [providers.build(req.provider)]
+            missing: list = []
+        else:
+            built, missing = providers.build_product_arms()
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
+    if not built:
+        raise HTTPException(400, "; ".join(c.missing_note for c in missing) or "No model is configured")
+    if missing and built:
+        absent = ", ".join(c.label for c in missing)
+        note = (
+            f"Answered by {built[0][2].label} alone: {absent} is not configured, "
+            "so nothing on this page was cross-checked against a second model."
+        )
+
+    arms = [Arm(label=c.label, model=c.model, provider=p, meter=m) for p, m, c in built]
     try:
-        result = suggest(
+        result = suggest_cross_checked(
             conn,
             req.query,
-            provider=provider,
+            arms=arms,
             screen_template=load_prompt_template(PROMPTS_DIR / "screen_v1.txt"),
             gap_template=load_prompt_template(PROMPTS_DIR / "gap_v1.txt"),
-            meter=meter,
             n=req.n,
             embedder=suggest_embedder(),
             on_progress=report,
@@ -246,6 +270,21 @@ def _suggest_session(req: SuggestRequest, conn, account, report) -> dict:
                 gap=_gap_value_from_extraction(s.gap),
                 relevance=s.similarity,
                 gap_match=s.gap_similarity,
+                agreement=s.agreement,
+                gap_sources=list(s.gap_sources),
+                verdicts=[
+                    ModelVerdictOut(
+                        label=v.label,
+                        model=v.model,
+                        status=v.decision.decision,
+                        span_verified=bool(v.decision.span_verified),
+                        quote=v.decision.evidence_span,
+                        verify_note=v.decision.verify_note,
+                        gap_status=_gap_value_from_extraction(v.gap).status,
+                        gap_quote=v.gap.evidence_span if v.gap.value == "gap_stated" else None,
+                    )
+                    for v in s.verdicts
+                ],
             )
         )
     # Whether each paper can be read in full, before the reviewer picks one
@@ -261,25 +300,48 @@ def _suggest_session(req: SuggestRequest, conn, account, report) -> dict:
         pass
 
     decisions = [p.decision for p in papers]
+    split = {p.work_id for p in papers if p.agreement == "split"}
     session = DiscoverSessionOut(
         query=req.query,
         criteria=relevance_criteria(req.query),
         n_found=len(papers),
         n_screened=len(papers),
-        n_included=sum(1 for d in decisions if d.status == "include" and d.span_verified),
+        # A split paper is not counted as included. Both models answered and
+        # they did not match, so the thing the count would be asserting --
+        # that this paper addresses the question -- is exactly what is in
+        # dispute. It is handed back instead, with the referrals.
+        n_included=sum(
+            1
+            for p in papers
+            if p.decision.status == "include"
+            and p.decision.span_verified
+            and p.work_id not in split
+        ),
         n_excluded=sum(1 for d in decisions if d.status == "exclude" and d.span_verified),
         n_referred=sum(1 for d in decisions if not d.span_verified),
+        n_split=len(split),
         n_verified_quotes=sum(1 for d in decisions if d.span_verified),
         n_gaps=sum(1 for p in papers if p.gap and p.gap.status == "gap_stated"),
         papers=papers,
         n_candidates=result.n_candidates,
         ranking=result.ranking,
         ranking_note=result.ranking_note,
-        answered_by=_choice.label,
-        model=_choice.model,
-        cost_usd=round(meter.spend_usd, 6),
-        model_calls=meter.calls,
-        cached_calls=meter.cached_calls,
+        answered_by=" and ".join(a.label for a in arms),
+        model=", ".join(a.model for a in arms),
+        cost_usd=round(sum(m.spend_usd for _p, m, _c in built), 6),
+        model_calls=sum(m.calls for _p, m, _c in built),
+        cached_calls=sum(m.cached_calls for _p, m, _c in built),
+        arms=[
+            ArmCostOut(
+                label=c.label,
+                model=c.model,
+                cost_usd=round(m.spend_usd, 6),
+                model_calls=m.calls,
+                cached_calls=m.cached_calls,
+            )
+            for _p, m, c in built
+        ],
+        cross_check_note=note,
     )
     if req.project_id:
         return live_review.save_search(req.project_id, account["id"], session.model_dump())

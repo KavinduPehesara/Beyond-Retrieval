@@ -149,12 +149,27 @@ uvicorn slr.api.app:app              # backend, localhost:8000
 streamlit run app/Home.py            # the app, localhost:8501 -- needs the API running
 ```
 
-Which AI answers is chosen in the app. The local model needs Ollama running
-and costs nothing; `GEMINI_API_KEY` or `OPENAI_API_KEY` in `.env` adds Gemini
-or ChatGPT, which answer in about a second a call instead of ten.
-`BUDGET_CEILING_USD` caps what a paid provider may spend before a run aborts.
-A provider whose key is missing is offered but refused, never silently
-swapped for another.
+The app asks both vendors rather than offering a choice. Every question goes
+to ChatGPT and Gemini over the same ranked papers, and each paper says
+whether they agreed. Where they disagree, the paper is handed back to be read
+rather than counted as a yes; where one of them could not find its own quote
+in the abstract, the page says that instead, because an unsubstantiated
+answer is not the same as a no. A gap either model found is kept and
+attributed, since the measured weakness of gap suggestion here is recall.
+
+Both need a key in `.env` — `OPENAI_API_KEY` and `GEMINI_API_KEY`; see
+`SETUP.md` section 3 before adding one to a clone of a public repository.
+With only one key the app still answers and says on the page that nothing was
+cross-checked. `BUDGET_CEILING_USD` caps what each vendor may spend before a
+run aborts, and each is metered separately so one cannot spend the other's
+allowance.
+
+Agreement between two models measures consistency, not correctness: they can
+agree and both be wrong, and they share a great deal of training data.
+
+The local model (`qwen2.5:7b-instruct` via Ollama) is no longer offered in the
+app. It stays in the provider catalogue and in the evaluation configs,
+because every screening figure in the report came from it.
 
 Before a live demonstration:
 
