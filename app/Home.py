@@ -170,16 +170,20 @@ with st.form("question"):
             + "; ".join(f"{p['label']} — {p['note']}" for p in blocked)
         )
     n = st.slider("Papers to suggest", min_value=5, max_value=25, value=20)
-    # Measured: about half a minute for 20 on a hosted model, a few minutes
-    # on the local one, which is slower per call but costs nothing.
+    # Quoted per paper, not per run. Inside a form the slider does not rerun
+    # the script, so a total worked out from n would still show the previous
+    # run's number while the handle visibly sits somewhere else.
+    # Measured: two model calls per paper, about 1.5 s each on a hosted model
+    # and 3-25 s on the local one.
     pace = (
-        "a few minutes for 20"
+        "up to a minute per paper"
         if st.session_state.get("provider") == "ollama"
-        else "about half a minute for 20"
+        else "a few seconds per paper"
     )
     st.caption(
         "Searches OpenAlex live, ranks what comes back by how close it is to your question, "
-        f"then has the chosen model check the top papers. Expect {pace}."
+        f"then has the chosen model check the top papers. Expect {pace}. The first search "
+        "after starting the app also loads the ranking model, which adds about a minute."
     )
     asked = st.form_submit_button("Find papers", type="primary")
 

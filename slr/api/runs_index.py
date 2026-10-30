@@ -76,12 +76,31 @@ def latest_extract_run(runs_dir: Path, review: str) -> str | None:
     return best
 
 
-def latest_gap_run(runs_dir: Path, review: str) -> str | None:
+def _provider_of(run_dir: Path) -> str | None:
+    path = run_dir / "resolved_config.json"
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8")).get("provider")
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def latest_gap_run(runs_dir: Path, review: str, provider: str | None = None) -> str | None:
+    """The newest gap run for a review, optionally from one arm only.
+
+    Three arms have now run over the same records, so "newest run" and "the
+    arm a reported figure came from" are no longer the same directory.
+    Anything quoting a specific arm's number passes ``provider``; the
+    dashboard, which only wants the most recent result, leaves it out.
+    """
     best = None
     for d in _run_dirs(runs_dir):
         if "-gap-" not in d.name or "-gaprecall-" in d.name:
             continue
         if _is_partial(d):
+            continue
+        if provider is not None and _provider_of(d) != provider:
             continue
         data = _read_metrics(d)
         if data and data.get("review") == review:

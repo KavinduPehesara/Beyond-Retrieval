@@ -509,7 +509,14 @@ def test_real_charts_run_on_every_review_with_a_run(real):
 
 @real_db
 def test_real_gap_rate_matches_the_recorded_per_review_table(real):
-    """CLAUDE.md's week 11 table, recomputed from the tables."""
+    """CLAUDE.md's week 11 table, recomputed from the tables.
+
+    These counts are the qwen arm's, so the run is chosen by provider and
+    not by recency. Once the Gemini and ChatGPT arms ran over the same
+    records the newest run stopped being the one these numbers describe,
+    and a figure that quietly changes arm is the reporting fault this
+    project exists to argue against.
+    """
     if not RUNS_DIR.exists():
         pytest.skip("no local runs/ directory")
     from slr.api.runs_index import latest_gap_run
@@ -524,7 +531,7 @@ def test_real_gap_rate_matches_the_recorded_per_review_table(real):
     }
     checked = 0
     for review, (records, stated) in expected.items():
-        run_id = latest_gap_run(RUNS_DIR, review)
+        run_id = latest_gap_run(RUNS_DIR, review, provider="ollama")
         if not run_id:
             continue
         rows = charts.gap_rate_by_review(real, {review: run_id})
