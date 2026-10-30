@@ -1,0 +1,296 @@
+{
+  "arms": [
+    "qwen2.5:7b-instruct",
+    "gemini-3.5-flash-lite",
+    "gpt-5-nano"
+  ],
+  "per_review": [
+    {
+      "review": "Menon_2022",
+      "n_records": 69,
+      "n_rated_by_every_arm": 68,
+      "flagged_by_arm": {
+        "qwen2.5:7b-instruct": 36,
+        "gemini-3.5-flash-lite": 44,
+        "gpt-5-nano": 32
+      },
+      "agreement_ac1": {
+        "coefficient": 0.6451949134875965,
+        "pa": 0.8212560386473431,
+        "pe": 0.4962192816635161,
+        "n_units": 69,
+        "n_units_paired": 69
+      },
+      "n_unanimous": 51,
+      "n_disagreed": 17,
+      "combined": {
+        "both": 28,
+        "either": 45
+      },
+      "disagreements": [
+        {
+          "work_id": "https://openalex.org/W2887232568",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Further epidemiological studies are required to evaluate the safety of talc."
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "Further epidemiological studies are required to evaluate the safety of talc."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2944161315",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Health effects attributable to short-term and long-term ambient air pollution (AAP) exposure in Indian population are less understood."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2961600930",
+          "qwen2.5:7b-instruct": {
+            "value": "gap_stated",
+            "span": "Limitations of past research and future directions are discussed."
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Limitations of past research and future directions are discussed."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2966473098",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Our study encourages policy makers to strengthen indoor tanning regulations that reduce sunbed use among the general population in order to produce maximum public health benefit."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2994822050",
+          "qwen2.5:7b-instruct": {
+            "value": "gap_stated",
+            "span": "More studies are needed to broaden our understanding of temperature related epigenetic changes, especially under a changing climate."
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "More studies are needed to broaden our understanding of temperature related epigenetic changes, especially under a changing climate."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W3002131152",
+          "qwen2.5:7b-instruct": {
+            "value": "gap_stated",
+            "span": "However, given the limited number of studies, especially on effects of Fusarium mycotoxins, more studies are needed for a more comprehensive understanding of the effects of different mycotoxins on maternal and fetal health and to guide public health policies and interventions."
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "However, given the limited number of studies, especially on effects of Fusarium mycotoxins, more studies are needed for a more comprehensive understanding of the effects of different mycotoxins on maternal and fetal health and to guide public health policies and interventions."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W3008453743",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Articles concerning the correlation of the risk of chronic kidney disease (CKD) with air contaminant exposure present inconsistent findings and the magnitude of the link is still unclear."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W3008803419",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Findings of this study are important for informing policymakers to pass legislation limiting the use of environmental contaminants such as NP before all adverse effects of exposure have been determined."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W3010778131",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "Studies that properly account for the complexity of relationships between urban form and physical health are limited but suggest that even highly correlated exposures may have distinct effects."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W3011430269",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Further investigation is warranted, especially for folate and vitamin B 6 , which had consistent suggestive evidence of a protective effect for both dietary intake and biomarker status."
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "Further investigation is warranted, especially for folate and vitamin B 6 , which had consistent suggestive evidence of a protective effect for both dietary intake and biomarker status."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W3013453150",
+          "qwen2.5:7b-instruct": {
+            "value": "gap_stated",
+            "span": "Additional studies of the latest pod-like EC devices, which deliver nicotine similarly to a TC, are necessary."
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Additional studies of the latest pod-like EC devices, which deliver nicotine similarly to a TC, are necessary."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W3014254929",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "However, these results should be interpreted with caution since the number of epidemiological studies investigating this issue were limited."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W3017158562",
+          "qwen2.5:7b-instruct": {
+            "value": "gap_stated",
+            "span": "More studies must be conducted, especially in low- and middle-income countries, preferably with comparable research protocols adapted to local realities."
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "More studies must be conducted, especially in low- and middle-income countries, preferably with comparable research protocols adapted to local realities."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W3022929316",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "Despite the positive association between secondhand smoke (SHS) and cardiovascular diseases (CVD), no comprehensive assessment on the dose-response relationship between SHS and CVD has yet been reported."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W3023242713",
+          "qwen2.5:7b-instruct": {
+            "value": "gap_stated",
+            "span": "Future studies will help to verify the independent association(s) between arsenic metabolites and urothelial cancer."
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Future studies will help to verify the independent association(s) between arsenic metabolites and urothelial cancer."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W3025527543",
+          "qwen2.5:7b-instruct": {
+            "value": "gap_stated",
+            "span": "Etiologic interpretation awaits epidemiologic studies that assess associations between tobacco smoking and nonseminomatous TGCT, investigating not only these exposures but also both co-use of tobacco and marijuana and smoke-free sources of cannabinoids, while adequately evaluating potential confounding among all of these exposures."
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Etiologic interpretation awaits epidemiologic studies that assess associations between tobacco smoking and nonseminomatous TGCT, investigating not only these exposures but also both co-use of tobacco and marijuana and smoke-free sources of cannabinoids, while adequately evaluating potential confounding among all of these exposures."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W3027152297",
+          "qwen2.5:7b-instruct": {
+            "value": "gap_stated",
+            "span": "Further studies with robust methodology to ascertain exposure information are warranted to further elucidate the relationship between SHS exposure and sleep disturbances."
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Further studies with robust methodology to ascertain exposure information are warranted to further elucidate the relationship between SHS exposure and sleep disturbances."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        }
+      ]
+    }
+  ],
+  "note": "Agreement measures consistency between models, not correctness. Two models can agree on a wrong answer, and models with overlapping training data correlate in their errors, so this reads higher than true independence would warrant. Precision and recall against the human-rated reference set are reported separately and are what establish whether a flagged statement is really a gap.",
+  "git_sha": "fa3c3c1531db533ef54d5f8ed5f7a4a2dfb4d092",
+  "source_runs": {
+    "qwen2.5:7b-instruct": "20260924T100941794221Z-gap-5665542565",
+    "gemini-3.5-flash-lite": "20261029T103350538940Z-gap-6937f87deb",
+    "gpt-5-nano": "20261029T110002030041Z-gap-3e41080d97"
+  }
+}

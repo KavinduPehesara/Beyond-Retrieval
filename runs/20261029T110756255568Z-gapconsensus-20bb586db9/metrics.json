@@ -1,0 +1,56 @@
+{
+  "arms": [
+    "qwen2.5:7b-instruct",
+    "gemini-3.5-flash-lite",
+    "gpt-5-nano"
+  ],
+  "per_review": [
+    {
+      "review": "van_der_Valk_2021",
+      "n_records": 11,
+      "n_rated_by_every_arm": 9,
+      "flagged_by_arm": {
+        "qwen2.5:7b-instruct": 3,
+        "gemini-3.5-flash-lite": 4,
+        "gpt-5-nano": 4
+      },
+      "agreement_ac1": {
+        "coefficient": 0.890909090909091,
+        "pa": 0.9393939393939394,
+        "pe": 0.4444444444444444,
+        "n_units": 11,
+        "n_units_paired": 11
+      },
+      "n_unanimous": 8,
+      "n_disagreed": 1,
+      "combined": {
+        "both": 3,
+        "either": 4
+      },
+      "disagreements": [
+        {
+          "work_id": "https://openalex.org/W2474410297",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Future research may reveal whether these are causal relations and may be a target for therapy."
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "Future research may reveal whether these are causal relations and may be a target for therapy."
+          }
+        }
+      ]
+    }
+  ],
+  "note": "Agreement measures consistency between models, not correctness. Two models can agree on a wrong answer, and models with overlapping training data correlate in their errors, so this reads higher than true independence would warrant. Precision and recall against the human-rated reference set are reported separately and are what establish whether a flagged statement is really a gap.",
+  "git_sha": "fa3c3c1531db533ef54d5f8ed5f7a4a2dfb4d092",
+  "source_runs": {
+    "qwen2.5:7b-instruct": "20260923T102825404365Z-gap-8002013514",
+    "gemini-3.5-flash-lite": "20261029T103312049965Z-gap-f50e0e7a22",
+    "gpt-5-nano": "20261029T105948278359Z-gap-c04f76dd92"
+  }
+}

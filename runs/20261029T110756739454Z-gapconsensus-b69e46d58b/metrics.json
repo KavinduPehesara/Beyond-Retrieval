@@ -1,0 +1,431 @@
+{
+  "arms": [
+    "qwen2.5:7b-instruct",
+    "gemini-3.5-flash-lite",
+    "gpt-5-nano"
+  ],
+  "per_review": [
+    {
+      "review": "van_der_Waal_2022",
+      "n_records": 82,
+      "n_rated_by_every_arm": 79,
+      "flagged_by_arm": {
+        "qwen2.5:7b-instruct": 17,
+        "gemini-3.5-flash-lite": 32,
+        "gpt-5-nano": 31
+      },
+      "agreement_ac1": {
+        "coefficient": 0.5776949032143497,
+        "pa": 0.764227642276423,
+        "pe": 0.4417013682331945,
+        "n_units": 82,
+        "n_units_paired": 82
+      },
+      "n_unanimous": 53,
+      "n_disagreed": 26,
+      "combined": {
+        "both": 15,
+        "either": 41
+      },
+      "disagreements": [
+        {
+          "work_id": "https://openalex.org/W1496501715",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "This highlights the need for incorporation of individualized patient communication styles into treatment plans."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W1552198074",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "Provider encouragement of participation by partners greatly facilitates shared decision-making between patients and partners."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W1555223417",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "However, to the authors' knowledge, the value of SDM has not been thoroughly evaluated in the field of radiation oncology."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W1810429352",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "However, limited research has investigated the role of personalized approach in improving these parameters in patients with advanced incurable diseases."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2013823516",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "For hematological cancer conditions, there are no analogous results."
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "For hematological cancer conditions, there are no analogous results."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2061201283",
+          "qwen2.5:7b-instruct": {
+            "value": "gap_stated",
+            "span": "Findings support conducting additional research to evaluate effects of this intervention on quality of decision making and rates of participation among patients asked to enroll onto therapeutic clinical trials."
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Findings support conducting additional research to evaluate effects of this intervention on quality of decision making and rates of participation among patients asked to enroll onto therapeutic clinical trials."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2070236195",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "Despite progress, models that incorporate antecedent and mediating factors associated with shared decision making (SDM)\u2013related outcomes remain limited."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2079997221",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "Guidelines should recommend elicitation of patient values at specific decision points."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2102863313",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "The findings from this study suggest a need for eliciting more specific psycho-social interactions in the treatment decision-making process in order to identify ways in which women can be supported throughout their experience."
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "The findings from this study suggest a need for eliciting more specific psycho-social interactions in the treatment decision-making process in order to identify ways in which women can be supported throughout their experience."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2109705734",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "A randomized trial is underway to evaluate its role in clinical decision-making."
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "A randomized trial is underway to evaluate its role in clinical decision-making."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2118561683",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Studies of this cohort would aid in understanding and improving the PCa decision-making process."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2168461716",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "Professional societies recommend shared decision making (SDM) for prostate cancer screening, however, most efforts have promoted informed rather than shared decision making."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2418812918",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Increasing the appropriate use of AS for low-risk prostate cancer will require additional reassurance and information, and reaching men almost immediately after diagnosis while the decision-making is ongoing."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2610679621",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "We identified several communication gaps in cancer care."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2614017435",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Patient participation in decision-making may influence perceptions of care; however, clinicians may need to focus on other communication strategies or domains to improve patient knowledge and health outcomes."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2754495680",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "There is a gap in the literature regarding the impact of these decisions on quality of life (QOL) and quality of care (QOC)."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2797271517",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Although ethical principles underlying informed consent for CT participation emphasize individual autonomy, greater attention to relational autonomy is warranted for a more comprehensive understanding of CT decision making."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2989786746",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "The incorporation of skills training in (continuing) educational programs for medical oncologists is likely to stimulate the widely advocated uptake of shared decision making in clinical practice."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W3007287531",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "Segmentation suggests that a subset of patients may lack cognitive abilities, engagement, or literacy to consistently evaluate treatment choices."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W3039532397",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Before incorporation into general clinical practice, this increased benefit should be weighed against the potential extra administrative workload imposed on clinicians."
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "Before incorporation into general clinical practice, this increased benefit should be weighed against the potential extra administrative workload imposed on clinicians."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W3081933341",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "There is a need to maintain support for patient involvement in healthcare decisions across the cancer care continuum."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W3112724311",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "Physicians who treat patients with prostate cancer may have underestimated the importance of SDM before starting hormone therapy, even greater extent than patients."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W3153720025",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Surgeons should evaluate factors which inform expectations around physical and psychosocial health and use these data to enhance shared decision-making."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W3167709577",
+          "qwen2.5:7b-instruct": {
+            "value": "gap_stated",
+            "span": "However, larger-scale controlled studies are needed to confirm these findings."
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "However, larger-scale controlled studies are needed to confirm these findings."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W3171457222",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "However, there is still room for improvement and physicians should explore patients' preferences for involvement in decision making in order to truly deliver personalised cancer care."
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "There is still room for improvement and physicians should explore patients' preferences for involvement in decision making in order to truly deliver personalised cancer care."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W3191491453",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "Findings suggest many potential patients have strong treatment preferences and are averse to randomization, particularly when outcomes of importance may be affected. Patient engagement in study design and novel nonrandomized trial designs may offer a path to increase clinical trial success."
+          }
+        }
+      ]
+    }
+  ],
+  "note": "Agreement measures consistency between models, not correctness. Two models can agree on a wrong answer, and models with overlapping training data correlate in their errors, so this reads higher than true independence would warrant. Precision and recall against the human-rated reference set are reported separately and are what establish whether a flagged statement is really a gap.",
+  "git_sha": "fa3c3c1531db533ef54d5f8ed5f7a4a2dfb4d092",
+  "source_runs": {
+    "qwen2.5:7b-instruct": "20260924T101041926525Z-gap-3fe61354b0",
+    "gemini-3.5-flash-lite": "20261029T103812617557Z-gap-a0127d7836",
+    "gpt-5-nano": "20261029T110123482427Z-gap-4c4465a3b2"
+  }
+}

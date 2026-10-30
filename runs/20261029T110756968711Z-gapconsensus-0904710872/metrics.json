@@ -1,0 +1,431 @@
+{
+  "arms": [
+    "qwen2.5:7b-instruct",
+    "gemini-3.5-flash-lite",
+    "gpt-5-nano"
+  ],
+  "per_review": [
+    {
+      "review": "Nelson_2002",
+      "n_records": 114,
+      "n_rated_by_every_arm": 112,
+      "flagged_by_arm": {
+        "qwen2.5:7b-instruct": 12,
+        "gemini-3.5-flash-lite": 29,
+        "gpt-5-nano": 9
+      },
+      "agreement_ac1": {
+        "coefficient": 0.7973656624584108,
+        "pa": 0.8479532163742686,
+        "pe": 0.24964946479258499,
+        "n_units": 114,
+        "n_units_paired": 114
+      },
+      "n_unanimous": 86,
+      "n_disagreed": 26,
+      "combined": {
+        "both": 5,
+        "either": 31
+      },
+      "disagreements": [
+        {
+          "work_id": "https://openalex.org/W1530933665",
+          "qwen2.5:7b-instruct": {
+            "value": "gap_stated",
+            "span": "Long-term safety of the preparations is best established for estradiol tablets (1 year), but is lacking for all preparations."
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Long-term safety of the preparations is best established for estradiol tablets (1 year), but is lacking for all preparations."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W1593442063",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Despite decades of accumulated observational evidence, the balance of risks and benefits for hormone use in healthy postmenopausal women remains uncertain."
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "The risk-benefit profile found in this trial is not consistent with the requirements for a viable intervention for primary prevention of chronic diseases, and the results indicate that this regimen should not be initiated or continued for primary prevention of CHD."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W1970169800",
+          "qwen2.5:7b-instruct": {
+            "value": "gap_stated",
+            "span": "For breast and endometrial cancers, SMRs were below baseline but tended to increase with follow-up time. We conclude that hormone replacement increases the endometrial-cancer risk after unopposed estrogens and the breast-cancer risk-notably after estrogen-progestin combined therapy-and tentatively suggest that it exerts a protective effect against colon and liver cancer risks."
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W1994510710",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "However, the overall clinical implications of these changes are unknown."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W1995055473",
+          "qwen2.5:7b-instruct": {
+            "value": "gap_stated",
+            "span": "The association between menopausal hormone replacement therapy and ovarian cancer is unclear."
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Women who used short-term estrogen-progestin-only replacement therapy were not at increased risk, but risk associated with short-term and longer-term estrogen-progestin replacement therapy warrants further investigation."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2004302812",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "The bone-sparing efficacy and tolerability of the lowest available doses of HRT have not been adequately studied in elderly women."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2004408983",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "The parenteral administration of oestradiol acutely protects against exercise-induced myocardial ischaemia in women, but whether this effect is sex-specific is not known."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2007282385",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "However, the effects of different hormonal preparations and their routes of administration are not known."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2036608642",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Our results and a literature review indicate that fluoride salts, if used, should be at low dosage, with pretreatment and co-treatment with a bone resorption inhibitor."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2073420242",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Methods to preserve bone density in these women need to be explored."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2073867415",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "The frequency and severity of such symptoms and response to hormone therapy in older women have not been well documented."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2079450135",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Data regarding risk for endometrial cancer among estrogen plus progestin users are limited and conflicting."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2081898812",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Whether these results also apply to elderly women without coronary disease cannot be determined from this study."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2106601653",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Long term studies are needed to determine the relative benefits and risks of the combination of estrogen and androgen and whether this results in greater increases in bone mass and strength."
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "Long term studies are needed to determine the relative benefits and risks of the combination of estrogen and androgen and whether this results in greater increases in bone mass and strength."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2110502449",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Less is known about the effect of hormone therapy on health-related quality of life."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2115671362",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "In the absence of a placebo control group, the improvements observed cannot be attributed solely to the therapy."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2116459270",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "If confirmed, this suggests that measuring estradiol and treating women with high estradiol levels could substantially reduce the rate of breast cancer among postmenopausal women."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2122073186",
+          "qwen2.5:7b-instruct": {
+            "value": "gap_stated",
+            "span": "Future research into other compounds is recommended to identify safe and effective therapies for hot flashes in breast cancer survivors."
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Future research into other compounds is recommended to identify safe and effective therapies for hot flashes in breast cancer survivors."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2134182256",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "The use of hormones, given as a continuous estrogen and cyclic progestogen formulation after a formal calibration/run-in period, may have a beneficial effect on psychosocial distress experienced by women towards the end of their reproductive function."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W21498368",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "The effect of hormone replacement therapy (HRT) on the quality of life in women with hypertension is still not clear."
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "The effect of hormone replacement therapy (HRT) on the quality of life in women with hypertension is still not clear."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2340685677",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Whether other antiresorptive therapies can prevent osteoporosis in these women is also not clear."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2405427675",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "There is no concensus among researchers as to how HRT influences psychiatric symptoms that might develop during menopausal period."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2413297547",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Nevertheless, no clinical convincing data are available to support its efficacy in the prevention of osteoporotic fractures."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2466601150",
+          "qwen2.5:7b-instruct": {
+            "value": "gap_stated",
+            "span": "Further research is needed to assess the potential risks and benefits of various formulations, combinations, doses, and delivery routes of estrogen for postmenopausal women."
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Further research is needed to assess the potential risks and benefits of various formulations, combinations, doses, and delivery routes of estrogen for postmenopausal women."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W4251833922",
+          "qwen2.5:7b-instruct": {
+            "value": "gap_stated",
+            "span": "Trends in other disease outcomes were not favorable and should be assessed in larger trials and in broader populations."
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Trends in other disease outcomes were not favorable and should be assessed in larger trials and in broader populations."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W4301255698",
+          "qwen2.5:7b-instruct": {
+            "value": "gap_stated",
+            "span": "It is not known whether the benefit observed at the end of the trial persisted after the end of treatment."
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Health authorities, especially in Europe, must organise comparative trials to assess the benefits and risks of other hormone combinations used by perimenopausal and postmenopausal women."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        }
+      ]
+    }
+  ],
+  "note": "Agreement measures consistency between models, not correctness. Two models can agree on a wrong answer, and models with overlapping training data correlate in their errors, so this reads higher than true independence would warrant. Precision and recall against the human-rated reference set are reported separately and are what establish whether a flagged statement is really a gap.",
+  "git_sha": "fa3c3c1531db533ef54d5f8ed5f7a4a2dfb4d092",
+  "source_runs": {
+    "qwen2.5:7b-instruct": "20261007T075606020247Z-gap-3496ae576f",
+    "gemini-3.5-flash-lite": "20261029T104248370154Z-gap-413e200491",
+    "gpt-5-nano": "20261029T110257808774Z-gap-92bc0ff13d"
+  }
+}

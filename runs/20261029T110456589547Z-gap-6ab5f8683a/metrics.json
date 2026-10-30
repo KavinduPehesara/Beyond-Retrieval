@@ -1,0 +1,13 @@
+{
+  "config_name": "gap_openai_radjenovic2013",
+  "config_hash": "6ab5f8683a",
+  "source_run_id": "20260921T072653933329Z-5573f0e390",
+  "review": "Radjenovic_2013",
+  "records": 132,
+  "aborted": false,
+  "counts": {
+    "gap_stated": 14,
+    "not_stated": 118,
+    "failed": 0
+  }
+}

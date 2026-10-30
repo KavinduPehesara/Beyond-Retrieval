@@ -1,0 +1,341 @@
+{
+  "arms": [
+    "qwen2.5:7b-instruct",
+    "gemini-3.5-flash-lite",
+    "gpt-5-nano"
+  ],
+  "per_review": [
+    {
+      "review": "Radjenovic_2013",
+      "n_records": 132,
+      "n_rated_by_every_arm": 124,
+      "flagged_by_arm": {
+        "qwen2.5:7b-instruct": 5,
+        "gemini-3.5-flash-lite": 15,
+        "gpt-5-nano": 14
+      },
+      "agreement_ac1": {
+        "coefficient": 0.8708752772564403,
+        "pa": 0.8914141414141411,
+        "pe": 0.15906221303948637,
+        "n_units": 132,
+        "n_units_paired": 132
+      },
+      "n_unanimous": 104,
+      "n_disagreed": 20,
+      "combined": {
+        "both": 3,
+        "either": 23
+      },
+      "disagreements": [
+        {
+          "work_id": "https://openalex.org/W1670613434",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "Many case studies in the literature build models to predict which modules will be fault-prone without regard to the subsystems defined by the system's functional architecture. Our hypothesis is this: models that are specially built for subsystems will be more accurate than a system-wide model applied to each subsystem's modules."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2002712952",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Although current fault prediction models can be applied to predict faulty modules of Web applications, one limitation of them is that they do not consider particular characteristics of Web applications."
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "Although current fault prediction models can be applied to predict faulty modules of Web applications, one limitation of them is that they do not consider particular characteristics of Web applications."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2051518864",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "The achievement of the whole research effort is described at the end of this study together with challenges faced and recommendation for future research work."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2083221797",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "However, our data exploration indicates that the distribution of these metrics varies from project to project, making the task of predicting across projects difficult to achieve."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2090793363",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Yet, most of the researches do not consider classification costs in the prediction models."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2100270576",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "We find that these methods can not be used until the system is implemented."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2108610041",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Furthermore, this model can constitute a part of real-time dependability assessment technique for the future."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2110431240",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "However, our cost-benefit model demonstrates that the MARS fault-proneness model is potentially viable, from an economical standpoint. The linear model is not nearly as good, thus suggesting a more complex model is required."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2111517663",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "It is still unknown whether change coupling correlates with a tangible effect of design issues, i.e., software defects."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2125036506",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Thus we can suggest that these attributes are sufficient for future classification process."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2133888369",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "We are continuing our research and comparing validated metrics with actual results in an attempt to determine whether the use of additional metrics provides sufficiently greater discriminative power to justify the increased inspection costs."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2135198476",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "In software development, resources for quality assurance are limited by time and by cost. In order to allocate resources effectively, managers need to rely on their experience backed by code complexity metrics. But often dependencies exist between various pieces of code over which managers may have little knowledge."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2135719981",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "It is suggested that ENNs can be effective in other software reliability problem domains, where they have been largely ignored."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2137367944",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "Some CK class metrics have previously been shown to be good predictors of initial OO software quality. However, the other two suites have not been heavily validated except by their original proposers. Here, we explore the ability of these three metrics suites to predict fault-prone classes using defect data for six versions of Rhino, an open-source implementation of JavaScript written in Java. We conclude that the CK and QMOOD suites contain similar components and produce statistical models that are effective in detecting error-prone classes. We also conclude that the class components in the MOOD metrics suite are not good class fault-proneness predictors."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2145091807",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "To the best of our knowledge, this is the first time that case based reasoning has been used to identify fault prone modules."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2146474553",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Related literature lacks quantitative guidance regarding the application of count models for software quality prediction."
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "Related literature lacks quantitative guidance regarding the application of count models for software quality prediction."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2156556217",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "Since the main goal of this paper is the empirical validation of those metrics, we present two controlled experiments carried out to corroborate if those metrics are closed to class diagram maintainability and thus could be used as early maintainability indicators."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2163769078",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "However, the estimation of the fault-proneness should be done in the early phase so as to effectively allocate effort for fixing the faults."
+          },
+          "gpt-5-nano": {
+            "value": "gap_stated",
+            "span": "However, the estimation of the fault-proneness should be done in the early phase so as to effectively allocate effort for fixing the faults."
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W2164782637",
+          "qwen2.5:7b-instruct": {
+            "value": "gap_stated",
+            "span": "Finally we compare the results and methods and give some directions and ideas for future work."
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Finally we compare the results and methods and give some directions and ideas for future work."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        },
+        {
+          "work_id": "https://openalex.org/W4205170104",
+          "qwen2.5:7b-instruct": {
+            "value": "not_stated",
+            "span": null
+          },
+          "gemini-3.5-flash-lite": {
+            "value": "gap_stated",
+            "span": "Most research concentrates on the study of different techniques for computing multivariate models and evaluating their statistical validity, but we still lack experimental data about the validity of such models across different software applications."
+          },
+          "gpt-5-nano": {
+            "value": "not_stated",
+            "span": null
+          }
+        }
+      ]
+    }
+  ],
+  "note": "Agreement measures consistency between models, not correctness. Two models can agree on a wrong answer, and models with overlapping training data correlate in their errors, so this reads higher than true independence would warrant. Precision and recall against the human-rated reference set are reported separately and are what establish whether a flagged statement is really a gap.",
+  "git_sha": "fa3c3c1531db533ef54d5f8ed5f7a4a2dfb4d092",
+  "source_runs": {
+    "qwen2.5:7b-instruct": "20260923T102838078110Z-gap-c8a03baad8",
+    "gemini-3.5-flash-lite": "20261029T104935941632Z-gap-07eb48ee8c",
+    "gpt-5-nano": "20261029T110456589547Z-gap-6ab5f8683a"
+  }
+}

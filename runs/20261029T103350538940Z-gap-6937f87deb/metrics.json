@@ -1,0 +1,13 @@
+{
+  "config_name": "gap_gemini_menon2022",
+  "config_hash": "6937f87deb",
+  "source_run_id": "20260924T090935787946Z-88b91f8dc3",
+  "review": "Menon_2022",
+  "records": 69,
+  "aborted": false,
+  "counts": {
+    "gap_stated": 44,
+    "not_stated": 25,
+    "failed": 0
+  }
+}
