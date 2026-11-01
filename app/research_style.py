@@ -58,10 +58,15 @@ def apply_research_style():
     background: #faf9f6; color: #233331;
     font-family: 'Segoe UI', Arial, sans-serif;
 }
-[data-testid="stHeader"] { background: #faf9f6; border-bottom: 1px solid #e0e3dc; }
+/* toolbarMode="minimal" (.streamlit/config.toml) already hides the menu
+   itself; the header bar's own container would otherwise still render as an
+   empty strip with this background and border, which reads as a mistake
+   rather than a hidden toolbar. Collapsing it needs the content's top
+   padding reduced to match, or the gap just moves down instead of closing. */
+[data-testid="stHeader"] { display: none; }
 [data-testid="stSidebar"] { background: #eef0eb; border-right: 1px solid #d9dfd6; }
 [data-testid="stSidebar"] * { color: #344a45; }
-.block-container { max-width: 1180px; padding-top: 4.5rem; padding-bottom: 4rem; }
+.block-container { max-width: 1180px; padding-top: 1.75rem; padding-bottom: 4rem; }
 h1, h2, h3, h4 { font-family: Georgia, 'Times New Roman', serif !important; color: #203c36 !important; }
 h1 { font-size: 2.7rem !important; font-weight: 500 !important; letter-spacing: -.035em; }
 h2, h3 { font-weight: 500 !important; letter-spacing: -.015em; }
