@@ -639,23 +639,27 @@ s.addMedia({
   type: "video", path: path.join(__dirname, "demo.mp4"), cover: poster,
   x: 2.38, y: 1.5, w: 8.55, h: 4.81, objectName: "demoVideo",
 });
-s.addText("Question in  →  ranked and screened papers, each with its quote  →  the gap signal, in the authors’ own words", {
+s.addText("Question in  →  ranked and screened papers, each with its quote  →  the gap signal in the authors’ own words  →  full text of the papers you choose  →  export", {
   x: 1.0, y: 6.45, w: 11.3, h: 0.4, fontSize: 13, color: C.background2, align: "center", isTextBox: true, margin: 0,
 });
 
 s.addNotes(
   "[5:15 — 7:17]  DEMO VIDEO, 1:45, on the slide. Say the lead-in, start it, stay quiet, then say the closing line.\n\n" +
-  "LEAD-IN: \"Rather than describe the tool, here is a minute and three quarters of it.\"\n\n" +
-  "CLOSING LINE: \"Both models saw every question, and each paper says whether they agreed \u2014 one of those ten did not. It cost under half a cent.\"\n\n" +
+  "LEAD-IN: \"Rather than describe the tool, here it is end to end.\"\n\n" +
+  "CLOSING LINE: \"Both models saw all ten, and the page says where they disagreed \u2014 two of them. That run was cached; a fresh one costs half a cent.\"\n\n" +
   "--- What the recording shows, in order ---\n\n" +
-  "If asked about the speed-up: the screening stretch is the only edit, it is labelled on screen while it runs, and it took sixty-five seconds in real time.\n\n" +
-  "0:00-0:12  The welcome card: search real literature, every answer carries its sentence, you choose what to read.\n\n" +
-  "0:12-0:25  A plain research question is typed. The caption underneath names both models before anything runs, and the slider asks for ten papers.\n\n" +
-  "0:25-1:02  The run: OpenAlex search, SPECTER2 ranking, then screening \u2014 and the bar counts papers, not model calls. This stretch is sped up and labelled on screen; it took sixty-five seconds in real time.\n\n" +
-  "1:02-1:20  What came back: fifty candidates ranked, ten suggested, nine addressing the question, three stating a gap, and one where the two models disagreed. The cost line splits the spend by vendor, and the caveat underneath says agreement measures consistency, not correctness.\n\n" +
-  "1:20-1:45  The gap signal: where authors state a gap in their own abstract, their words are quoted back, closest to the question first, each one found verbatim in that paper\u2019s abstract.\n\n" +
-  "NOT IN THE VIDEO: full-text retrieval and export sit behind sign-in, so they are not in this cut. If asked, they are section 11.7 of the report and the right-hand side of the process figure. Offer to show them live.\n\n" +
-  "The recording is driven by scratchpad/demo_drive.py against the running app with both vendors live. It is not a mock-up."
+  "0:00-0:10  Signed in, a project created. Work is saved per account, which is also what full-text retrieval is gated on.\n\n" +
+  "0:10-0:25  A plain research question is typed. The caption underneath names both models before anything runs, and the slider asks for ten papers.\n\n" +
+  "0:25-0:40  Screening. The bar counts papers, not model calls. Sped up and labelled on screen; twenty-three seconds in real time, and short here because the answers were already cached.\n\n" +
+  "0:40-0:55  Fifty candidates ranked, ten suggested, seven addressing the question, five stating a gap, two where the models disagreed. The cost line splits by vendor, and the caveat says agreement measures consistency, not correctness.\n\n" +
+  "0:55-1:05  The gap signal: where authors state a gap in their own abstract, their words are quoted back, closest to the question first.\n\n" +
+  "1:05-1:30  Two papers are picked and read in full. Europe PMC holds one of the two, and the page says so rather than hiding the miss: five of five fields verified, five tables, three figures, and the paper truncated at 82% with the percentage stated. Sped up and labelled; fifty-seven seconds in real time.\n\n" +
+  "1:30-1:45  Export: one folder per paper with the PDF, categorised data, tables as CSV and figures. 2.4 MB in this run.\n\n" +
+  "--- If asked ---\n\n" +
+  "The speed-up: the two model waits are the only edits, each labelled on screen while it runs. Nothing else is cut, and the clip is otherwise real time.\n\n" +
+  "The zero cost: that question had been asked before, so every answer came from the cache and the page says so outright. A priced run of the same size came to USD 0.0044, split USD 0.0006 ChatGPT and USD 0.0037 Gemini.\n\n" +
+  "The paper with no full text: Europe PMC holds open-access life-sciences literature, so coverage is partial by design. A miss is reported with its reason rather than dropped.\n\n" +
+  "The recording is driven by scratchpad/demo_full.py against the running app with both vendors live. It is not a mock-up."
 );
 
 /* ======================================================= 9. screening results */
@@ -704,7 +708,7 @@ s.addText(
 );
 
 s.addNotes(
-  "[7:17 — 8:10]\n\n" +
+  "[7:17 — 8:09]\n\n" +
   "Here is the screening result, and why it is not one number.\n\n" +
   "The bars are the verification rate — the share of decisions whose supporting quote was actually found, word for word, in the record. The reviews are ordered by prevalence, and the rate plainly does not follow it.\n\n" +
   "This is the column almost nobody reports, and I think it is the most important one, because a decision whose quote cannot be found is not a wrong prediction. It is a referral back to the human.\n\n" +
@@ -760,7 +764,7 @@ s.addChart(
 );
 
 s.addNotes(
-  "[8:10 — 9:01]\n\n" +
+  "[8:09 — 9:00]\n\n" +
   "Two results about the verifier, and the first is uncomfortable.\n\n" +
   "I replayed all twelve and a half thousand decisions with the gate switched off. Recall goes up on every single review — so the verifier costs me recall. What it buys is volume: thirteen records to read instead of four hundred and fifty-one. That is a trade, and I present it as one.\n\n" +
   "The second result changed how I describe this project. Of five thousand nine hundred verification failures, twelve were genuine fabrications. Ninety-eight per cent were the model echoing my own eligibility criteria back at me.\n\n" +
@@ -815,7 +819,7 @@ s.addText(
 );
 
 s.addNotes(
-  "[9:01 — 9:56]\n\n" +
+  "[9:00 — 9:55]\n\n" +
   "This is the result my Assessment Two report had to call designed but unexecuted. It ran this week.\n\n" +
   "The same four hundred and eighteen records, the same prompt, the same gate, three models. The local model flags seventy-four. Gemini flags a hundred and twenty-five — sixty-nine per cent more. ChatGPT flags ninety, for two cents.\n\n" +
   "Agreement runs from point five eight to point nine two across the reviews — the same shape as the BM25 finding. Pooled, it would be dominated by whichever review was easiest. So it is not pooled.\n\n" +
@@ -860,7 +864,7 @@ eth.forEach((e, i) => {
 });
 
 s.addNotes(
-  "[9:56 — 10:55]\n\n" +
+  "[9:55 — 10:54]\n\n" +
   "Ethics is the part of this project I found hardest to be honest about. Four things.\n\n" +
   "Data minimisation: sign-in is identity scope only. No password or token is stored, and a test asserts that one account cannot read another's projects.\n\n" +
   "A residual risk I name rather than hide: the one-time sign-in ticket travels as a URL parameter. Single use and browser-bound — but it still lands in browser history.\n\n" +
@@ -892,7 +896,7 @@ stat(s, { x: 8.4, y: 4.45, w: 1.9, value: "69.2%", fontSize: 30, h: 0.5, label: 
 stat(s, { x: 10.6, y: 4.45, w: 2.1, value: "13 / 13", fontSize: 30, h: 0.5, label: "of those overrides matched the recorded ground truth" });
 
 s.addNotes(
-  "[10:55 — 11:48]\n\n" +
+  "[10:54 — 11:48]\n\n" +
   "This is the measurement I would keep if I could keep only one.\n\n" +
   "Automation bias is the risk that a researcher stops checking because the tool sounds sure. So I measured how sure it sounds. Across twenty-three thousand decisions, mean confidence when the quote was genuinely found was point eight one three. When no quote could be found at all, point seven nine eight.\n\n" +
   "Fifteen thousandths apart. No threshold separates them. So a confidence score here would not be a safeguard — it would look like one, which is worse.\n\n" +
@@ -1013,7 +1017,7 @@ s.addText("Thank you — questions welcome", {
 });
 
 s.addNotes(
-  "[13:37 — 14:59]\n\n" +
+  "[13:37 — 14:58]\n\n" +
   "Four things are still open, and I would rather say them than have them found.\n\n" +
   "The usability exit test needs ethics approval and a participant. Until then the usability claim is withdrawn — not softened, withdrawn. The five thousand nine hundred failure classifications are automatic, and need a manual pass before I call them measured. Full-text extraction stays a demonstration. And the gap recall range supports a direction, not a number.\n\n" +
   "And the comparison that does not flatter me: ASReview beats every retrieval strategy I built, because it retrains on true labels as the reviewer works and mine rank once. That points straight at adaptive re-ranking, and it belongs in the report precisely because it is uncomfortable.\n\n" +

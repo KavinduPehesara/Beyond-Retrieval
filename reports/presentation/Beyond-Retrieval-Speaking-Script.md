@@ -2,7 +2,7 @@
 
 **MSE907 Assessment 3** · Kavindu Pehesara Gunawardena · 270684416 · supervisor Dr Helena Bahrami
 
-14 slides. Planned runtime **14:59**: about 2087 spoken words at 140 words per minute, plus a 1:45 demo recording on slide 7. Text in square brackets is a cue, not something you say. The same script is in the speaker notes of the .pptx, so presenter view shows it slide by slide.
+14 slides. Planned runtime **14:58**: about 2172 spoken words at 140 words per minute, plus a 1:45 demo recording on slide 7. Text in square brackets is a cue, not something you say. The same script is in the speaker notes of the .pptx, so presenter view shows it slide by slide.
 
 If you run long, the first things to drop are the bracketed aside on slide 5 and the licensing sentence on slide 11. Slide 7 is your checkpoint: you should be starting the video at about 5:15.
 
@@ -16,14 +16,14 @@ If you run long, the first things to drop are the bracketed aside on slide 5 and
 | 4 | Three gaps, and what happened to each | 2:12 | 3:01 | 113 |
 | 5 | What was built, and what it has to answer | 3:01 | 4:17 | 178 |
 | 6 | Software engineering principles, enforced in code | 4:17 | 5:15 | 136 |
-| 7 | The tool, end to end | 5:15 | 7:17 | 273 |
-| 8 | Screening, per review — never pooled | 7:17 | 8:10 | 123 |
-| 9 | What the verifier buys, and why it fails | 8:10 | 9:01 | 119 |
-| 10 | Three models, the same 418 records | 9:01 | 9:56 | 128 |
-| 11 | Ethical and legal ground | 9:56 | 10:55 | 138 |
-| 12 | Automation bias, and why a decision is withheld | 10:55 | 11:48 | 125 |
+| 7 | The tool, end to end | 5:15 | 7:17 | 358 |
+| 8 | Screening, per review — never pooled | 7:17 | 8:09 | 123 |
+| 9 | What the verifier buys, and why it fails | 8:09 | 9:00 | 119 |
+| 10 | Three models, the same 418 records | 9:00 | 9:55 | 128 |
+| 11 | Ethical and legal ground | 9:55 | 10:54 | 138 |
+| 12 | Automation bias, and why a decision is withheld | 10:54 | 11:48 | 125 |
 | 13 | Bias and culture — one measured, one in the data | 11:48 | 13:37 | 254 |
-| 14 | A decision you can check | 13:37 | 14:59 | 190 |
+| 14 | A decision you can check | 13:37 | 14:58 | 190 |
 
 ---
 
@@ -95,7 +95,7 @@ Interface segregation: one provider protocol, four implementations — which is 
 
 Fail fast. The budget ceiling aborts a run rather than warning me afterwards; a stale cache entry raises rather than serving.
 
-Tests as design decisions: five hundred and seventy-four. A subset tests commitments — that ground truth can never reach a prompt — and the mock provider lies twenty per cent of the time on purpose, so the failure path runs on every pass.
+Tests as design decisions: five hundred and seventy-six. A subset tests commitments — that ground truth can never reach a prompt — and the mock provider lies twenty per cent of the time on purpose, so the failure path runs on every pass.
 
 And reproducibility: the metrics file is a pure function of configuration and corpus, which makes it testable rather than claimed.
 
@@ -103,31 +103,39 @@ And reproducibility: the metrics file is a pure function of configuration and co
 
 [5:15 — 7:17]  DEMO VIDEO, 1:45, on the slide. Say the lead-in, start it, stay quiet, then say the closing line.
 
-LEAD-IN: "Rather than describe the tool, here is a minute and three quarters of it."
+LEAD-IN: "Rather than describe the tool, here it is end to end."
 
-CLOSING LINE: "Both models saw every question, and each paper says whether they agreed — one of those ten did not. It cost under half a cent."
+CLOSING LINE: "Both models saw all ten, and the page says where they disagreed — two of them. That run was cached; a fresh one costs half a cent."
 
 --- What the recording shows, in order ---
 
-If asked about the speed-up: the screening stretch is the only edit, it is labelled on screen while it runs, and it took sixty-five seconds in real time.
+0:00-0:10  Signed in, a project created. Work is saved per account, which is also what full-text retrieval is gated on.
 
-0:00-0:12  The welcome card: search real literature, every answer carries its sentence, you choose what to read.
+0:10-0:25  A plain research question is typed. The caption underneath names both models before anything runs, and the slider asks for ten papers.
 
-0:12-0:25  A plain research question is typed. The caption underneath names both models before anything runs, and the slider asks for ten papers.
+0:25-0:40  Screening. The bar counts papers, not model calls. Sped up and labelled on screen; twenty-three seconds in real time, and short here because the answers were already cached.
 
-0:25-1:02  The run: OpenAlex search, SPECTER2 ranking, then screening — and the bar counts papers, not model calls. This stretch is sped up and labelled on screen; it took sixty-five seconds in real time.
+0:40-0:55  Fifty candidates ranked, ten suggested, seven addressing the question, five stating a gap, two where the models disagreed. The cost line splits by vendor, and the caveat says agreement measures consistency, not correctness.
 
-1:02-1:20  What came back: fifty candidates ranked, ten suggested, nine addressing the question, three stating a gap, and one where the two models disagreed. The cost line splits the spend by vendor, and the caveat underneath says agreement measures consistency, not correctness.
+0:55-1:05  The gap signal: where authors state a gap in their own abstract, their words are quoted back, closest to the question first.
 
-1:20-1:45  The gap signal: where authors state a gap in their own abstract, their words are quoted back, closest to the question first, each one found verbatim in that paper’s abstract.
+1:05-1:30  Two papers are picked and read in full. Europe PMC holds one of the two, and the page says so rather than hiding the miss: five of five fields verified, five tables, three figures, and the paper truncated at 82% with the percentage stated. Sped up and labelled; fifty-seven seconds in real time.
 
-NOT IN THE VIDEO: full-text retrieval and export sit behind sign-in, so they are not in this cut. If asked, they are section 11.7 of the report and the right-hand side of the process figure. Offer to show them live.
+1:30-1:45  Export: one folder per paper with the PDF, categorised data, tables as CSV and figures. 2.4 MB in this run.
 
-The recording is driven by scratchpad/demo_drive.py against the running app with both vendors live. It is not a mock-up.
+--- If asked ---
+
+The speed-up: the two model waits are the only edits, each labelled on screen while it runs. Nothing else is cut, and the clip is otherwise real time.
+
+The zero cost: that question had been asked before, so every answer came from the cache and the page says so outright. A priced run of the same size came to USD 0.0044, split USD 0.0006 ChatGPT and USD 0.0037 Gemini.
+
+The paper with no full text: Europe PMC holds open-access life-sciences literature, so coverage is partial by design. A miss is reported with its reason rather than dropped.
+
+The recording is driven by scratchpad/demo_full.py against the running app with both vendors live. It is not a mock-up.
 
 ## Slide 8 — Screening, per review — never pooled
 
-[7:17 — 8:10]
+[7:17 — 8:09]
 
 Here is the screening result, and why it is not one number.
 
@@ -139,7 +147,7 @@ Recall, where computed, is above point nine on two reviews and point three two o
 
 ## Slide 9 — What the verifier buys, and why it fails
 
-[8:10 — 9:01]
+[8:09 — 9:00]
 
 Two results about the verifier, and the first is uncomfortable.
 
@@ -151,7 +159,7 @@ That is not a deceptive model — it is a measure of my prompt quality, which is
 
 ## Slide 10 — Three models, the same 418 records
 
-[9:01 — 9:56]
+[9:00 — 9:55]
 
 This is the result my Assessment Two report had to call designed but unexecuted. It ran this week.
 
@@ -163,7 +171,7 @@ The union of all three gives a hundred and forty-five instead of seventy-four. T
 
 ## Slide 11 — Ethical and legal ground
 
-[9:56 — 10:55]
+[9:55 — 10:54]
 
 Ethics is the part of this project I found hardest to be honest about. Four things.
 
@@ -177,7 +185,7 @@ And the one I would rather not have on a slide. The ethics application for the u
 
 ## Slide 12 — Automation bias, and why a decision is withheld
 
-[10:55 — 11:48]
+[10:54 — 11:48]
 
 This is the measurement I would keep if I could keep only one.
 
@@ -205,7 +213,7 @@ So if a software engineering researcher runs this and it reports no gaps found, 
 
 ## Slide 14 — A decision you can check
 
-[13:37 — 14:59]
+[13:37 — 14:58]
 
 Four things are still open, and I would rather say them than have them found.
 
