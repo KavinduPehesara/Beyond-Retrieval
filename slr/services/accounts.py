@@ -1,5 +1,6 @@
 """Google identities, expiring OAuth state and revocable application sessions."""
 import hashlib
+import os
 import secrets
 import time
 from uuid import uuid4
@@ -7,6 +8,18 @@ from slr.services import live_review
 
 def digest(value):
     return hashlib.sha256(value.encode()).hexdigest()
+
+
+def allowed_emails() -> set[str]:
+    """Who may sign in, from ALLOWED_EMAILS: a comma-separated list.
+
+    Unset means anyone Google will vouch for, which is the right default on
+    a laptop and the wrong one anywhere with a public address: the model
+    keys are the server's, so an open sign-in is an open invitation to spend
+    them. Set it before putting this behind a domain.
+    """
+    raw = os.getenv("ALLOWED_EMAILS", "")
+    return {e.strip().casefold() for e in raw.split(",") if e.strip()}
 
 #: The browser deletes the session cookie when it closes; this caps how long
 #: a browser that is never closed stays signed in.
@@ -40,6 +53,11 @@ def consume_state(state):
 def issue_ticket(claims, session=None):
     if not claims.get("sub") or claims.get("email_verified") is not True or not claims.get("email"):
         raise ValueError("Google must verify your email address.")
+    allowed = allowed_emails()
+    if allowed and claims["email"].casefold() not in allowed:
+        # Refused before the account row is written, so a stranger who gets
+        # this far leaves nothing behind but a log line.
+        raise ValueError("This deployment is limited to invited accounts.")
     ticket, binding = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
     with connect() as conn:
         row = conn.execute("SELECT id FROM google_accounts WHERE subject=?", (claims["sub"],)).fetchone()

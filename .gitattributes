@@ -12,6 +12,14 @@
 *.cfg   text eol=lf
 *.toml  text eol=lf
 
+# Container entrypoints run on Linux. Covered by the rule at the top, but
+# stated outright because a shell script that reaches a container with CRLF
+# fails as "bad interpreter: /bin/bash^M", which does not read like a
+# line-ending problem to anyone looking at the build log.
+*.sh         text eol=lf
+*.conf       text eol=lf
+Dockerfile   text eol=lf
+
 # Windows-only scripts keep CRLF
 *.bat   text eol=crlf
 *.ps1   text eol=crlf
@@ -26,3 +34,5 @@
 *.npy   binary
 *.faiss binary
 *.db    binary
+*.mp4   binary
+*.webm  binary

@@ -125,3 +125,34 @@ def test_a_browser_session_expires_server_side_too(client):
 def test_logout_without_a_session_still_works(client):
     token = identity()["token"]
     assert client.post("/auth/logout", headers={"Authorization": "Bearer " + token}).status_code == 200
+
+
+def test_an_allowlist_keeps_strangers_out_of_a_hosted_deployment(client, monkeypatch):
+    """On a laptop anyone Google vouches for is fine. On a public address it
+    is not: the model keys belong to the server, so an open sign-in is an
+    open invitation to spend them.
+    """
+    monkeypatch.setenv("ALLOWED_EMAILS", " Owner@Example.test ,friend@example.test")
+
+    # Case folds and tolerates the spaces a hand-written list will have.
+    ticket, _ = accounts.issue_ticket(
+        dict(sub="one", email="owner@EXAMPLE.test", email_verified=True))
+    assert ticket
+
+    with pytest.raises(ValueError, match="invited"):
+        accounts.issue_ticket(
+            dict(sub="two", email="stranger@example.test", email_verified=True))
+
+    # Refused before anything is written, so nothing of theirs is kept.
+    with accounts.connect() as conn:
+        rows = conn.execute(
+            "SELECT COUNT(*) FROM google_accounts WHERE email=?",
+            ("stranger@example.test",)).fetchone()
+    assert rows[0] == 0
+
+
+def test_without_an_allowlist_any_verified_account_still_works(client, monkeypatch):
+    monkeypatch.delenv("ALLOWED_EMAILS", raising=False)
+    ticket, _ = accounts.issue_ticket(
+        dict(sub="three", email="anyone@example.test", email_verified=True))
+    assert ticket

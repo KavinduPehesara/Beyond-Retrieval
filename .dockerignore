@@ -1,0 +1,25 @@
+# The build only needs the product: slr/, app/, prompts/, configs/, deploy/.
+# Everything below is either evidence, output or a local artefact, and some of
+# it is large enough to matter -- runs/ alone is 101 directories, and the
+# presentation carries a 3 MB video.
+
+.venv/
+.git/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+runs/
+data/
+reports/
+docs/
+tests/
+scripts/
+
+*.sqlite3
+*.db
+*.mp4
+*.webm
+
+.env
+.env.*

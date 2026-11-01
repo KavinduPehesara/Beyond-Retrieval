@@ -106,3 +106,7 @@ notebooks/scratch/
 # ---------------------------------------------------------------
 .claude/
 .streamlit/secrets.toml
+
+# Raw Playwright takes kept only so the demo can be re-encoded without
+# re-running a live take against both vendors. The .mp4 is the deliverable.
+*.raw.webm

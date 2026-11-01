@@ -2,13 +2,22 @@
 from datetime import datetime, timezone
 from functools import lru_cache
 import json
+import os
 from pathlib import Path
 import sqlite3
 from threading import Lock
 from uuid import uuid4
 
 
-STORE = Path(__file__).resolve().parents[2] / "data" / "live_reviews.sqlite3"
+#: Accounts, browser sessions and saved projects all live here. The default
+#: is the working copy's own data directory, which is right on a laptop and
+#: wrong in a container, where it lands inside the image and is lost on every
+#: restart -- taking everyone's sign-in and saved projects with it. Set
+#: SLR_LIVE_DB_PATH to somewhere that outlives the process.
+STORE = Path(os.environ.get(
+    "SLR_LIVE_DB_PATH",
+    Path(__file__).resolve().parents[2] / "data" / "live_reviews.sqlite3",
+))
 EMBED_LOCK = Lock()
 
 
