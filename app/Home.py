@@ -14,6 +14,9 @@ Nothing here computes a figure. Every value comes from the API.
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 import httpx
 import streamlit as st
 from api_client import (
@@ -28,10 +31,19 @@ from api_client import (
 )
 from fulltext_view import render_categories
 
-st.set_page_config(page_title="Beyond Retrieval", page_icon="\U0001f4da", layout="wide")
+#: The brand mark, not the book emoji it replaces. Resolved from this file
+#: rather than the working directory, because set_page_config runs at import
+#: and the server is not always started from the repository root.
+_FAVICON = Path(__file__).resolve().parents[1] / "assets" / "branding" / "icon-light.png"
+
+st.set_page_config(
+    page_title="Beyond Retrieval",
+    page_icon=str(_FAVICON) if _FAVICON.exists() else "\U0001f4da",
+    layout="wide",
+)
 from research_style import apply_research_style
 top_bar = apply_research_style()
-from account_view import render_account, render_library, render_welcome
+from account_view import project_note, render_account, render_welcome
 from wording import run_cost_note, screening_message
 # Account first: it restores a sign-in from the browser-session cookie,
 # and the welcome dialog should not greet someone already signed in.
@@ -136,7 +148,19 @@ if not health():
     st.error(f"Can't reach the API at `{API_URL}`. Start it with `uvicorn slr.api.app:app`.")
     st.stop()
 
-render_library()
+# On a public address, searching has to be behind sign-in. Screening is the
+# only thing here that spends money, the keys belong to the server, and a
+# guest can otherwise run it -- which on a shared URL is an open wallet
+# rather than a generous default. Unset, nothing changes: a guest on a
+# laptop can still search, which is what makes the tool demonstrable.
+if os.environ.get("REQUIRE_SIGN_IN", "").strip() and not st.session_state.get("google_account"):
+    st.info(
+        "This deployment is private: sign in with the invited Google account "
+        "to search. The sign-in control is at the top right."
+    )
+    st.stop()
+
+project_note()
 
 # ---------------------------------------------------------------------------
 # Step 1 -- the question

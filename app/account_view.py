@@ -1,7 +1,13 @@
 """Google account controls and the private review library."""
+import base64
+from functools import lru_cache
+from pathlib import Path
+
 import httpx
 import streamlit as st
 from api_client import API_URL, account_request, read_live_session
+
+BRANDING = Path(__file__).resolve().parents[1] / "assets" / "branding"
 
 
 def _google_configured():
@@ -74,32 +80,83 @@ def render_account(slot=None):
     account = st.session_state.get("google_account")
     slot = slot or st.container()
     if not account:
-        if slot.button("Sign in", type="primary"):
+        if slot.button("Sign in", type="primary", use_container_width=True):
             sign_in_dialog()
         return
-    with slot.popover(account["name"], icon=":material/account_circle:", use_container_width=False):
-        st.caption(account["email"])
-        if st.button("Sign out"):
-            try:
-                account_request("POST", "/auth/logout",
-                                json={"session": _cookie("br_session")} if _cookie("br_session") else None)
-            except httpx.HTTPError:
-                pass
-            for key in list(st.session_state):
-                if key not in ("research_theme",):
-                    del st.session_state[key]
-            # Signed out on purpose: don't greet them with the sign-in dialog.
-            st.session_state["welcome_shown"] = True
-            # The cookie is dead server-side now; don't try it again.
-            st.session_state["resume_tried"] = True
-            st.rerun()
+    # The menu opens where the Sign in button was, so the top-right corner
+    # means the same thing before and after signing in.
+    with slot.popover(account.get("name") or account.get("email") or "Account",
+                      icon=":material/account_circle:", use_container_width=True):
+        with st.container(key="br-identity"):
+            _menu_identity(account)
+        # Above the projects panel rather than under it. The panel is taller
+        # than a popover is allowed to be, so anything below it is reachable
+        # only by scrolling -- and on a shorter screen, not obviously
+        # reachable at all. Sign out is not a control to go looking for.
+        if st.button("Sign out", icon=":material/logout:", use_container_width=True):
+            _sign_out()
+        st.divider()
+        render_library()
 
 
-#: The mark, drawn here rather than shipped as an image file: an open page
-#: with a reading line lifted off it, which is the whole claim of the tool —
-#: the sentence is pulled out of the paper and shown to you. Inline SVG so it
-#: stays sharp at any size, needs no asset pipeline, and costs no request.
-LOGO = """
+def _initials(account):
+    """Something to show when there is no picture.
+
+    An account created before the picture was stored has none until its
+    next sign-in, so this is the ordinary case for a while rather than an
+    edge case.
+    """
+    source = (account.get("name") or account.get("email") or "?").strip()
+    parts = [p for p in source.replace(".", " ").split() if p]
+    letters = "".join(p[0] for p in parts[:2]) or source[:1]
+    return letters.upper()
+
+
+def _menu_identity(account):
+    """Who is signed in: picture, name, address."""
+    picture = (account.get("picture") or "").strip()
+    avatar, who = st.columns([0.3, 0.7], vertical_alignment="center")
+    with avatar:
+        if picture.startswith("https://"):
+            # Google's own URL, fetched by the browser when the menu opens.
+            # Nothing of the image is held by this application.
+            st.image(picture, width=56)
+        else:
+            st.markdown(
+                f"<div class='br-avatar'>{_initials(account)}</div>",
+                unsafe_allow_html=True)
+    with who:
+        st.markdown(f"**{account.get('name') or 'Signed in'}**")
+        if account.get("email"):
+            # Not st.caption: markdown turns a bare address into a mailto
+            # link, and a blue underlined email in a menu looks like
+            # something to click when there is nowhere to go.
+            st.markdown(
+                f"<div class='br-account-email'>{account['email']}</div>",
+                unsafe_allow_html=True)
+
+
+def _sign_out():
+    try:
+        account_request("POST", "/auth/logout",
+                        json={"session": _cookie("br_session")} if _cookie("br_session") else None)
+    except httpx.HTTPError:
+        pass
+    for key in list(st.session_state):
+        if key not in ("research_theme", "research_mode"):
+            del st.session_state[key]
+    # Signed out on purpose: don't greet them with the sign-in dialog.
+    st.session_state["welcome_shown"] = True
+    # The cookie is dead server-side now; don't try it again.
+    st.session_state["resume_tried"] = True
+    st.rerun()
+
+
+#: The mark the welcome card drew before there was any brand artwork: an open
+#: page with a reading line lifted off it. Kept as the fallback for a working
+#: copy that has no assets/branding, so the card still has a mark rather than
+#: a gap where one should be.
+FALLBACK_MARK = """
 <svg viewBox="0 0 64 64" width="72" height="72" role="img" aria-label="Beyond Retrieval">
   <rect x="9" y="7" width="34" height="46" rx="3" fill="#ffffff" stroke="#28665f" stroke-width="2.5"/>
   <path d="M17 19h18M17 27h18M17 35h11" stroke="#9fb6ad" stroke-width="2.5" stroke-linecap="round"/>
@@ -108,6 +165,23 @@ LOGO = """
   <circle cx="49.5" cy="37.5" r="2.2" fill="#ffffff"/>
 </svg>
 """
+
+
+@lru_cache(maxsize=4)
+def brand_mark(mode: str) -> str:
+    """The brand mark for one appearance, as an inline data URI.
+
+    The welcome card is assembled as a single HTML string, so the image has
+    to travel inside it -- a src pointing at a path on disk is not something
+    the browser can fetch from here. Cached because the encoding is the same
+    on every rerun and the card is drawn on each one.
+    """
+    path = BRANDING / ("icon-dark.png" if mode == "Dark" else "icon-light.png")
+    if not path.exists():
+        return FALLBACK_MARK
+    data = base64.b64encode(path.read_bytes()).decode("ascii")
+    return (f"<img src='data:image/png;base64,{data}' width='76' height='76' "
+            "alt='Beyond Retrieval'/>")
 
 WELCOME_POINTS = [
     (
@@ -155,7 +229,7 @@ def sign_in_dialog():
         unsafe_allow_html=True,
     )
     st.markdown(
-        f"<div class='br-login'>{LOGO}"
+        f"<div class='br-login'>{brand_mark(st.session_state.get('research_mode', 'Light'))}"
         "<div class='br-tagline'>Find the papers that matter, and check every decision "
         "for yourself.</div></div>",
         unsafe_allow_html=True,
@@ -211,27 +285,32 @@ def activate_project(project):
 def render_library():
     if not st.session_state.get("google_account"):
         return
-    with st.expander("My research projects", expanded=not st.session_state.get("active_project")):
-        try:
-            with st.form("create_project"):
-                name = st.text_input("New project name", max_chars=120, placeholder="e.g. Vitamin D and childhood asthma")
-                create = st.form_submit_button("Create project")
-            if create:
-                if not name.strip():
-                    st.warning("Enter a name for this research project.")
-                else:
-                    project = account_request("POST", "/projects", json={"name": name.strip()})
-                    existing = st.session_state.get("session")
-                    if existing and existing.get("papers") and not st.session_state.get("active_project"):
-                        project = account_request("POST", "/projects/" + project["session_id"] + "/import", json=existing)
-                    activate_project(project)
-                    st.rerun()
-            reviews = account_request("GET", "/discover/sessions")
-            if reviews:
-                selected = st.selectbox("Choose a project", reviews, format_func=lambda r: r.get("name", r["query"]) + " · " + str(r["n_found"]) + " papers")
-                if st.button("Open project"):
-                    activate_project(read_live_session(selected["session_id"]))
-                    st.rerun()
+    st.markdown("**Research projects**")
+    try:
+        with st.form("create_project"):
+            name = st.text_input("New project name", max_chars=120, placeholder="e.g. Vitamin D and childhood asthma")
+            create = st.form_submit_button("Create project")
+        if create:
+            if not name.strip():
+                st.warning("Enter a name for this research project.")
+            else:
+                project = account_request("POST", "/projects", json={"name": name.strip()})
+                existing = st.session_state.get("session")
+                if existing and existing.get("papers") and not st.session_state.get("active_project"):
+                    project = account_request("POST", "/projects/" + project["session_id"] + "/import", json=existing)
+                activate_project(project)
+                st.rerun()
+        reviews = account_request("GET", "/discover/sessions")
+        if reviews:
+            selected = st.selectbox("Choose a project", reviews, format_func=lambda r: r.get("name", r["query"]) + " · " + str(r["n_found"]) + " papers")
+            if st.button("Open project"):
+                activate_project(read_live_session(selected["session_id"]))
+                st.rerun()
+            # Folded away by default. Renaming and removing are rare next to
+            # opening, and laid out flat they pushed Sign out below the
+            # bottom of the menu -- the one control nobody should have to
+            # scroll to find.
+            with st.expander("Rename or remove"):
                 with st.form("rename_project"):
                     new_name = st.text_input("Rename selected project", value=selected.get("name", selected["query"]), max_chars=120)
                     rename = st.form_submit_button("Rename project")
@@ -247,9 +326,19 @@ def render_library():
                         for key in ("active_project", "project_name", "session", "fulltext"):
                             st.session_state.pop(key, None)
                     st.rerun()
-            else:
-                st.caption("Create your first project to start saving research.")
-        except httpx.HTTPError:
-            st.error("Could not update your projects. Check the connection or sign in again.")
+        else:
+            st.caption("Create your first project to start saving research.")
+    except httpx.HTTPError:
+        st.error("Could not update your projects. Check the connection or sign in again.")
+
+
+def project_note():
+    """Which project the page is writing into, said on the page itself.
+
+    Stays out of the account menu on purpose: it answers a question someone
+    has while they work ("where is this being saved?"), and an answer that
+    needs a menu opened to read it is not much of an answer.
+    """
     if st.session_state.get("active_project"):
-        st.caption("Current project: " + st.session_state.get("project_name", "Research") + " · Research results and reviewer decisions save automatically.")
+        st.caption("Current project: " + st.session_state.get("project_name", "Research")
+                   + " · Research results and reviewer decisions save automatically.")

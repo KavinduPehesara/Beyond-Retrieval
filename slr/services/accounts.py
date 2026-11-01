@@ -26,9 +26,22 @@ def allowed_emails() -> set[str]:
 SESSION_SECONDS = 7 * 86400
 
 
+def _add_column(conn, table, column, spec):
+    """Add a column to a table that is already in somebody's database.
+
+    CREATE TABLE IF NOT EXISTS does nothing at all to a table that already
+    exists, so a column added later has to be migrated in separately or
+    every install made before today keeps reading the old shape.
+    """
+    existing = {row[1] for row in conn.execute("PRAGMA table_info(%s)" % table)}
+    if column not in existing:
+        conn.execute("ALTER TABLE %s ADD COLUMN %s %s" % (table, column, spec))
+
+
 def connect():
     conn = live_review._connect()
-    conn.execute("CREATE TABLE IF NOT EXISTS google_accounts (id TEXT PRIMARY KEY, subject TEXT UNIQUE NOT NULL, email TEXT NOT NULL, name TEXT NOT NULL)")
+    conn.execute("CREATE TABLE IF NOT EXISTS google_accounts (id TEXT PRIMARY KEY, subject TEXT UNIQUE NOT NULL, email TEXT NOT NULL, name TEXT NOT NULL, picture TEXT NOT NULL DEFAULT '')")
+    _add_column(conn, "google_accounts", "picture", "TEXT NOT NULL DEFAULT ''")
     conn.execute("CREATE TABLE IF NOT EXISTS account_tokens (digest TEXT PRIMARY KEY, account_id TEXT NOT NULL, expires REAL NOT NULL)")
     conn.execute("CREATE TABLE IF NOT EXISTS oauth_states (digest TEXT PRIMARY KEY, nonce TEXT NOT NULL, verifier TEXT NOT NULL, expires REAL NOT NULL)")
     conn.execute("CREATE TABLE IF NOT EXISTS login_tickets (digest TEXT PRIMARY KEY, binding TEXT NOT NULL, account_id TEXT NOT NULL, expires REAL NOT NULL)")
@@ -62,7 +75,15 @@ def issue_ticket(claims, session=None):
     with connect() as conn:
         row = conn.execute("SELECT id FROM google_accounts WHERE subject=?", (claims["sub"],)).fetchone()
         account_id = row[0] if row else uuid4().hex
-        conn.execute("INSERT INTO google_accounts VALUES (?,?,?,?) ON CONFLICT(subject) DO UPDATE SET email=excluded.email,name=excluded.name", (account_id, claims["sub"], claims["email"], claims.get("name", claims["email"])))
+        # Columns named rather than positional: this table gains one here,
+        # and VALUES (?,?,?,?) would have kept inserting into the old shape.
+        # The picture is Google's own URL, so the browser fetches it from
+        # Google when the menu opens; nothing of the image is stored here.
+        conn.execute(
+            "INSERT INTO google_accounts (id,subject,email,name,picture) VALUES (?,?,?,?,?) "
+            "ON CONFLICT(subject) DO UPDATE SET email=excluded.email,name=excluded.name,picture=excluded.picture",
+            (account_id, claims["sub"], claims["email"],
+             claims.get("name", claims["email"]), claims.get("picture") or ""))
         conn.execute("DELETE FROM login_tickets WHERE expires <= ?", (time.time(),))
         conn.execute("INSERT INTO login_tickets VALUES (?,?,?,?)", (digest(ticket), digest(binding), account_id, time.time()+120))
         if session:
@@ -82,10 +103,10 @@ def exchange_ticket(ticket, binding):
 
 def authenticate(token):
     with connect() as conn:
-        row = conn.execute("SELECT a.id,a.email,a.name FROM account_tokens t JOIN google_accounts a ON a.id=t.account_id WHERE t.digest=? AND t.expires>?", (digest(token), time.time())).fetchone()
+        row = conn.execute("SELECT a.id,a.email,a.name,a.picture FROM account_tokens t JOIN google_accounts a ON a.id=t.account_id WHERE t.digest=? AND t.expires>?", (digest(token), time.time())).fetchone()
     if not row:
         raise ValueError("Your login expired. Please sign in again.")
-    return dict(id=row[0], email=row[1], name=row[2])
+    return dict(id=row[0], email=row[1], name=row[2], picture=row[3] or "")
 
 def logout(token):
     with connect() as conn:

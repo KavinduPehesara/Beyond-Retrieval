@@ -115,3 +115,25 @@ def test_an_ended_browser_session_leaves_a_guest(monkeypatch):
     assert not at.exception
     assert "google_account" not in at.session_state
     assert any(b.label == "Sign in" for b in at.button)
+
+
+def test_the_brand_mark_falls_back_when_the_artwork_is_missing(tmp_path, monkeypatch):
+    """A clone without assets/branding should still draw a welcome card.
+
+    The mark is inlined as a data URI because the card is one HTML string,
+    and reading a file that is not there would otherwise take the page down
+    over a picture.
+    """
+    import account_view
+
+    account_view.brand_mark.cache_clear()
+    monkeypatch.setattr(account_view, "BRANDING", tmp_path / "nothing-here")
+    assert account_view.brand_mark("Light") == account_view.FALLBACK_MARK
+
+    account_view.brand_mark.cache_clear()
+    monkeypatch.undo()
+    monkeypatch.setattr(account_view, "BRANDING",
+                        Path(account_view.__file__).resolve().parents[1] / "assets" / "branding")
+    mark = account_view.brand_mark("Dark")
+    assert mark.startswith("<img src='data:image/png;base64,")
+    account_view.brand_mark.cache_clear()

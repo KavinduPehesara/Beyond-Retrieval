@@ -46,6 +46,10 @@ COPY app ./app
 COPY prompts ./prompts
 COPY configs ./configs
 COPY deploy ./deploy
+# The logo and favicon. The page falls back to a text wordmark without
+# these, so a missing copy here would not crash the container -- it would
+# just quietly ship an unbranded app, which is worse.
+COPY assets ./assets
 
 # The platform runs the container as an unprivileged user, and the model
 # cache and app tree have to stay readable to it.

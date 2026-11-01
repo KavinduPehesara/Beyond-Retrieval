@@ -1,5 +1,19 @@
 """Shared, locally rendered visual identity for the research workspace."""
+from pathlib import Path
+
 import streamlit as st
+
+BRANDING = Path(__file__).resolve().parents[1] / "assets" / "branding"
+
+#: Two files, one per appearance. The source art is dark teal, which is
+#: invisible against the dark palette's #141d20, so the dark variant is
+#: derived from the same artwork by scripts/branding_assets.py rather than
+#: drawn a second time and left to drift.
+LOGO = {"Light": BRANDING / "logo-light.png", "Dark": BRANDING / "logo-dark.png"}
+
+#: Drawn at half the file's pixel width, so it stays sharp on a high-density
+#: display.
+LOGO_WIDTH = 210
 
 
 def apply_research_style():
@@ -11,16 +25,29 @@ def apply_research_style():
     """
     # A permanent session value survives Streamlit's page-widget cleanup.
     mode = st.session_state.get("research_mode", "Light")
-    brand, appearance, account = st.columns([4.6, 1.5, 2.1], vertical_alignment="center")
-    with brand:
-        st.markdown('<div class="research-wordmark">BEYOND RETRIEVAL / RESEARCH WORKSPACE</div>',
-                    unsafe_allow_html=True)
-    with appearance.container(key="br-appearance"):
-        selected = st.radio("Appearance", ("Light", "Dark"),
-                            index=0 if mode == "Light" else 1,
-                            key="research_mode_picker", horizontal=True,
-                            label_visibility="collapsed")
+    brand, account = st.columns([6.1, 2.1], vertical_alignment="center")
+    # Both slots are made here and filled later, in the other order. A
+    # container keeps the place it was created in, so the account control
+    # stays above the appearance switch however they are written into.
+    account_slot = account.container(key="br-account")
+    with account.container(key="br-appearance"):
+        dark = st.toggle("Dark mode", value=mode == "Dark", key="research_mode_toggle")
+    selected = "Dark" if dark else "Light"
     st.session_state["research_mode"] = selected
+    # Filled after the toggle, not before, so the mark matches the mode
+    # chosen on this run rather than the previous one. A column renders
+    # where it sits on the page, not in the order it was written into.
+    with brand.container(key="br-brand"):
+        logo = LOGO[selected]
+        if logo.exists():
+            st.image(str(logo), width=LOGO_WIDTH)
+        else:
+            # st.image raises on a path that is not there, which would take
+            # the whole page down over a missing picture. The wordmark this
+            # replaced is a fine thing to fall back to.
+            st.markdown(
+                '<div class="research-wordmark">BEYOND RETRIEVAL / RESEARCH WORKSPACE</div>',
+                unsafe_allow_html=True)
     css = """
 <style>
 .stApp {
@@ -65,14 +92,35 @@ hr { border-color: #dce2d9 !important; margin: 2rem 0 !important; }
 a { color: #28665f; text-underline-offset: 3px; }
 [data-testid="stSidebarNav"] a[aria-current="page"] { background: #dce6dc; border-radius: 4px; }
 [data-testid="stPopoverBody"] { background: #fff; color: #233331; }
-.research-wordmark { font-size: .72rem; font-weight: 600; letter-spacing: .16em; color: #547569; margin-bottom: .4rem; }
+/* The logo is an <img> in a figure; Streamlit's default spacing around one
+   would push it out of line with the controls beside it. */
+.st-key-br-brand [data-testid="stImage"], .st-key-br-brand figure { margin: 0 !important; }
+.st-key-br-brand img { display: block; }
 @media (max-width: 700px) { .block-container { padding: 2rem 1.2rem; } h1 { font-size: 2.1rem !important; } }
 /* Top bar: switch and account pinned to the right edge of their columns. */
 .st-key-br-account > div, .st-key-br-appearance > div { width: 100% !important; display: flex; justify-content: flex-end; }
 .st-key-br-account .stButton, .st-key-br-account [data-testid="stPopover"] { width: auto !important; }
-.st-key-br-appearance [role="radiogroup"] { justify-content: flex-end; }
+/* The toggle sits under the account control, flush with its right edge.
+   Streamlit's checkbox wrapper fills the column but leaves its label at the
+   left, so the alignment has to happen on the wrapper, not the column. */
+.st-key-br-appearance [data-testid="stCheckbox"] { display: flex; justify-content: flex-end; }
+.st-key-br-appearance [data-testid="stWidgetLabel"] p { font-size: .78rem; color: #547569; margin: 0; }
+.st-key-br-appearance label { gap: .45rem; }
 .st-key-br-account button p { white-space: nowrap; }
-.research-wordmark { margin-bottom: 0; }
+.st-key-br-brand > div { width: 100% !important; }
+/* The account menu holds the whole projects panel, which does not fit in a
+   popover's default width. */
+[data-testid="stPopoverBody"] { min-width: 23rem; max-height: min(80vh, 44rem); padding: 1.1rem !important; }
+/* Initials, for an account signed in before the picture was stored. */
+.br-avatar { width: 56px; height: 56px; border-radius: 50%; background: #28665f; color: #ffffff;
+             display: flex; align-items: center; justify-content: center;
+             font-weight: 600; font-size: 1.1rem; letter-spacing: .02em; }
+/* The popover's contents render in a portal outside .st-key-br-account, so
+   the avatar has to be reached through the popover body, not the column. */
+[data-testid="stPopoverBody"] [data-testid="stImage"] img { border-radius: 50%; }
+.st-key-br-identity { margin-bottom: .7rem; }
+.br-account-email { font-size: .8rem; color: #63716b; word-break: break-all; line-height: 1.3; }
+.research-wordmark { font-size: .72rem; font-weight: 600; letter-spacing: .16em; color: #547569; margin: 0; }
 </style>
 """
     if selected == "Dark":
@@ -91,4 +139,4 @@ a { color: #28665f; text-underline-offset: 3px; }
         for light, dark in palette.items():
             css = css.replace(light, dark)
     st.markdown(css, unsafe_allow_html=True)
-    return account.container(key="br-account")
+    return account_slot
