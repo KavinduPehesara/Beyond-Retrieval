@@ -32,6 +32,7 @@ st.set_page_config(page_title="Beyond Retrieval", page_icon="\U0001f4da", layout
 from research_style import apply_research_style
 top_bar = apply_research_style()
 from account_view import render_account, render_library, render_welcome
+from wording import run_cost_note, screening_message
 # Account first: it restores a sign-in from the browser-session cookie,
 # and the welcome dialog should not greet someone already signed in.
 render_account(top_bar)
@@ -71,30 +72,6 @@ def readability_note(paper: dict) -> str:
     if status == "none":
         return "abstract only"
     return ""
-
-
-def run_cost_note(session: dict) -> str:
-    """What this search cost, and why a repeat costs less.
-
-    An answer already in the cache is not paid for twice, so the figure
-    falls on a second run of the same question. Saying how many calls were
-    served from cache keeps that from looking like a cheaper model.
-    """
-    calls = session.get("model_calls")
-    if not calls:
-        return ""
-    cost = session.get("cost_usd") or 0.0
-    cached = session.get("cached_calls") or 0
-    if cached >= calls:
-        # Every answer was already held. Worth saying outright, or a free
-        # repeat reads as a free model.
-        return f"{calls} model calls, all answered from an earlier run: nothing new was spent."
-    if cost <= 0:
-        return f"{calls} model calls: no cost, the model runs on this machine."
-    priced = calls - cached
-    if cached:
-        return f"{calls} model calls, {cached} from an earlier run: US${cost:.4f} for the other {priced}."
-    return f"{calls} model calls: US${cost:.4f}."
 
 
 def model_timeout_message() -> str:
@@ -221,9 +198,7 @@ if asked:
             "starting": "Starting...",
             "searching": "Searching OpenAlex for papers close to your question...",
             "ranking": "Ranking what came back against your question...",
-            "screening": f"Checking paper {min(done + 1, total)} of {total}..."
-            if done < total
-            else f"Checked all {total} papers; finishing up...",
+            "screening": screening_message(done, total, max(1, len(usable))),
             "checking": "Seeing which of them can be read in full...",
             "done": "Done.",
         }.get(stage, "Working...")
@@ -315,7 +290,7 @@ if answered_by:
     arms = session.get("arms") or []
     if len(arms) > 1:
         notes.append(
-            "Split: " + ", ".join(f"{a['label']} US${a['cost_usd']:.4f}" for a in arms) + "."
+            "Split: " + ", ".join(f"{a['label']} USD {a['cost_usd']:.4f}" for a in arms) + "."
         )
 if any(notes):
     st.caption(" ".join(n for n in notes if n))

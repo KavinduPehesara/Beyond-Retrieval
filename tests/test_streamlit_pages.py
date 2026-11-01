@@ -20,6 +20,7 @@ from streamlit.testing.v1 import AppTest
 
 import account_view
 import api_client
+from wording import screening_message
 
 
 def _paper(work_id, title, *, status="include", verified=True, quote="we studied X in children",
@@ -228,7 +229,7 @@ def test_the_page_says_what_the_search_cost():
                                 "cost_usd": 0.0045, "model_calls": 40, "cached_calls": 17}})
     said = " ".join(c.value for c in priced.caption)
     assert "Screened by Gemini (gemini-3.5-flash-lite)." in said
-    assert "40 model calls, 17 from an earlier run: US$0.0045 for the other 23." in said
+    assert "40 model calls, 17 from an earlier run: USD 0.0045 for the other 23." in said
 
     free = _home({"session": {**SESSION, "answered_by": "Local model", "model": "qwen2.5:7b-instruct",
                               "cost_usd": 0.0, "model_calls": 40, "cached_calls": 0}})
@@ -420,5 +421,32 @@ def test_the_page_splits_the_cost_by_vendor_and_keeps_the_caveat():
         _verdict("Gemini", "gemini-3.5-flash-lite", "include", True, "we studied X in children"),
     ])})
     said = " ".join(c.value for c in at.caption)
-    assert "ChatGPT US$0.0005" in said and "Gemini US$0.0031" in said
+    assert "ChatGPT USD 0.0005" in said and "Gemini USD 0.0031" in said
     assert "consistency, not correctness" in said
+
+
+def test_no_caption_writes_a_bare_dollar_sign():
+    """Streamlit renders a caption as markdown, and markdown reads a pair of
+    dollar signs as inline LaTeX. "US$0.0004 ... US$0.0000" silently became
+    italic maths in a recorded demo, taking the cost figures with it. Costs
+    are written "USD 0.0004" now, which is also how the report writes them.
+    """
+    at = _home({"session": _cross_session("agreed", [
+        _verdict("ChatGPT", "gpt-5-nano", "include", True, "we studied X in children"),
+        _verdict("Gemini", "gemini-3.5-flash-lite", "include", True, "we studied X in children"),
+    ])})
+    for c in at.caption:
+        assert "$" not in c.value, f"a bare $ will render as LaTeX: {c.value!r}"
+
+
+def test_the_progress_bar_counts_papers_not_model_calls():
+    """The service counts model calls as it goes, and with two arms that is
+    two per paper. Printed raw it told someone who asked for ten papers that
+    it was "checking paper 3 of 20".
+    """
+    assert screening_message(0, 20, 2) == "Checking paper 1 of 10..."
+    assert screening_message(4, 20, 2) == "Checking paper 3 of 10..."
+    assert screening_message(19, 20, 2) == "Checking paper 10 of 10..."
+    assert screening_message(20, 20, 2) == "Checked all 10 papers; finishing up..."
+    # One arm is still the honest reading of the same numbers.
+    assert screening_message(6, 10, 1) == "Checking paper 7 of 10..."

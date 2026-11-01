@@ -180,7 +180,8 @@ def sign_in_dialog():
         st.rerun()
     st.caption(
         "Signing in saves your projects and unlocks full-text retrieval. Guests can "
-        "search and see suggestions from abstracts. You choose which AI answers."
+        "search and see suggestions from abstracts. Every question goes to both "
+        "models, and each paper says whether they agreed."
     )
 
 
