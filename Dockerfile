@@ -1,8 +1,11 @@
 # Beyond Retrieval, as one container.
 #
-# Built for a Hugging Face Space (single exposed port, 7860), but there is
-# nothing Space-specific in here: any host that can run a container and give
-# it a writable /data will do.
+# Not platform-specific: any host that can run a container and give it a
+# writable /data will do. Originally built for a Hugging Face Space (single
+# exposed port, 7860); also runs on Google Cloud Run, which assigns its own
+# port via $PORT per revision instead. deploy/start.sh templates whichever
+# port is given into nginx at boot, so this one image serves both without a
+# rebuild -- see deploy/nginx.conf's own note on the same point.
 #
 # SPECTER2's weights are baked in rather than fetched at boot. They are about
 # 440 MB, and downloading them on first request would put that on top of the
@@ -65,6 +68,9 @@ ENV SLR_PROMPTS_DIR=/app/prompts \
     SLR_API_URL=http://127.0.0.1:8000 \
     BUDGET_CEILING_USD=0.50
 
+# Documentation only -- EXPOSE does not bind a port, and Cloud Run ignores
+# it in favour of $PORT. Still 7860 so a plain `docker run -p 7860:7860`
+# and a Hugging Face Space both work with no extra flags.
 EXPOSE 7860
 
 CMD ["./deploy/start.sh"]

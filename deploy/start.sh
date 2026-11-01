@@ -13,9 +13,19 @@ set -euo pipefail
 : "${SLR_LIVE_DB_PATH:=/data/live_reviews.sqlite3}"
 : "${SLR_RUNS_DIR:=/data/runs}"
 : "${SLR_API_URL:=http://127.0.0.1:8000}"
+# Hugging Face Spaces and a plain `docker run` both expect 7860; Cloud Run
+# assigns its own port per revision via $PORT (usually 8080, never assumed).
+# Whichever it is, nginx is the only process that needs to know -- the API
+# and Streamlit always talk to each other over fixed internal ports.
+: "${PORT:=7860}"
 export SLR_DB_PATH SLR_LIVE_DB_PATH SLR_RUNS_DIR SLR_API_URL
 
 mkdir -p "$(dirname "$SLR_DB_PATH")" "$(dirname "$SLR_LIVE_DB_PATH")" "$SLR_RUNS_DIR" /tmp/nginx-body
+
+# The container's own filesystem is read-only for this user outside /tmp and
+# /data (see the Dockerfile's chmod step), so the templated config is written
+# there rather than back over deploy/nginx.conf.
+sed "s/__PORT__/${PORT}/" /app/deploy/nginx.conf > /tmp/nginx.conf
 
 if [ -z "${GOOGLE_REDIRECT_URI:-}" ]; then
   echo "WARNING: GOOGLE_REDIRECT_URI is unset, so sign-in will fail." >&2
@@ -38,7 +48,7 @@ streamlit run app/Home.py \
   --browser.gatherUsageStats false &
 page=$!
 
-nginx -c /app/deploy/nginx.conf -g 'daemon off;' &
+nginx -c /tmp/nginx.conf -g 'daemon off;' &
 proxy=$!
 
 # Whichever goes first ends the container.
