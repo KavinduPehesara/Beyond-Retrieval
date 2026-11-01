@@ -2,7 +2,7 @@
 
 **MSE907 Assessment 3** · Kavindu Pehesara Gunawardena · 270684416 · supervisor Dr Helena Bahrami
 
-14 slides. Planned runtime **15:01**: about 1858 spoken words at 140 words per minute, plus a 1:45 demo recording on slide 7. Text in square brackets is a cue, not something you say. The same script is in the speaker notes of the .pptx, so presenter view shows it slide by slide.
+14 slides. Planned runtime **14:59**: about 2087 spoken words at 140 words per minute, plus a 1:45 demo recording on slide 7. Text in square brackets is a cue, not something you say. The same script is in the speaker notes of the .pptx, so presenter view shows it slide by slide.
 
 If you run long, the first things to drop are the bracketed aside on slide 5 and the licensing sentence on slide 11. Slide 7 is your checkpoint: you should be starting the video at about 5:15.
 
@@ -16,14 +16,14 @@ If you run long, the first things to drop are the bracketed aside on slide 5 and
 | 4 | Three gaps, and what happened to each | 2:12 | 3:01 | 113 |
 | 5 | What was built, and what it has to answer | 3:01 | 4:17 | 178 |
 | 6 | Software engineering principles, enforced in code | 4:17 | 5:15 | 136 |
-| 7 | The tool, end to end | 5:15 | 7:19 | 44 |
-| 8 | Screening, per review — never pooled | 7:19 | 8:12 | 123 |
-| 9 | What the verifier buys, and why it fails | 8:12 | 9:03 | 119 |
-| 10 | Three models, the same 418 records | 9:03 | 9:58 | 128 |
-| 11 | Ethical and legal ground | 9:58 | 10:57 | 138 |
-| 12 | Automation bias, and why a decision is withheld | 10:57 | 11:50 | 125 |
-| 13 | Bias and culture — one measured, one in the data | 11:50 | 13:39 | 254 |
-| 14 | A decision you can check | 13:39 | 15:01 | 190 |
+| 7 | The tool, end to end | 5:15 | 7:17 | 273 |
+| 8 | Screening, per review — never pooled | 7:17 | 8:10 | 123 |
+| 9 | What the verifier buys, and why it fails | 8:10 | 9:01 | 119 |
+| 10 | Three models, the same 418 records | 9:01 | 9:56 | 128 |
+| 11 | Ethical and legal ground | 9:56 | 10:55 | 138 |
+| 12 | Automation bias, and why a decision is withheld | 10:55 | 11:48 | 125 |
+| 13 | Bias and culture — one measured, one in the data | 11:48 | 13:37 | 254 |
+| 14 | A decision you can check | 13:37 | 14:59 | 190 |
 
 ---
 
@@ -95,35 +95,39 @@ Interface segregation: one provider protocol, four implementations — which is 
 
 Fail fast. The budget ceiling aborts a run rather than warning me afterwards; a stale cache entry raises rather than serving.
 
-Tests as design decisions: five hundred and seventy-two. A subset tests commitments — that ground truth can never reach a prompt — and the mock provider lies twenty per cent of the time on purpose, so the failure path runs on every pass.
+Tests as design decisions: five hundred and seventy-four. A subset tests commitments — that ground truth can never reach a prompt — and the mock provider lies twenty per cent of the time on purpose, so the failure path runs on every pass.
 
 And reproducibility: the metrics file is a pure function of configuration and corpus, which makes it testable rather than claimed.
 
 ## Slide 7 — The tool, end to end
 
-[5:15 — 7:19]  DEMO VIDEO, 1:45. Say the lead-in, start the video, stay quiet, then say the closing line.
+[5:15 — 7:17]  DEMO VIDEO, 1:45, on the slide. Say the lead-in, start it, stay quiet, then say the closing line.
 
-LEAD-IN: "Rather than describe the tool, let me show you two minutes of it."
+LEAD-IN: "Rather than describe the tool, here is a minute and three quarters of it."
 
-CLOSING LINE: "All of that runs over ChatGPT or Gemini — your choice at the top of the page — and the tool tells you what a run will cost before it starts."
+CLOSING LINE: "Both models saw every question, and each paper says whether they agreed — one of those ten did not. It cost under half a cent."
 
---- Recording shot list (record to these beats, 1:45 total) ---
+--- What the recording shows, in order ---
 
-Beat 1 (0:00-0:20) — Type a plain research question. The system turns it into the inclusion rule the screening prompt will use, and shows that rule before it runs.
+If asked about the speed-up: the screening stretch is the only edit, it is labelled on screen while it runs, and it took sixty-five seconds in real time.
 
-Beat 2 (0:20-0:55) — Ranked papers come back, each card carrying the sentence the judgement rests on. A paper whose quote could not be found verbatim is shown as a referral, not a decision. Each card also says whether the full text can be read, and where.
+0:00-0:12  The welcome card: search real literature, every answer carries its sentence, you choose what to read.
 
-Beat 3 (0:55-1:20) — The gap signal: where authors state a gap in their own abstract, their words are quoted back.
+0:12-0:25  A plain research question is typed. The caption underneath names both models before anything runs, and the slider asks for ten papers.
 
-Beat 4 (1:20-1:45) — Choose papers to read in full. Structured full text from Europe PMC, gaps quoted from the body and placed in their section, categorised fields and the publisher's own tables.
+0:25-1:02  The run: OpenAlex search, SPECTER2 ranking, then screening — and the bar counts papers, not model calls. This stretch is sped up and labelled on screen; it took sixty-five seconds in real time.
 
-Beat 5 (1:45-2:00) — Export: summary, structured data, CSV tables and figures in one archive.
+1:02-1:20  What came back: fifty candidates ranked, ten suggested, nine addressing the question, three stating a gap, and one where the two models disagreed. The cost line splits the spend by vendor, and the caveat underneath says agreement measures consistency, not correctness.
 
-Before recording: close the .env file, the terminal and the editor; sign in beforehand so no credentials appear on screen.
+1:20-1:45  The gap signal: where authors state a gap in their own abstract, their words are quoted back, closest to the question first, each one found verbatim in that paper’s abstract.
+
+NOT IN THE VIDEO: full-text retrieval and export sit behind sign-in, so they are not in this cut. If asked, they are section 11.7 of the report and the right-hand side of the process figure. Offer to show them live.
+
+The recording is driven by scratchpad/demo_drive.py against the running app with both vendors live. It is not a mock-up.
 
 ## Slide 8 — Screening, per review — never pooled
 
-[7:19 — 8:12]
+[7:17 — 8:10]
 
 Here is the screening result, and why it is not one number.
 
@@ -135,7 +139,7 @@ Recall, where computed, is above point nine on two reviews and point three two o
 
 ## Slide 9 — What the verifier buys, and why it fails
 
-[8:12 — 9:03]
+[8:10 — 9:01]
 
 Two results about the verifier, and the first is uncomfortable.
 
@@ -147,7 +151,7 @@ That is not a deceptive model — it is a measure of my prompt quality, which is
 
 ## Slide 10 — Three models, the same 418 records
 
-[9:03 — 9:58]
+[9:01 — 9:56]
 
 This is the result my Assessment Two report had to call designed but unexecuted. It ran this week.
 
@@ -159,7 +163,7 @@ The union of all three gives a hundred and forty-five instead of seventy-four. T
 
 ## Slide 11 — Ethical and legal ground
 
-[9:58 — 10:57]
+[9:56 — 10:55]
 
 Ethics is the part of this project I found hardest to be honest about. Four things.
 
@@ -173,7 +177,7 @@ And the one I would rather not have on a slide. The ethics application for the u
 
 ## Slide 12 — Automation bias, and why a decision is withheld
 
-[10:57 — 11:50]
+[10:55 — 11:48]
 
 This is the measurement I would keep if I could keep only one.
 
@@ -185,7 +189,7 @@ The design does the opposite: no confidence number is ever shown, and a decision
 
 ## Slide 13 — Bias and culture — one measured, one in the data
 
-[11:50 — 13:39]
+[11:48 — 13:37]
 
 Three biases sit inside this system. I can quantify one, and I will not pretend I can quantify the other two.
 
@@ -201,7 +205,7 @@ So if a software engineering researcher runs this and it reports no gaps found, 
 
 ## Slide 14 — A decision you can check
 
-[13:39 — 15:01]
+[13:37 — 14:59]
 
 Four things are still open, and I would rather say them than have them found.
 

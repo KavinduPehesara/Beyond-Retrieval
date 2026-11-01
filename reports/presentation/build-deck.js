@@ -6,7 +6,43 @@
  */
 
 const path = require("path");
+const { execFileSync } = require("child_process");
 const pptxgen = require("pptxgenjs");
+
+const ROOT = path.join(__dirname, "..", "..");
+
+/**
+ * How many tests there are, counted rather than remembered.
+ *
+ * Five hand-typed numbers in this project had already drifted by the time
+ * anyone checked them. A slide that states a test count is making a claim
+ * about the test suite, so it asks the test suite. Parametrised cases mean
+ * grepping for "def test_" undercounts by sixty, which is why this collects.
+ */
+function testCount() {
+  const out = execFileSync(
+    path.join(ROOT, ".venv", "Scripts", "python.exe"),
+    ["-m", "pytest", "--collect-only", "-q"],
+    { cwd: ROOT, encoding: "utf8" }
+  );
+  const m = out.match(/(\d+)\s+tests collected/);
+  if (!m) throw new Error("could not read a test count out of pytest");
+  return Number(m[1]);
+}
+
+/** Spoken form, for the speaker notes, which are read aloud. */
+function spell(n) {
+  const ones = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+    "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen",
+    "eighteen", "nineteen"];
+  const tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+  const under100 = (x) => x < 20 ? ones[x] : tens[Math.floor(x / 10)] + (x % 10 ? "-" + ones[x % 10] : "");
+  if (n < 100) return under100(n);
+  const rest = n % 100;
+  return ones[Math.floor(n / 100)] + " hundred" + (rest ? " and " + under100(rest) : "");
+}
+
+const TESTS = testCount();
 
 const SKILL = process.env.SKILL;
 const FIGS = process.env.FIGS;
@@ -329,7 +365,7 @@ s.addText(
   ],
   { x: 0.92, y: 4.75, w: 7.6, h: 1.5, fontSize: 13, color: C.background2, isTextBox: true, margin: 0, lineSpacingMultiple: 1.25 }
 );
-s.addText("12,598 records  ·  6 systematic reviews  ·  101 run directories  ·  572 tests", {
+s.addText(`12,598 records  ·  6 systematic reviews  ·  101 run directories  ·  ${TESTS} tests`, {
   x: 0.92, y: 6.3, w: 11.5, h: 0.4, fontSize: 13, italic: true, color: C.accent6, isTextBox: true, margin: 0,
 });
 s.addNotes(
@@ -559,7 +595,7 @@ const principles = [
   {
     x: 0.6, y: 3.82, w: 6.06, h: 2.3,
     head: "Tests as executable design decisions",
-    text: "572 tests. Some guard behaviour; a subset guards commitments — that ground truth can never reach a prompt, that ad-hoc records cannot enter the evaluation corpus, that three models screening one record produce three distinct cache entries. The mock provider lies 20% of the time on purpose, so the verification-failure path is exercised on every run.",
+    text: `${TESTS} tests. Some guard behaviour; a subset guards commitments — that ground truth can never reach a prompt, that ad-hoc records cannot enter the evaluation corpus, that three models screening one record produce three distinct cache entries. The mock provider lies 20% of the time on purpose, so the verification-failure path is exercised on every run.`,
   },
   {
     x: 6.88, y: 3.82, w: 5.82, h: 2.3,
@@ -581,7 +617,7 @@ s.addNotes(
   "Separation of concerns. The proof is not the diagram — it is that I replaced six panels with one page, modified no service, and no measured figure moved.\n\n" +
   "Interface segregation: one provider protocol, four implementations — which is why adding a third vendor was a single class.\n\n" +
   "Fail fast. The budget ceiling aborts a run rather than warning me afterwards; a stale cache entry raises rather than serving.\n\n" +
-  "Tests as design decisions: five hundred and seventy-two. A subset tests commitments — that ground truth can never reach a prompt — and the mock provider lies twenty per cent of the time on purpose, so the failure path runs on every pass.\n\n" +
+  `Tests as design decisions: ${spell(TESTS)}. A subset tests commitments — that ground truth can never reach a prompt — and the mock provider lies twenty per cent of the time on purpose, so the failure path runs on every pass.\n\n` +
   "And reproducibility: the metrics file is a pure function of configuration and corpus, which makes it testable rather than claimed."
 );
 
@@ -592,32 +628,34 @@ pres.addSection({ title: "Demonstration" });
 s = pres.addSlide({ masterName: "SECTION_DARK", sectionTitle: "Demonstration" });
 s.addText("The tool, end to end", { placeholder: "title" });
 
-s.addShape(pres.ShapeType.roundRect, {
-  x: 2.38, y: 1.5, w: 8.55, h: 4.81, rectRadius: 0.05,
-  fill: { color: C.accent5 }, line: { color: C.accent2, width: 1.5, dashType: "dash" },
-  objectName: "videoFrame",
+// 8.55 x 4.81 inches is 16:9, which is the shape the recording is made at
+// (1280x720). Giving addMedia a box of any other ratio would letterbox it.
+// The poster frame has to arrive as a data URI; a path is rejected, and
+// without one PowerPoint shows a black rectangle until the video plays.
+const poster = "data:image/png;base64," +
+  require("fs").readFileSync(path.join(__dirname, "demo-poster.png")).toString("base64");
+
+s.addMedia({
+  type: "video", path: path.join(__dirname, "demo.mp4"), cover: poster,
+  x: 2.38, y: 1.5, w: 8.55, h: 4.81, objectName: "demoVideo",
 });
-s.addText("Demo recording goes here", {
-  x: 2.38, y: 3.55, w: 8.55, h: 0.5, fontSize: 18, bold: true, color: C.accent2, align: "center", isTextBox: true, margin: 0,
-});
-s.addText("Insert > Video > This Device, then set it to start automatically and play full screen", {
-  x: 2.38, y: 4.05, w: 8.55, h: 0.4, fontSize: 12, italic: true, color: C.accent4, align: "center", isTextBox: true, margin: 0,
-});
-s.addText("Question in  →  gap signal  →  ranked and screened papers, each with its quote  →  full text of the papers you choose  →  export", {
+s.addText("Question in  →  ranked and screened papers, each with its quote  →  the gap signal, in the authors’ own words", {
   x: 1.0, y: 6.45, w: 11.3, h: 0.4, fontSize: 13, color: C.background2, align: "center", isTextBox: true, margin: 0,
 });
 
 s.addNotes(
-  "[5:15 — 7:19]  DEMO VIDEO, 1:45. Say the lead-in, start the video, stay quiet, then say the closing line.\n\n" +
-  "LEAD-IN: \"Rather than describe the tool, let me show you two minutes of it.\"\n\n" +
-  "CLOSING LINE: \"All of that runs over ChatGPT or Gemini — your choice at the top of the page — and the tool tells you what a run will cost before it starts.\"\n\n" +
-  "--- Recording shot list (record to these beats, 1:45 total) ---\n\n" +
-  "Beat 1 (0:00-0:20) — Type a plain research question. The system turns it into the inclusion rule the screening prompt will use, and shows that rule before it runs.\n\n" +
-  "Beat 2 (0:20-0:55) — Ranked papers come back, each card carrying the sentence the judgement rests on. A paper whose quote could not be found verbatim is shown as a referral, not a decision. Each card also says whether the full text can be read, and where.\n\n" +
-  "Beat 3 (0:55-1:20) — The gap signal: where authors state a gap in their own abstract, their words are quoted back.\n\n" +
-  "Beat 4 (1:20-1:45) — Choose papers to read in full. Structured full text from Europe PMC, gaps quoted from the body and placed in their section, categorised fields and the publisher's own tables.\n\n" +
-  "Beat 5 (1:45-2:00) — Export: summary, structured data, CSV tables and figures in one archive.\n\n" +
-  "Before recording: close the .env file, the terminal and the editor; sign in beforehand so no credentials appear on screen."
+  "[5:15 — 7:17]  DEMO VIDEO, 1:45, on the slide. Say the lead-in, start it, stay quiet, then say the closing line.\n\n" +
+  "LEAD-IN: \"Rather than describe the tool, here is a minute and three quarters of it.\"\n\n" +
+  "CLOSING LINE: \"Both models saw every question, and each paper says whether they agreed \u2014 one of those ten did not. It cost under half a cent.\"\n\n" +
+  "--- What the recording shows, in order ---\n\n" +
+  "If asked about the speed-up: the screening stretch is the only edit, it is labelled on screen while it runs, and it took sixty-five seconds in real time.\n\n" +
+  "0:00-0:12  The welcome card: search real literature, every answer carries its sentence, you choose what to read.\n\n" +
+  "0:12-0:25  A plain research question is typed. The caption underneath names both models before anything runs, and the slider asks for ten papers.\n\n" +
+  "0:25-1:02  The run: OpenAlex search, SPECTER2 ranking, then screening \u2014 and the bar counts papers, not model calls. This stretch is sped up and labelled on screen; it took sixty-five seconds in real time.\n\n" +
+  "1:02-1:20  What came back: fifty candidates ranked, ten suggested, nine addressing the question, three stating a gap, and one where the two models disagreed. The cost line splits the spend by vendor, and the caveat underneath says agreement measures consistency, not correctness.\n\n" +
+  "1:20-1:45  The gap signal: where authors state a gap in their own abstract, their words are quoted back, closest to the question first, each one found verbatim in that paper\u2019s abstract.\n\n" +
+  "NOT IN THE VIDEO: full-text retrieval and export sit behind sign-in, so they are not in this cut. If asked, they are section 11.7 of the report and the right-hand side of the process figure. Offer to show them live.\n\n" +
+  "The recording is driven by scratchpad/demo_drive.py against the running app with both vendors live. It is not a mock-up."
 );
 
 /* ======================================================= 9. screening results */
@@ -666,7 +704,7 @@ s.addText(
 );
 
 s.addNotes(
-  "[7:19 — 8:12]\n\n" +
+  "[7:17 — 8:10]\n\n" +
   "Here is the screening result, and why it is not one number.\n\n" +
   "The bars are the verification rate — the share of decisions whose supporting quote was actually found, word for word, in the record. The reviews are ordered by prevalence, and the rate plainly does not follow it.\n\n" +
   "This is the column almost nobody reports, and I think it is the most important one, because a decision whose quote cannot be found is not a wrong prediction. It is a referral back to the human.\n\n" +
@@ -722,7 +760,7 @@ s.addChart(
 );
 
 s.addNotes(
-  "[8:12 — 9:03]\n\n" +
+  "[8:10 — 9:01]\n\n" +
   "Two results about the verifier, and the first is uncomfortable.\n\n" +
   "I replayed all twelve and a half thousand decisions with the gate switched off. Recall goes up on every single review — so the verifier costs me recall. What it buys is volume: thirteen records to read instead of four hundred and fifty-one. That is a trade, and I present it as one.\n\n" +
   "The second result changed how I describe this project. Of five thousand nine hundred verification failures, twelve were genuine fabrications. Ninety-eight per cent were the model echoing my own eligibility criteria back at me.\n\n" +
@@ -777,7 +815,7 @@ s.addText(
 );
 
 s.addNotes(
-  "[9:03 — 9:58]\n\n" +
+  "[9:01 — 9:56]\n\n" +
   "This is the result my Assessment Two report had to call designed but unexecuted. It ran this week.\n\n" +
   "The same four hundred and eighteen records, the same prompt, the same gate, three models. The local model flags seventy-four. Gemini flags a hundred and twenty-five — sixty-nine per cent more. ChatGPT flags ninety, for two cents.\n\n" +
   "Agreement runs from point five eight to point nine two across the reviews — the same shape as the BM25 finding. Pooled, it would be dominated by whichever review was easiest. So it is not pooled.\n\n" +
@@ -822,7 +860,7 @@ eth.forEach((e, i) => {
 });
 
 s.addNotes(
-  "[9:58 — 10:57]\n\n" +
+  "[9:56 — 10:55]\n\n" +
   "Ethics is the part of this project I found hardest to be honest about. Four things.\n\n" +
   "Data minimisation: sign-in is identity scope only. No password or token is stored, and a test asserts that one account cannot read another's projects.\n\n" +
   "A residual risk I name rather than hide: the one-time sign-in ticket travels as a URL parameter. Single use and browser-bound — but it still lands in browser history.\n\n" +
@@ -854,7 +892,7 @@ stat(s, { x: 8.4, y: 4.45, w: 1.9, value: "69.2%", fontSize: 30, h: 0.5, label: 
 stat(s, { x: 10.6, y: 4.45, w: 2.1, value: "13 / 13", fontSize: 30, h: 0.5, label: "of those overrides matched the recorded ground truth" });
 
 s.addNotes(
-  "[10:57 — 11:50]\n\n" +
+  "[10:55 — 11:48]\n\n" +
   "This is the measurement I would keep if I could keep only one.\n\n" +
   "Automation bias is the risk that a researcher stops checking because the tool sounds sure. So I measured how sure it sounds. Across twenty-three thousand decisions, mean confidence when the quote was genuinely found was point eight one three. When no quote could be found at all, point seven nine eight.\n\n" +
   "Fifteen thousandths apart. No threshold separates them. So a confidence score here would not be a safeguard — it would look like one, which is worse.\n\n" +
@@ -928,7 +966,7 @@ body(s, [
 ], { x: 6.5, y: 5.0, w: 6.2, h: 1.1, fontSize: 11.5 });
 
 s.addNotes(
-  "[11:50 — 13:39]\n\n" +
+  "[11:48 — 13:37]\n\n" +
   "Three biases sit inside this system. I can quantify one, and I will not pretend I can quantify the other two.\n\n" +
   "The first is disciplinary, and it is mine. Four extraction fields come straight from clinical trial reporting conventions. Over the software engineering review, sample size verifies on under eight per cent of records. A tool presenting those fields as universal would under-serve everyone outside medicine invisibly, by returning blanks.\n\n" +
   "The second is language: English only. A limitation of the evaluation, not a design choice.\n\n" +
@@ -967,7 +1005,7 @@ body(s, [
   { text: "And ASReview still beats every retrieval strategy here, because it retrains on true labels as the reviewer works — the case for adaptive re-ranking.", options: { italic: true } },
 ], { x: 1.2, y: 5.38, w: 10.9, h: 0.65, fontSize: 11.5, color: C.background2 });
 
-s.addText("github.com/KavinduPehesara/Beyond-Retrieval  ·  open licence  ·  101 run directories  ·  572 tests", {
+s.addText(`github.com/KavinduPehesara/Beyond-Retrieval  ·  open licence  ·  101 run directories  ·  ${TESTS} tests`, {
   x: 0.9, y: 6.2, w: 11.5, h: 0.35, fontSize: 12, italic: true, color: C.accent2, isTextBox: true, margin: 0,
 });
 s.addText("Thank you — questions welcome", {
@@ -975,7 +1013,7 @@ s.addText("Thank you — questions welcome", {
 });
 
 s.addNotes(
-  "[13:39 — 15:01]\n\n" +
+  "[13:37 — 14:59]\n\n" +
   "Four things are still open, and I would rather say them than have them found.\n\n" +
   "The usability exit test needs ethics approval and a participant. Until then the usability claim is withdrawn — not softened, withdrawn. The five thousand nine hundred failure classifications are automatic, and need a manual pass before I call them measured. Full-text extraction stays a demonstration. And the gap recall range supports a direction, not a number.\n\n" +
   "And the comparison that does not flatter me: ASReview beats every retrieval strategy I built, because it retrains on true labels as the reviewer works and mine rank once. That points straight at adaptive re-ranking, and it belongs in the report precisely because it is uncomfortable.\n\n" +
