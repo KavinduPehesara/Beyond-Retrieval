@@ -21,14 +21,18 @@
 # Checked by parsing every module reachable from the API and the page and
 # listing what it imports: fourteen third-party names, all of them below.
 #
-# Two entries are here despite not appearing in that list. uvicorn is run as
-# a command rather than imported, and pyyaml is kept because configs/ ships
-# in the image and a dynamic load that the parse missed would take the
-# server down for the sake of two hundred kilobytes.
+# uvicorn is the one entry here that does not appear in that list: it is run
+# as a command rather than imported.
+#
+# pyyaml was here too, as insurance against a dynamic import the parse might
+# have missed. It is gone, because it was the one pin in this file with no
+# Linux wheel for Python 3.13 -- only 6.0.3 has one -- and python:3.13-slim
+# has no compiler, so pip would have tried to build it from source and
+# failed the whole image. Nothing on the serving path imports yaml, and if
+# some dependency ever does, pip will resolve a version that builds.
 
 # --- core ---
 pydantic==2.9.2
-pyyaml==6.0.2
 python-dotenv==1.0.1
 httpx==0.27.2
 tenacity==9.0.0

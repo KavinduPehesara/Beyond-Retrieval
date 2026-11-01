@@ -50,16 +50,9 @@ set it to your own address and nothing else.
 1. Create a Space: SDK **Docker**, visibility **Private**.
 2. Push this repository to it (`git remote add space …` then `git push space main`).
    The Space builds the `Dockerfile` at the repository root.
-3. Add the Space's `README.md` frontmatter so it knows the port:
-
-   ```yaml
-   ---
-   title: Beyond Retrieval
-   sdk: docker
-   app_port: 7860
-   pinned: false
-   ---
-   ```
+3. Nothing to add: the repository's own `README.md` already carries the
+   frontmatter a Space reads (`sdk: docker`, `app_port: 7860`), so the Space
+   is configured by the push itself.
 
 4. Set these under **Settings → Variables and secrets**:
 
@@ -74,6 +67,21 @@ set it to your own address and nothing else.
    | `ALLOWED_EMAILS` | variable | your own address |
    | `OPENALEX_MAILTO` | variable | your address — OpenAlex asks callers to identify themselves |
    | `BUDGET_CEILING_USD` | variable | `0.50` (the image default) |
+
+## What has been checked, and what has not
+
+The image has never been built: there is no Docker on the machine this was
+written on, so the Space's build will be the first. What *was* checked is
+the part that usually breaks a first build — every pin in
+`requirements-serve.txt` was resolved against `manylinux_2_28_x86_64` for
+Python 3.13, including the CPU-only `torch==2.14.0` wheel and the yanked
+`google-genai==0.3.0`. All of them have Linux wheels, which matters because
+`python:3.13-slim` has no compiler: anything without one would have been
+built from source and failed.
+
+That check found one real problem. `pyyaml==6.0.2` has no Linux wheel for
+Python 3.13 at all, and would have failed the build; it was in this file as
+insurance rather than because anything imports it, so it is gone.
 
 ## The two things this setup does not solve
 
