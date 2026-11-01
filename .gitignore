@@ -110,3 +110,7 @@ notebooks/scratch/
 # Raw Playwright takes kept only so the demo can be re-encoded without
 # re-running a live take against both vendors. The .mp4 is the deliverable.
 *.raw.webm
+
+# Office lock files. PowerPoint and Word drop these beside an open
+# document and remove them on close; they are never worth committing.
+~$*

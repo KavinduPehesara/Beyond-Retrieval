@@ -2,7 +2,7 @@
 
 **MSE907 Assessment 3** · Kavindu Pehesara Gunawardena · 270684416 · supervisor Dr Helena Bahrami
 
-14 slides. Planned runtime **14:58**: about 2172 spoken words at 140 words per minute, plus a 1:45 demo recording on slide 7. Text in square brackets is a cue, not something you say. The same script is in the speaker notes of the .pptx, so presenter view shows it slide by slide.
+14 slides. Planned runtime **14:58**: about 2196 spoken words at 140 words per minute, plus a 1:45 demo recording on slide 7. Text in square brackets is a cue, not something you say. The same script is in the speaker notes of the .pptx, so presenter view shows it slide by slide.
 
 If you run long, the first things to drop are the bracketed aside on slide 5 and the licensing sentence on slide 11. Slide 7 is your checkpoint: you should be starting the video at about 5:15.
 
@@ -16,7 +16,7 @@ If you run long, the first things to drop are the bracketed aside on slide 5 and
 | 4 | Three gaps, and what happened to each | 2:12 | 3:01 | 113 |
 | 5 | What was built, and what it has to answer | 3:01 | 4:17 | 178 |
 | 6 | Software engineering principles, enforced in code | 4:17 | 5:15 | 136 |
-| 7 | The tool, end to end | 5:15 | 7:17 | 358 |
+| 7 | The tool, end to end | 5:15 | 7:17 | 382 |
 | 8 | Screening, per review — never pooled | 7:17 | 8:09 | 123 |
 | 9 | What the verifier buys, and why it fails | 8:09 | 9:00 | 119 |
 | 10 | Three models, the same 418 records | 9:00 | 9:55 | 128 |
@@ -95,7 +95,7 @@ Interface segregation: one provider protocol, four implementations — which is 
 
 Fail fast. The budget ceiling aborts a run rather than warning me afterwards; a stale cache entry raises rather than serving.
 
-Tests as design decisions: five hundred and seventy-six. A subset tests commitments — that ground truth can never reach a prompt — and the mock provider lies twenty per cent of the time on purpose, so the failure path runs on every pass.
+Tests as design decisions: five hundred and seventy-seven. A subset tests commitments — that ground truth can never reach a prompt — and the mock provider lies twenty per cent of the time on purpose, so the failure path runs on every pass.
 
 And reproducibility: the metrics file is a pure function of configuration and corpus, which makes it testable rather than claimed.
 
@@ -109,23 +109,23 @@ CLOSING LINE: "Both models saw all ten, and the page says where they disagreed �
 
 --- What the recording shows, in order ---
 
-0:00-0:10  Signed in, a project created. Work is saved per account, which is also what full-text retrieval is gated on.
+0:00-0:10  The account menu is opened and a project created in it. Work is saved per account, which is also what full-text retrieval is gated on.
 
 0:10-0:25  A plain research question is typed. The caption underneath names both models before anything runs, and the slider asks for ten papers.
 
-0:25-0:40  Screening. The bar counts papers, not model calls. Sped up and labelled on screen; twenty-three seconds in real time, and short here because the answers were already cached.
+0:25-0:40  Screening. The bar counts papers, not model calls. Sped up and labelled on screen; fifty-seven seconds in real time, most of which is the ranking model loading on the first search after a restart.
 
 0:40-0:55  Fifty candidates ranked, ten suggested, seven addressing the question, five stating a gap, two where the models disagreed. The cost line splits by vendor, and the caveat says agreement measures consistency, not correctness.
 
 0:55-1:05  The gap signal: where authors state a gap in their own abstract, their words are quoted back, closest to the question first.
 
-1:05-1:30  Two papers are picked and read in full. Europe PMC holds one of the two, and the page says so rather than hiding the miss: five of five fields verified, five tables, three figures, and the paper truncated at 82% with the percentage stated. Sped up and labelled; fifty-seven seconds in real time.
+1:05-1:30  Two papers are picked and read in full. Europe PMC holds one of the two, and the page says so rather than hiding the miss: five of five fields verified, five tables, three figures, and the paper truncated at 82% with the percentage stated. Sped up and labelled; seventy-two seconds in real time.
 
 1:30-1:45  Export: one folder per paper with the PDF, categorised data, tables as CSV and figures. 2.4 MB in this run.
 
 --- If asked ---
 
-The speed-up: the two model waits are the only edits, each labelled on screen while it runs. Nothing else is cut, and the clip is otherwise real time.
+The speed-up: the three waits the tool really takes — screening, reading full text, packaging the export — are the only edits, each labelled on screen while it runs. Nothing else is cut, and the clip is otherwise real time.
 
 The zero cost: that question had been asked before, so every answer came from the cache and the page says so outright. A priced run of the same size came to USD 0.0044, split USD 0.0006 ChatGPT and USD 0.0037 Gemini.
 
