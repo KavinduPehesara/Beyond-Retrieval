@@ -1,3 +1,9 @@
+[client]
+# Hides the hamburger menu (Rerun/Settings/Deploy/About) and the toolbar --
+# this is the product, not a Streamlit dev environment, and the Deploy
+# button in particular makes no sense pointed at someone else's app.
+toolbarMode = "minimal"
+
 [theme]
 base = "light"
 primaryColor = "#28665f"
