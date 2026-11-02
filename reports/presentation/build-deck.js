@@ -658,15 +658,16 @@ s.addNotes(
   "--- What the recording shows, in order ---\n\n" +
   "0:00-0:10  The account menu is opened and a project created in it. Work is saved per account, which is also what full-text retrieval is gated on.\n\n" +
   "0:10-0:25  A plain research question is typed. The caption underneath names both models before anything runs, and the slider asks for ten papers.\n\n" +
-  "0:25-0:40  Screening. The bar counts papers, not model calls. Sped up and labelled on screen; fifty-seven seconds in real time, most of which is the ranking model loading on the first search after a restart.\n\n" +
+  "0:25-0:40  Screening. The bar counts papers, not model calls. Sped up and labelled on screen; twenty-two seconds in real time.\n\n" +
   "0:40-0:55  Fifty candidates ranked, ten suggested, seven addressing the question, five stating a gap, two where the models disagreed. The cost line splits by vendor, and the caveat says agreement measures consistency, not correctness.\n\n" +
   "0:55-1:05  The gap signal: where authors state a gap in their own abstract, their words are quoted back, closest to the question first.\n\n" +
-  "1:05-1:30  Two papers are picked and read in full. Europe PMC holds one of the two, and the page says so rather than hiding the miss: five of five fields verified, five tables, three figures, and the paper truncated at 82% with the percentage stated. Sped up and labelled; seventy-two seconds in real time.\n\n" +
-  "1:30-1:45  Export: one folder per paper with the PDF, categorised data, tables as CSV and figures. 2.4 MB in this run.\n\n" +
+  "1:05-1:30  Two papers are picked and read in full, and Europe PMC holds both. Five of five fields verified on the first, five tables, three figures, and the paper truncated at 82% with the percentage stated. The second is in the table as “check it yourself” with its result withheld, because its quote was not found — the verifier refusing a paper it did retrieve. Sped up and labelled; fifty-five seconds in real time.\n\n" +
+  "1:30-1:45  Export: one folder per paper with the PDF, categorised data, tables as CSV and figures. 3.6 MB in this run.\n\n" +
   "--- If asked ---\n\n" +
   "The speed-up: the three waits the tool really takes — screening, reading full text, packaging the export — are the only edits, each labelled on screen while it runs. Nothing else is cut, and the clip is otherwise real time.\n\n" +
   "The zero cost: that question had been asked before, so every answer came from the cache and the page says so outright. A priced run of the same size came to USD 0.0044, split USD 0.0006 ChatGPT and USD 0.0037 Gemini.\n\n" +
-  "The paper with no full text: Europe PMC holds open-access life-sciences literature, so coverage is partial by design. A miss is reported with its reason rather than dropped.\n\n" +
+  "The withheld paper: both papers were retrieved in full, and one still shows no result. Its supporting quote was not found in the text, so the field is withheld and the row reads “check it yourself” rather than guessing. That is the verifier doing its job on a paper the tool did have in hand.\n\n" +
+  "Europe PMC coverage: it holds open-access life-sciences literature, so a miss is possible by design and is reported with its reason rather than dropped. Both of these happened to be held.\n\n" +
   "The recording is driven by scratchpad/demo_full.py against the running app with both vendors live. It is not a mock-up."
 );
 
