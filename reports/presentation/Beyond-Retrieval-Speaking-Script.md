@@ -2,7 +2,7 @@
 
 **MSE907 Assessment 3** · Kavindu Pehesara Gunawardena · 270684416 · supervisor Dr Helena Bahrami
 
-14 slides. Planned runtime **14:58**: about 2259 spoken words at 140 words per minute, plus a 1:45 demo recording on slide 7. Text in square brackets is a cue, not something you say. The same script is in the speaker notes of the .pptx, so presenter view shows it slide by slide.
+14 slides. Planned runtime **14:58**: about 2390 spoken words at 140 words per minute, plus a 1:45 demo recording on slide 7. Text in square brackets is a cue, not something you say. The same script is in the speaker notes of the .pptx, so presenter view shows it slide by slide.
 
 If you run long, the first things to drop are the bracketed aside on slide 5 and the licensing sentence on slide 11. Slide 7 is your checkpoint: you should be starting the video at about 5:15.
 
@@ -23,7 +23,7 @@ If you run long, the first things to drop are the bracketed aside on slide 5 and
 | 11 | Ethical and legal ground | 9:55 | 10:54 | 138 |
 | 12 | Automation bias, and why a decision is withheld | 10:54 | 11:48 | 125 |
 | 13 | Bias and culture — one measured, one in the data | 11:48 | 13:37 | 254 |
-| 14 | A decision you can check | 13:37 | 14:58 | 190 |
+| 14 | A decision you can check | 13:37 | 14:58 | 321 |
 
 ---
 
@@ -226,4 +226,16 @@ And the comparison that does not flatter me: ASReview beats every retrieval stra
 So the contribution is not that a model can screen papers. It is that a researcher can check it. Every decision carries the sentence it rests on, or it is withheld. Every figure traces to a run directory with its commit hash. And the question nobody has answered yet gets a first, measured attempt — quoted in the words of the authors who asked it.
 
 Thank you. I am happy to take questions.
+
+--- Live demo, if asked ---
+
+It runs on this laptop, not on a server: no network, no cold start, nothing to go wrong in the room. Start both before the talk, not during it, and leave the browser tab open on the question page.
+
+  cd C:\Users\PC\Documents\BR
+  .venv\Scripts\python -m uvicorn slr.api.app:app --host 127.0.0.1 --port 8000
+  .venv\Scripts\python -m streamlit run app/Home.py --server.port 8501
+
+Then open http://127.0.0.1:8501 and sign in. Two things to know before standing up: the first search after starting loads the ranking model and takes about a minute, so run one throwaway question beforehand to warm it; and a question asked before will answer from cache in seconds, which is worth saying out loud rather than letting it look faster than it is.
+
+The repository link on this slide is clickable if someone wants the code.
 

@@ -51,6 +51,11 @@ const SKILL = process.env.SKILL;
 // away from being unbuildable. Regenerate fig1.png from the current commit
 // with: python scripts/report_figures.py && copy the architecture figure in.
 const FIGS = process.env.FIGS || path.join(__dirname, "figures");
+
+// The brand mark, from the one place it lives, rather than a copy that can
+// drift from the app's. The dark variant is the one the app shows on a dark
+// background, and the title and closing slides are both dark.
+const LOGO_DARK = path.join(__dirname, "..", "..", "assets", "branding", "logo-dark.png");
 const OUT = process.env.OUT;
 
 const { applyTheme } = require(path.join(SKILL, "scripts", "apply_theme.js"));
@@ -359,6 +364,10 @@ function heading(slide, text, o) {
 pres.addSection({ title: "Opening" });
 
 let s = pres.addSlide({ masterName: "TITLE_DARK", sectionTitle: "Opening" });
+// Above the title, which starts at y 2.05, so the two never meet. fit()
+// keeps the proportions off the file itself -- a logo stretched to a box is
+// the defect this deck was already caught on once.
+s.addImage(Object.assign({ path: LOGO_DARK, x: 0.9, y: 0.85 }, fit(LOGO_DARK, 2.9, 0.85)));
 s.addText("Beyond Retrieval", { placeholder: "title" });
 s.addText("An LLM-supported tool for literature discovery and research gap suggestion", { placeholder: "body" });
 s.addText(
@@ -996,6 +1005,9 @@ s.addNotes(
 pres.addSection({ title: "Close" });
 
 s = pres.addSlide({ masterName: "CLOSING_DARK", sectionTitle: "Close" });
+// Top right, opposite the title, which is short enough to leave that corner
+// free. This is the slide that stays up through questions.
+s.addImage(Object.assign({ path: LOGO_DARK, x: 10.0, y: 0.78 }, fit(LOGO_DARK, 2.4, 0.72)));
 s.addText("A decision you can check", { placeholder: "title" });
 
 body(s, "The contribution is not that a model can screen papers. It is that a researcher can audit every decision it made, trace every figure to the run that produced it, and see the question nobody has answered yet — quoted in the words of the authors who asked it.", {
@@ -1021,7 +1033,16 @@ body(s, [
   { text: "And ASReview still beats every retrieval strategy here, because it retrains on true labels as the reviewer works — the case for adaptive re-ranking.", options: { italic: true } },
 ], { x: 1.2, y: 5.38, w: 10.9, h: 0.65, fontSize: 11.5, color: C.background2 });
 
-s.addText(`github.com/KavinduPehesara/Beyond-Retrieval  ·  open licence  ·  101 run directories  ·  ${TESTS} tests`, {
+// Clickable, so the repository can be opened from the slide during
+// questions rather than typed out. The demo itself runs from localhost --
+// see this slide's notes -- which is why no server address is shown here:
+// an address only this laptop can reach is noise on a screen other people
+// are reading.
+s.addText([
+  { text: "github.com/KavinduPehesara/Beyond-Retrieval",
+    options: { hyperlink: { url: "https://github.com/KavinduPehesara/Beyond-Retrieval" } } },
+  { text: `  ·  open licence  ·  101 run directories  ·  ${TESTS} tests` },
+], {
   x: 0.9, y: 6.2, w: 11.5, h: 0.35, fontSize: 12, italic: true, color: C.accent2, isTextBox: true, margin: 0,
 });
 s.addText("Thank you — questions welcome", {
@@ -1034,7 +1055,14 @@ s.addNotes(
   "The usability exit test needs ethics approval and a participant. Until then the usability claim is withdrawn — not softened, withdrawn. The five thousand nine hundred failure classifications are automatic, and need a manual pass before I call them measured. Full-text extraction stays a demonstration. And the gap recall range supports a direction, not a number.\n\n" +
   "And the comparison that does not flatter me: ASReview beats every retrieval strategy I built, because it retrains on true labels as the reviewer works and mine rank once. That points straight at adaptive re-ranking, and it belongs in the report precisely because it is uncomfortable.\n\n" +
   "So the contribution is not that a model can screen papers. It is that a researcher can check it. Every decision carries the sentence it rests on, or it is withheld. Every figure traces to a run directory with its commit hash. And the question nobody has answered yet gets a first, measured attempt — quoted in the words of the authors who asked it.\n\n" +
-  "Thank you. I am happy to take questions."
+  "Thank you. I am happy to take questions.\n\n" +
+  "--- Live demo, if asked ---\n\n" +
+  "It runs on this laptop, not on a server: no network, no cold start, nothing to go wrong in the room. Start both before the talk, not during it, and leave the browser tab open on the question page.\n\n" +
+  "  cd C:\\Users\\PC\\Documents\\BR\n" +
+  "  .venv\\Scripts\\python -m uvicorn slr.api.app:app --host 127.0.0.1 --port 8000\n" +
+  "  .venv\\Scripts\\python -m streamlit run app/Home.py --server.port 8501\n\n" +
+  "Then open http://127.0.0.1:8501 and sign in. Two things to know before standing up: the first search after starting loads the ranking model and takes about a minute, so run one throwaway question beforehand to warm it; and a question asked before will answer from cache in seconds, which is worth saying out loud rather than letting it look faster than it is.\n\n" +
+  "The repository link on this slide is clickable if someone wants the code."
 );
 
 /* ------------------------------------------------------------------ write */
