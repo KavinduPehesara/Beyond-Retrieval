@@ -45,7 +45,12 @@ function spell(n) {
 const TESTS = testCount();
 
 const SKILL = process.env.SKILL;
-const FIGS = process.env.FIGS;
+// Beside the deck by default, so this rebuilds from a fresh clone with no
+// environment set. It used to point wherever FIGS happened to be, which was
+// a scratch directory outside the repository -- the deck was one cleanup
+// away from being unbuildable. Regenerate fig1.png from the current commit
+// with: python scripts/report_figures.py && copy the architecture figure in.
+const FIGS = process.env.FIGS || path.join(__dirname, "figures");
 const OUT = process.env.OUT;
 
 const { applyTheme } = require(path.join(SKILL, "scripts", "apply_theme.js"));
@@ -360,7 +365,7 @@ s.addText(
   [
     { text: "Kavindu Pehesara Gunawardena  ·  270684416", options: { breakLine: true, bold: true } },
     { text: "MSE907 Industry-based Capstone Research Project  ·  Assessment 3", options: { breakLine: true } },
-    { text: "Supervisor: Dr Helena Bahrami  ·  30 October 2026", options: { breakLine: true } },
+    { text: "Supervisor: Dr Helena Bahrami  ·  2 November 2026", options: { breakLine: true } },
     { text: "github.com/KavinduPehesara/Beyond-Retrieval", options: {} },
   ],
   { x: 0.92, y: 4.75, w: 7.6, h: 1.5, fontSize: 13, color: C.background2, isTextBox: true, margin: 0, lineSpacingMultiple: 1.25 }
@@ -496,7 +501,10 @@ const gaps = [
     status: "MEASURED",
     scolor: C.accent1,
     value: "USD 0.13",
-    label: "the entire two-vendor comparison; byte-identical metrics on repeat runs",
+    // Three models ran; two of them charged. Slide 14 says "three-model" of
+    // the same figure, so this says the same thing rather than inviting the
+    // question of which comparison the thirteen cents belongs to.
+    label: "the entire three-model comparison; byte-identical metrics on repeat runs",
     text: "Reported as two properties: what a run costs, and whether a stored configuration reproduces it exactly.",
   },
   {
@@ -893,7 +901,10 @@ body(s, "No confidence number is ever shown. A decision that cannot be substanti
   x: 0.95, y: 4.92, w: 6.9, h: 1.0, fontSize: 13,
 });
 stat(s, { x: 8.4, y: 4.45, w: 1.9, value: "69.2%", fontSize: 30, h: 0.5, label: "of 13 dispositions were human overrides" });
-stat(s, { x: 10.6, y: 4.45, w: 2.1, value: "13 / 13", fontSize: 30, h: 0.5, label: "of those overrides matched the recorded ground truth" });
+// 13 dispositions, of which 9 changed the model's call and 4 confirmed it;
+// all 13 match ground truth. "Those overrides" are the 9, so 13/13 had the
+// wrong subject -- it is every disposition that matches, not every override.
+stat(s, { x: 10.6, y: 4.45, w: 2.1, value: "13 / 13", fontSize: 30, h: 0.5, label: "of those dispositions matched the recorded ground truth" });
 
 s.addNotes(
   "[10:54 — 11:48]\n\n" +
